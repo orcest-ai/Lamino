@@ -35,6 +35,30 @@ Use the Dockerized version of AnythingLLM for a much faster and complete startup
 > It is best to mount the containers storage volume to a folder on your host machine
 > so that you can pull in future updates without deleting your existing data!
 
+## Enterprise quickstart (deployment-first)
+
+If you want to deploy first and then configure multi-user/team usage immediately, use the dedicated enterprise compose and bootstrap flow:
+
+```bash
+cd docker
+cp .env.enterprise.example .env.enterprise
+mkdir -p storage && touch storage/.env
+docker compose -f docker-compose.enterprise.yml up -d
+./bootstrap-enterprise.sh \
+  --base-url http://localhost:3001 \
+  --admin-username admin \
+  --admin-password "replace-this-password-now"
+```
+
+What this does:
+
+- boots AnythingLLM in Docker with persistent storage
+- waits for the API to become healthy
+- enables multi-user mode
+- creates the initial admin account
+
+After this completes, sign in with the provided admin credentials and continue setup at `http://localhost:3001`.
+
 Pull in the latest image from docker. Supports both `amd64` and `arm64` CPU architectures.
 
 ```shell

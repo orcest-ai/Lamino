@@ -1,0 +1,25 @@
+name: anythingllm-enterprise
+
+services:
+  anythingllm:
+    image: mintplexlabs/anythingllm:latest
+    container_name: anythingllm-enterprise
+    cap_add:
+      - SYS_ADMIN
+    env_file:
+      - .env.enterprise
+    ports:
+      - "3001:3001"
+    volumes:
+      - "${STORAGE_LOCATION:-./storage}:/app/server/storage"
+      - "${STORAGE_LOCATION:-./storage}/.env:/app/server/.env"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:3001/api/ping || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+      start_period: 40s
+    restart: unless-stopped
+
