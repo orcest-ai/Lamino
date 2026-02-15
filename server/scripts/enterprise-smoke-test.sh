@@ -478,4 +478,20 @@ if ! contains_text "$HTTP_BODY" "admin:write"; then
   exit 1
 fi
 
+request "POST" "/v1/admin/prompt-templates/new" "{\"name\":\"qa-template-denied-${RUN_ID}\",\"scope\":\"system\"}" "${ADMIN_READ_KEY}"
+assert_status "403" "admin:read key denied on prompt template create"
+if ! contains_text "$HTTP_BODY" "admin:write"; then
+  log "FAILED: missing admin:write scope denial for prompt template create."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/v1/admin/usage-policies/new" "{\"name\":\"qa-policy-denied-${RUN_ID}\",\"scope\":\"system\",\"rules\":{}}" "${ADMIN_READ_KEY}"
+assert_status "403" "admin:read key denied on usage policy create"
+if ! contains_text "$HTTP_BODY" "admin:write"; then
+  log "FAILED: missing admin:write scope denial for usage policy create."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Smoke test completed successfully."
