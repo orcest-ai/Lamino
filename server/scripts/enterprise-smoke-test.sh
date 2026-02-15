@@ -175,6 +175,9 @@ cleanup() {
   if [[ -n "${ADMIN_READ_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${EXPIRED_KEY_ID:-}" ]]; then
+    request "DELETE" "/admin/delete-api-key/${EXPIRED_KEY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${CHAT_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${CHAT_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -540,6 +543,30 @@ request "POST" "/v1/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-denied-
 assert_status "403" "admin:read key denied on api key update"
 if ! contains_text "$HTTP_BODY" "admin:write"; then
   log "FAILED: missing admin:write scope denial for api key update."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+log "Verifying expired API key is rejected"
+request "POST" "/admin/generate-api-key" "{\"name\":\"qa-expired-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"2000-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
+assert_status "200" "create expired admin key"
+EXPIRED_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
+EXPIRED_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
+request "GET" "/v1/admin/teams" "" "${EXPIRED_KEY}"
+assert_status "403" "expired key denied"
+if ! contains_text "$HTTP_BODY" "expired"; then
+  log "FAILED: expired key denial missing expected message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+log "Verifying revoked API key is rejected"
+request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"revokedAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
+assert_status "200" "revoke admin read key"
+request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
+assert_status "403" "revoked key denied"
+if ! contains_text "$HTTP_BODY" "revoked"; then
+  log "FAILED: revoked key denial missing expected message."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
