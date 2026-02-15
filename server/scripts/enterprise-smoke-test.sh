@@ -8,6 +8,7 @@ RUN_ID="${RUN_ID:-$(date +%s)}"
 
 HTTP_STATUS=""
 HTTP_BODY=""
+ADMIN_TOKEN=""
 
 log() {
   printf '[enterprise-smoke-test] %s\n' "$*"
@@ -94,6 +95,26 @@ process.stdout.write(String(curr));
 ' "$json" "$path"
 }
 
+json_get_or_empty() {
+  local json="$1"
+  local path="$2"
+  node -e '
+try {
+  const obj = JSON.parse(process.argv[1]);
+  const path = process.argv[2].split(".");
+  let curr = obj;
+  for (const segment of path) {
+    if (!segment) continue;
+    curr = curr?.[segment];
+  }
+  if (curr === undefined || curr === null) process.exit(2);
+  process.stdout.write(String(curr));
+} catch {
+  process.exit(2);
+}
+' "$json" "$path" 2>/dev/null || true
+}
+
 assert_status() {
   local expected="$1"
   local context="$2"
@@ -112,6 +133,12 @@ contains_text() {
 
 cleanup() {
   set +e
+  if [[ -n "${ADMIN_READ_KEY_ID:-}" ]]; then
+    request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
+  if [[ -n "${CHAT_KEY_ID:-}" ]]; then
+    request "DELETE" "/admin/delete-api-key/${CHAT_KEY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${POLICY_ID:-}" ]]; then
     request "DELETE" "/admin/usage-policies/${POLICY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -140,7 +167,27 @@ assert_status "200" "ping healthcheck"
 log "Logging in as admin user"
 request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
 assert_status "200" "admin login request"
-ADMIN_TOKEN="$(json_get "$HTTP_BODY" "token")"
+ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+
+if [[ -z "$ADMIN_TOKEN" ]]; then
+  log "Admin login unavailable, attempting multi-user bootstrap"
+  request "POST" "/system/enable-multi-user" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+  if [[ "$HTTP_STATUS" != "200" && "$HTTP_STATUS" != "400" ]]; then
+    log "FAILED: bootstrap multi-user mode (${HTTP_STATUS})"
+    log "Response: ${HTTP_BODY}"
+    exit 1
+  fi
+
+  request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+  assert_status "200" "admin login after bootstrap"
+  ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+fi
+
+if [[ -z "$ADMIN_TOKEN" ]]; then
+  log "FAILED: unable to obtain admin token."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 log "Creating smoke-test default user"
 request "POST" "/admin/users/new" "{\"username\":\"${USER_NAME}\",\"password\":\"TeamUser123!\",\"role\":\"default\"}" "${ADMIN_TOKEN}"
@@ -179,6 +226,7 @@ log "Creating workspace:chat scoped API key"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-chat-key-${RUN_ID}\",\"scopes\":[\"workspace:chat\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create scoped chat key"
 CHAT_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
+CHAT_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
 
 log "Asserting strict policy blocks long chat prompts"
 request "POST" "/v1/workspace/${WORKSPACE_SLUG}/chat" "{\"message\":\"this prompt is intentionally too long\",\"mode\":\"chat\"}" "${CHAT_KEY}"
@@ -193,6 +241,7 @@ log "Creating admin read-only API key"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-admin-read-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create admin read-only key"
 ADMIN_READ_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
+ADMIN_READ_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
 
 log "Verifying admin:read key can read teams"
 request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
