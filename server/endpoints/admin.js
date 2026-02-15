@@ -11,6 +11,8 @@ const { WorkspaceChats } = require("../models/workspaceChats");
 const { Team } = require("../models/team");
 const { TeamMember } = require("../models/teamMembers");
 const { TeamWorkspace } = require("../models/teamWorkspaces");
+const { PromptTemplate } = require("../models/promptTemplate");
+const { PromptTemplateVersion } = require("../models/promptTemplateVersion");
 const {
   getVectorDbClass,
   getEmbeddingEngineSelection,
@@ -51,6 +53,28 @@ function sanitizeIdArray(payload = []) {
   return payload
     .map((item) => Number(item))
     .filter((item) => !Number.isNaN(item) && item > 0);
+}
+
+async function promptTemplateAccessClause(user = null) {
+  if (!user?.id) return { scope: "system" };
+  if ([ROLES.admin, ROLES.manager].includes(user.role)) return {};
+
+  const memberships = await TeamMember.where({ userId: Number(user.id) });
+  const teamIds = memberships.map((membership) => membership.teamId);
+  return {
+    OR: [
+      { scope: "system" },
+      { createdBy: Number(user.id) },
+      ...(teamIds.length > 0
+        ? [
+            {
+              scope: "team",
+              teamId: { in: teamIds },
+            },
+          ]
+        : []),
+    ],
+  };
 }
 
 function adminEndpoints(app) {
@@ -636,6 +660,321 @@ function adminEndpoints(app) {
         });
       } catch (e) {
         console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/prompt-templates",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const clause = await promptTemplateAccessClause(user);
+        const templates = await PromptTemplate.whereWithVersions(
+          clause,
+          null,
+          [{ lastUpdatedAt: "desc" }]
+        );
+        response.status(200).json({ templates, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/prompt-templates/new",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const body = reqBody(request);
+        const { template, error } = await PromptTemplate.new({
+          name: body?.name,
+          description: body?.description,
+          scope: body?.scope || "system",
+          teamId: body?.teamId || null,
+          createdBy: user?.id,
+        });
+        if (!template) return response.status(200).json({ template: null, error });
+
+        if (body?.prompt) {
+          await PromptTemplateVersion.create({
+            templateId: template.id,
+            prompt: body.prompt,
+            changelog: body?.changelog || "Initial template version",
+            createdBy: user?.id,
+            approvedBy: body?.approved ? user?.id : null,
+          });
+        }
+
+        await EventLogs.logEvent(
+          "prompt_template_created",
+          {
+            templateName: template.name,
+            scope: template.scope,
+            createdBy: user?.username,
+          },
+          user?.id
+        );
+        const withVersions = await PromptTemplate.whereWithVersions({
+          id: template.id,
+        });
+        response.status(200).json({
+          template: withVersions?.[0] || template,
+          error: null,
+        });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/prompt-templates/:templateId",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { templateId } = request.params;
+        const clause = await promptTemplateAccessClause(user);
+        const existing = await PromptTemplate.get({
+          ...clause,
+          id: Number(templateId),
+        });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Prompt template not found.",
+          });
+        const { template, error } = await PromptTemplate.update(
+          Number(templateId),
+          reqBody(request)
+        );
+        response.status(200).json({
+          success: !!template,
+          template,
+          error,
+        });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.delete(
+    "/admin/prompt-templates/:templateId",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { templateId } = request.params;
+        const clause = await promptTemplateAccessClause(user);
+        const existing = await PromptTemplate.get({
+          ...clause,
+          id: Number(templateId),
+        });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Prompt template not found.",
+          });
+        await PromptTemplate.delete({ id: Number(templateId) });
+        response.status(200).json({ success: true, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/prompt-templates/:templateId/versions",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { templateId } = request.params;
+        const clause = await promptTemplateAccessClause(user);
+        const existing = await PromptTemplate.get({
+          ...clause,
+          id: Number(templateId),
+        });
+        if (!existing)
+          return response.status(404).json({
+            versions: [],
+            error: "Prompt template not found.",
+          });
+        const versions = await PromptTemplateVersion.forTemplate(
+          Number(templateId)
+        );
+        response.status(200).json({ versions, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/prompt-templates/:templateId/versions/new",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { templateId } = request.params;
+        const clause = await promptTemplateAccessClause(user);
+        const existing = await PromptTemplate.get({
+          ...clause,
+          id: Number(templateId),
+        });
+        if (!existing)
+          return response.status(404).json({
+            version: null,
+            error: "Prompt template not found.",
+          });
+        const body = reqBody(request);
+        const { version, error } = await PromptTemplateVersion.create({
+          templateId: Number(templateId),
+          prompt: body?.prompt,
+          changelog: body?.changelog || null,
+          createdBy: user?.id,
+          approvedBy: body?.approved ? user?.id : null,
+        });
+        if (!version) return response.status(200).json({ version: null, error });
+        if (body?.publish) {
+          await PromptTemplate.update(Number(templateId), { isPublished: true });
+        }
+        response.status(200).json({ version, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/prompt-templates/:templateId/versions/:versionId/approve",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { templateId, versionId } = request.params;
+        const clause = await promptTemplateAccessClause(user);
+        const existing = await PromptTemplate.get({
+          ...clause,
+          id: Number(templateId),
+        });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Prompt template not found.",
+          });
+        const version = await PromptTemplateVersion.get({
+          id: Number(versionId),
+          templateId: Number(templateId),
+        });
+        if (!version)
+          return response.status(404).json({
+            success: false,
+            error: "Template version not found.",
+          });
+        const { success, error } = await PromptTemplateVersion.approve(
+          Number(versionId),
+          user?.id
+        );
+        if (success) {
+          await PromptTemplate.update(Number(templateId), { isPublished: true });
+        }
+        response.status(200).json({ success, error });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/prompt-templates/:templateId/apply-to-workspace",
+    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { templateId } = request.params;
+        const body = reqBody(request);
+        const clause = await promptTemplateAccessClause(user);
+        const template = await PromptTemplate.get({
+          ...clause,
+          id: Number(templateId),
+        });
+        if (!template)
+          return response.status(404).json({
+            success: false,
+            error: "Prompt template not found.",
+          });
+
+        const workspace = await Workspace.get({ id: Number(body?.workspaceId) });
+        if (!workspace)
+          return response.status(404).json({
+            success: false,
+            error: "Workspace not found.",
+          });
+
+        const version =
+          (body?.versionId
+            ? await PromptTemplateVersion.get({
+                id: Number(body.versionId),
+                templateId: Number(templateId),
+              })
+            : null) ||
+          (body?.version
+            ? await PromptTemplateVersion.get({
+                templateId: Number(templateId),
+                version: Number(body.version),
+              })
+            : null) ||
+          (await PromptTemplateVersion.latestForTemplate(Number(templateId)));
+
+        if (!version)
+          return response.status(404).json({
+            success: false,
+            error: "No template version is available to apply.",
+          });
+
+        const previousWorkspace = { ...workspace };
+        const { workspace: updatedWorkspace, message: error } =
+          await Workspace.update(Number(workspace.id), {
+            openAiPrompt: version.prompt,
+          });
+        if (!updatedWorkspace)
+          return response.status(200).json({ success: false, error });
+
+        await Workspace.trackChange(previousWorkspace, updatedWorkspace, user);
+        await EventLogs.logEvent(
+          "workspace_prompt_template_applied",
+          {
+            workspace: workspace.slug,
+            template: template.slug,
+            templateVersion: version.version,
+            appliedBy: user?.username,
+          },
+          user?.id
+        );
+
+        response.status(200).json({
+          success: true,
+          error: null,
+          workspace: updatedWorkspace,
+          template,
+          version,
+        });
+      } catch (error) {
+        console.error(error);
         response.sendStatus(500).end();
       }
     }

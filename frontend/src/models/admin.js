@@ -252,6 +252,111 @@ const Admin = {
       });
   },
 
+  // Prompt Engineering
+  promptTemplates: async () => {
+    return await fetch(`${API_BASE}/admin/prompt-templates`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.templates || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newPromptTemplate: async (data = {}) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { template: null, error: e.message };
+      });
+  },
+  updatePromptTemplate: async (templateId, updates = {}) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/${templateId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(updates),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, template: null, error: e.message };
+      });
+  },
+  deletePromptTemplate: async (templateId) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/${templateId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  promptTemplateVersions: async (templateId) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/${templateId}/versions`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.versions || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newPromptTemplateVersion: async (templateId, data = {}) => {
+    return await fetch(
+      `${API_BASE}/admin/prompt-templates/${templateId}/versions/new`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+        body: JSON.stringify(data),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { version: null, error: e.message };
+      });
+  },
+  approvePromptTemplateVersion: async (templateId, versionId) => {
+    return await fetch(
+      `${API_BASE}/admin/prompt-templates/${templateId}/versions/${versionId}/approve`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  applyPromptTemplateToWorkspace: async (templateId, data = {}) => {
+    return await fetch(
+      `${API_BASE}/admin/prompt-templates/${templateId}/apply-to-workspace`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+        body: JSON.stringify(data),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+
   // System Preferences
   /**
    * Fetches system preferences by fields
