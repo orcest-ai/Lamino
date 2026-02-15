@@ -89,6 +89,53 @@ describe("UsageEvents model", () => {
     });
   });
 
+  it("loads usage events with related user/workspace/team context", async () => {
+    mockFindMany.mockResolvedValueOnce([
+      {
+        id: 12,
+        user: { id: 1, username: "admin", role: "admin" },
+        workspace: { id: 4, slug: "sales", name: "Sales" },
+      },
+    ]);
+    const result = await UsageEvents.withRelations(
+      { userId: 1 },
+      10,
+      { occurredAt: "desc" },
+      0
+    );
+
+    expect(result).toHaveLength(1);
+    expect(mockFindMany).toHaveBeenCalledWith({
+      where: { userId: 1 },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            role: true,
+          },
+        },
+        workspace: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+          },
+        },
+        team: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+          },
+        },
+      },
+      take: 10,
+      skip: 0,
+      orderBy: { occurredAt: "desc" },
+    });
+  });
+
   it("returns aggregate fallback values when prisma throws", async () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     mockAggregate.mockRejectedValueOnce(new Error("aggregation-failed"));
@@ -122,5 +169,18 @@ describe("UsageEvents model", () => {
     expect(grouped).toEqual([{ provider: "openai", _count: { id: 2 } }]);
     expect(count).toBe(4);
     expect(deleted).toBe(true);
+  });
+
+  it("returns safe defaults for list and delete operations on errors", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    mockFindMany.mockRejectedValueOnce(new Error("find-failed"));
+    mockDeleteMany.mockRejectedValueOnce(new Error("delete-failed"));
+
+    const rows = await UsageEvents.where({ teamId: 7 });
+    const deleted = await UsageEvents.delete({ teamId: 7 });
+
+    expect(rows).toEqual([]);
+    expect(deleted).toBe(false);
+    consoleSpy.mockRestore();
   });
 });
