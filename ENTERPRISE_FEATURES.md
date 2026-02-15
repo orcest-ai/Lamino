@@ -82,7 +82,8 @@ yarn test \
   server/__tests__/models/usageEvents.test.js \
   server/__tests__/models/apiKeys.enterprise.test.js \
   server/__tests__/utils/policies/chatPolicy.test.js \
-  server/__tests__/utils/middleware/featureGate.test.js
+  server/__tests__/utils/middleware/featureGate.test.js \
+  server/__tests__/utils/middleware/validApiKey.enterprise.test.js
 
 # frontend compile + route validation
 cd frontend && yarn build
