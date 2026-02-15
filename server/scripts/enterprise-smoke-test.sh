@@ -247,6 +247,24 @@ log "Verifying admin:read key can read teams"
 request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key teams list"
 
+log "Verifying admin:read key can fetch team detail endpoints"
+request "GET" "/v1/admin/teams/${TEAM_ID}" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key team detail"
+if ! contains_text "$HTTP_BODY" "$TEAM_NAME"; then
+  log "FAILED: team detail did not include expected team name."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "GET" "/v1/admin/teams/${TEAM_ID}/members" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key team members"
+
+request "GET" "/v1/admin/teams/${TEAM_ID}/workspaces" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key team workspaces"
+
+request "GET" "/v1/admin/teams/${TEAM_ID}/access-map" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key team access-map"
+
 log "Verifying admin:read key cannot perform admin write"
 request "POST" "/v1/admin/teams/new" "{\"name\":\"qa-should-fail-${RUN_ID}\"}" "${ADMIN_READ_KEY}"
 assert_status "403" "admin:read key denied on team create"
