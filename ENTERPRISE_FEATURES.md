@@ -99,6 +99,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
 # - enterprise_usage_monitoring gate disable/enable around /admin/usage/overview
+# - enterprise_prompt_library gate disable/enable around /admin/prompt-templates
 # - enterprise_usage_policies gate disable blocks /admin/usage-policies/new
 # - admin:read API key can read /v1/admin/usage/overview
 
