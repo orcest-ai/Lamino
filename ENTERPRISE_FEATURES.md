@@ -126,6 +126,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - prompt template lifecycle checks include create + apply-to-workspace + v1 versions-read validation
 # - usage overview checks include inverted `from/to` range handling on both session and /v1 admin routes
 # - prompt apply checks include post-apply workspace prompt verification and admin:read denial on v1 api-key update
+# - workspace:chat key denial checks include access attempts to admin-read routes (scope boundary validation)
 
 # convenience script aliases from repo root
 yarn test:enterprise
