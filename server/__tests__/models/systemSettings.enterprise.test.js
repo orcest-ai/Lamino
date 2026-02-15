@@ -71,4 +71,18 @@ describe("SystemSettings enterprise feature flags", () => {
     expect(flags.enterprise_prompt_library).toBe(false);
     expect(flags.experimental_live_file_sync).toBe(true);
   });
+
+  it("normalizes malformed feature_flags values safely", () => {
+    const normalizedFromGarbage = SystemSettings.validations.feature_flags(
+      "this-is-not-json"
+    );
+    const normalizedFromObject = SystemSettings.validations.feature_flags({
+      enterprise_teams: false,
+    });
+
+    expect(normalizedFromGarbage).toBe("{}");
+    expect(normalizedFromObject).toBe(
+      JSON.stringify({ enterprise_teams: false })
+    );
+  });
 });
