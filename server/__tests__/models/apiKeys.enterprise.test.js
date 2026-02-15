@@ -86,4 +86,20 @@ describe("API scope resolution from request path", () => {
     });
     expect(scope).toBe("admin:read");
   });
+
+  it("maps prompt template reads under admin path to admin:read", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/admin/prompt-templates",
+    });
+    expect(scope).toBe("admin:read");
+  });
+
+  it("maps usage policy reads under admin path to admin:read", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/admin/usage-policies",
+    });
+    expect(scope).toBe("admin:read");
+  });
 });
