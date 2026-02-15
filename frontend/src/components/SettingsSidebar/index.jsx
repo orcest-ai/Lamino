@@ -274,6 +274,11 @@ const SidebarOptions = ({ user = null, t }) => (
               roles: ["admin", "manager"],
             },
             {
+              btnText: "Teams",
+              href: paths.settings.teams(),
+              roles: ["admin", "manager"],
+            },
+            {
               hidden: !canViewChatHistory,
               btnText: t("settings.workspace-chats"),
               href: paths.settings.chats(),
@@ -283,6 +288,11 @@ const SidebarOptions = ({ user = null, t }) => (
             {
               btnText: t("settings.invites"),
               href: paths.settings.invites(),
+              roles: ["admin", "manager"],
+            },
+            {
+              btnText: "Prompt Engineering",
+              href: paths.settings.promptEngineering(),
               roles: ["admin", "manager"],
             },
             {
@@ -379,6 +389,18 @@ const SidebarOptions = ({ user = null, t }) => (
               href: paths.settings.systemPromptVariables(),
               flex: true,
               roles: ["admin"],
+            },
+            {
+              btnText: "Usage Monitoring",
+              href: paths.settings.usageMonitoring(),
+              flex: true,
+              roles: ["admin", "manager"],
+            },
+            {
+              btnText: "Usage Policies",
+              href: paths.settings.usagePolicies(),
+              flex: true,
+              roles: ["admin", "manager"],
             },
             {
               btnText: t("settings.browser-extension"),

@@ -88,13 +88,22 @@ export default function AdminApiKeys() {
                 <thead className="text-theme-text-secondary text-xs leading-[18px] font-bold uppercase border-white/10 border-b">
                   <tr>
                     <th scope="col" className="px-6 py-3 rounded-tl-lg">
-                      {t("api.table.key")}
+                      Key
                     </th>
                     <th scope="col" className="px-6 py-3">
-                      {t("api.table.by")}
+                      Scopes
                     </th>
                     <th scope="col" className="px-6 py-3">
-                      {t("api.table.created")}
+                      Created By
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Expires
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Status
+                    </th>
+                    <th scope="col" className="px-6 py-3">
+                      Created
                     </th>
                     <th scope="col" className="px-6 py-3 rounded-tr-lg">
                       {" "}
@@ -104,7 +113,7 @@ export default function AdminApiKeys() {
                 <tbody>
                   {apiKeys.length === 0 ? (
                     <tr className="bg-transparent text-theme-text-secondary text-sm font-medium">
-                      <td colSpan="4" className="px-6 py-4 text-center">
+                      <td colSpan="7" className="px-6 py-4 text-center">
                         No API keys found
                       </td>
                     </tr>
@@ -114,6 +123,7 @@ export default function AdminApiKeys() {
                         key={apiKey.id}
                         apiKey={apiKey}
                         removeApiKey={removeApiKey}
+                        reload={fetchExistingKeys}
                       />
                     ))
                   )}
