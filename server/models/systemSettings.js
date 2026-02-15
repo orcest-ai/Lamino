@@ -54,6 +54,11 @@ const SystemSettings = {
     "agent_sql_connections",
     "custom_app_name",
     "default_system_prompt",
+    "feature_flags",
+    "enterprise_teams",
+    "enterprise_prompt_library",
+    "enterprise_usage_monitoring",
+    "enterprise_usage_policies",
 
     // Meta page customization
     "meta_page_title",
@@ -66,6 +71,18 @@ const SystemSettings = {
     "hub_api_key",
   ],
   validations: {
+    feature_flags: (updates) => {
+      try {
+        if (!updates) return JSON.stringify({});
+        if (typeof updates === "string")
+          return JSON.stringify(safeJsonParse(updates, {}));
+        if (typeof updates === "object") return JSON.stringify(updates);
+        return JSON.stringify({});
+      } catch (e) {
+        console.error(`Failed to run validation function on feature_flags`);
+        return JSON.stringify({});
+      }
+    },
     footer_data: (updates) => {
       try {
         const array = JSON.parse(updates)
@@ -718,6 +735,9 @@ const SystemSettings = {
     return connections;
   },
   getFeatureFlags: async function () {
+    const featureFlagsSetting =
+      await SystemSettings.get({ label: "feature_flags" });
+    const parsedFeatureFlags = safeJsonParse(featureFlagsSetting?.value, {});
     const enterpriseTeams =
       await SystemSettings.get({ label: "enterprise_teams" });
     const enterprisePromptLibrary =
@@ -730,22 +750,23 @@ const SystemSettings = {
       experimental_live_file_sync:
         (await SystemSettings.get({ label: "experimental_live_file_sync" }))
           ?.value === "enabled",
+      ...parsedFeatureFlags,
       enterprise_teams:
         enterpriseTeams?.value
           ? enterpriseTeams.value === "enabled"
-          : true,
+          : parsedFeatureFlags?.enterprise_teams ?? true,
       enterprise_prompt_library:
         enterprisePromptLibrary?.value
           ? enterprisePromptLibrary.value === "enabled"
-          : true,
+          : parsedFeatureFlags?.enterprise_prompt_library ?? true,
       enterprise_usage_monitoring:
         enterpriseUsageMonitoring?.value
           ? enterpriseUsageMonitoring.value === "enabled"
-          : true,
+          : parsedFeatureFlags?.enterprise_usage_monitoring ?? true,
       enterprise_usage_policies:
         enterpriseUsagePolicies?.value
           ? enterpriseUsagePolicies.value === "enabled"
-          : true,
+          : parsedFeatureFlags?.enterprise_usage_policies ?? true,
     };
   },
 
