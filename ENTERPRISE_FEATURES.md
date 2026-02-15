@@ -125,6 +125,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - admin:read key denial checks include write attempts to team, prompt-template, and usage-policy create routes
 # - prompt template lifecycle checks include create + apply-to-workspace + v1 versions-read validation
 # - usage overview checks include inverted `from/to` range handling on both session and /v1 admin routes
+# - prompt apply checks include post-apply workspace prompt verification and admin:read denial on v1 api-key update
 
 # convenience script aliases from repo root
 yarn test:enterprise
