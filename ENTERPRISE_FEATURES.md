@@ -83,4 +83,7 @@ cd frontend && yarn build
 
 # regenerate OpenAPI spec
 cd server && yarn swagger
+
+# full enterprise API smoke test (requires running server)
+cd server && ./scripts/enterprise-smoke-test.sh
 ```
