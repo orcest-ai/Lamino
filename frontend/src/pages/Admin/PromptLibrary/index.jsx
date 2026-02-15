@@ -9,6 +9,7 @@ import ModalWrapper from "@/components/ModalWrapper";
 import CTAButton from "@/components/lib/CTAButton";
 import { useModal } from "@/hooks/useModal";
 import showToast from "@/utils/toast";
+import useEnterpriseFeatureFlags from "@/hooks/useEnterpriseFeatureFlags";
 
 export default function AdminPromptLibrary() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -16,6 +17,8 @@ export default function AdminPromptLibrary() {
   const [templates, setTemplates] = useState([]);
   const [teams, setTeams] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
+  const { loading: featureLoading, isEnabled } = useEnterpriseFeatureFlags();
+  const promptLibraryEnabled = isEnabled("enterprise_prompt_library");
 
   const loadData = async () => {
     setLoading(true);
@@ -31,8 +34,13 @@ export default function AdminPromptLibrary() {
   };
 
   useEffect(() => {
+    if (featureLoading) return;
+    if (!promptLibraryEnabled) {
+      setLoading(false);
+      return;
+    }
     loadData();
-  }, []);
+  }, [featureLoading, promptLibraryEnabled]);
 
   const onDelete = async (template) => {
     if (!window.confirm(`Delete template "${template.name}"?`)) return;
@@ -117,16 +125,18 @@ export default function AdminPromptLibrary() {
               workspace system prompts.
             </p>
           </div>
-          <div className="w-full justify-end flex">
-            <CTAButton
-              onClick={openModal}
-              className="mt-3 mr-0 mb-4 md:-mb-14 z-10"
-            >
-              <TextT className="h-4 w-4" weight="bold" /> New Template
-            </CTAButton>
-          </div>
+          {promptLibraryEnabled && (
+            <div className="w-full justify-end flex">
+              <CTAButton
+                onClick={openModal}
+                className="mt-3 mr-0 mb-4 md:-mb-14 z-10"
+              >
+                <TextT className="h-4 w-4" weight="bold" /> New Template
+              </CTAButton>
+            </div>
+          )}
           <div className="overflow-x-auto mt-6">
-            {loading ? (
+            {featureLoading || loading ? (
               <Skeleton.default
                 height="80vh"
                 width="100%"
@@ -136,6 +146,10 @@ export default function AdminPromptLibrary() {
                 className="w-full p-4 rounded-b-2xl rounded-tr-2xl rounded-tl-sm"
                 containerClassName="flex w-full"
               />
+            ) : !promptLibraryEnabled ? (
+              <div className="rounded-lg border border-white/10 bg-theme-settings-input-bg px-4 py-5 text-theme-text-secondary text-sm">
+                Prompt library is disabled by feature flag.
+              </div>
             ) : (
               <table className="w-full text-xs text-left rounded-lg min-w-[820px] border-spacing-0">
                 <thead className="text-theme-text-secondary text-xs leading-[18px] font-bold uppercase border-white/10 border-b">
@@ -220,13 +234,15 @@ export default function AdminPromptLibrary() {
           </div>
         </div>
       </div>
-      <ModalWrapper isOpen={isOpen}>
-        <NewTemplateModal
-          teams={teams}
-          closeModal={closeModal}
-          reload={loadData}
-        />
-      </ModalWrapper>
+      {promptLibraryEnabled && (
+        <ModalWrapper isOpen={isOpen}>
+          <NewTemplateModal
+            teams={teams}
+            closeModal={closeModal}
+            reload={loadData}
+          />
+        </ModalWrapper>
+      )}
     </div>
   );
 }

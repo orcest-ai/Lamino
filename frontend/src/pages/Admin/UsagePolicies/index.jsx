@@ -9,6 +9,7 @@ import ModalWrapper from "@/components/ModalWrapper";
 import CTAButton from "@/components/lib/CTAButton";
 import { useModal } from "@/hooks/useModal";
 import showToast from "@/utils/toast";
+import useEnterpriseFeatureFlags from "@/hooks/useEnterpriseFeatureFlags";
 
 export default function AdminUsagePolicies() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -24,6 +25,8 @@ export default function AdminUsagePolicies() {
     teamIds: "",
   });
   const [previewRules, setPreviewRules] = useState(null);
+  const { loading: featureLoading, isEnabled } = useEnterpriseFeatureFlags();
+  const usagePoliciesEnabled = isEnabled("enterprise_usage_policies");
 
   const loadData = async () => {
     setLoading(true);
@@ -42,8 +45,13 @@ export default function AdminUsagePolicies() {
   };
 
   useEffect(() => {
+    if (featureLoading) return;
+    if (!usagePoliciesEnabled) {
+      setLoading(false);
+      return;
+    }
     loadData();
-  }, []);
+  }, [featureLoading, usagePoliciesEnabled]);
 
   const onCreate = () => {
     setActivePolicy(null);
@@ -122,69 +130,74 @@ export default function AdminUsagePolicies() {
               and daily limits.
             </p>
           </div>
-          <div className="w-full justify-end flex">
-            <CTAButton
-              onClick={onCreate}
-              className="mt-3 mr-0 mb-4 md:-mb-14 z-10"
-            >
-              <ShieldCheck className="h-4 w-4" weight="bold" /> New Policy
-            </CTAButton>
-          </div>
+          {usagePoliciesEnabled && (
+            <div className="w-full justify-end flex">
+              <CTAButton
+                onClick={onCreate}
+                className="mt-3 mr-0 mb-4 md:-mb-14 z-10"
+              >
+                <ShieldCheck className="h-4 w-4" weight="bold" /> New Policy
+              </CTAButton>
+            </div>
+          )}
 
-          <section className="rounded-lg border border-white/10 p-4 mt-6">
-            <p className="text-sm text-theme-text-primary font-semibold">
-              Effective Policy Preview
-            </p>
-            <p className="text-xs text-theme-text-secondary mt-1">
-              Resolve merged rules for a user/workspace/team scope combination.
-            </p>
-            <div className="grid md:grid-cols-3 gap-3 mt-3">
-              <input
-                placeholder="userId"
-                value={previewInput.userId}
-                onChange={(e) =>
-                  setPreviewInput((prev) => ({
-                    ...prev,
-                    userId: e.target.value,
-                  }))
-                }
-                className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
-              />
-              <input
-                placeholder="workspaceId"
-                value={previewInput.workspaceId}
-                onChange={(e) =>
-                  setPreviewInput((prev) => ({
-                    ...prev,
-                    workspaceId: e.target.value,
-                  }))
-                }
-                className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
-              />
-              <input
-                placeholder="teamIds comma-separated"
-                value={previewInput.teamIds}
-                onChange={(e) =>
-                  setPreviewInput((prev) => ({
-                    ...prev,
-                    teamIds: e.target.value,
-                  }))
-                }
-                className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
-              />
-            </div>
-            <div className="mt-3">
-              <CTAButton onClick={previewEffective}>Resolve Policy</CTAButton>
-            </div>
-            {previewRules && (
-              <pre className="mt-3 p-3 rounded bg-black/30 text-xs text-theme-text-primary overflow-auto">
-                {JSON.stringify(previewRules.rules || {}, null, 2)}
-              </pre>
-            )}
-          </section>
+          {usagePoliciesEnabled && (
+            <section className="rounded-lg border border-white/10 p-4 mt-6">
+              <p className="text-sm text-theme-text-primary font-semibold">
+                Effective Policy Preview
+              </p>
+              <p className="text-xs text-theme-text-secondary mt-1">
+                Resolve merged rules for a user/workspace/team scope
+                combination.
+              </p>
+              <div className="grid md:grid-cols-3 gap-3 mt-3">
+                <input
+                  placeholder="userId"
+                  value={previewInput.userId}
+                  onChange={(e) =>
+                    setPreviewInput((prev) => ({
+                      ...prev,
+                      userId: e.target.value,
+                    }))
+                  }
+                  className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
+                />
+                <input
+                  placeholder="workspaceId"
+                  value={previewInput.workspaceId}
+                  onChange={(e) =>
+                    setPreviewInput((prev) => ({
+                      ...prev,
+                      workspaceId: e.target.value,
+                    }))
+                  }
+                  className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
+                />
+                <input
+                  placeholder="teamIds comma-separated"
+                  value={previewInput.teamIds}
+                  onChange={(e) =>
+                    setPreviewInput((prev) => ({
+                      ...prev,
+                      teamIds: e.target.value,
+                    }))
+                  }
+                  className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
+                />
+              </div>
+              <div className="mt-3">
+                <CTAButton onClick={previewEffective}>Resolve Policy</CTAButton>
+              </div>
+              {previewRules && (
+                <pre className="mt-3 p-3 rounded bg-black/30 text-xs text-theme-text-primary overflow-auto">
+                  {JSON.stringify(previewRules.rules || {}, null, 2)}
+                </pre>
+              )}
+            </section>
+          )}
 
           <div className="overflow-x-auto mt-6">
-            {loading ? (
+            {featureLoading || loading ? (
               <Skeleton.default
                 height="60vh"
                 width="100%"
@@ -194,6 +207,10 @@ export default function AdminUsagePolicies() {
                 className="w-full p-4 rounded-b-2xl rounded-tr-2xl rounded-tl-sm"
                 containerClassName="flex w-full"
               />
+            ) : !usagePoliciesEnabled ? (
+              <div className="rounded-lg border border-white/10 bg-theme-settings-input-bg px-4 py-5 text-theme-text-secondary text-sm">
+                Usage policies are disabled by feature flag.
+              </div>
             ) : (
               <table className="w-full text-xs text-left rounded-lg min-w-[900px] border-spacing-0">
                 <thead className="text-theme-text-secondary text-xs leading-[18px] font-bold uppercase border-white/10 border-b">
@@ -273,16 +290,18 @@ export default function AdminUsagePolicies() {
           </div>
         </div>
       </div>
-      <ModalWrapper isOpen={isOpen}>
-        <UsagePolicyModal
-          policy={activePolicy}
-          teams={teams}
-          users={users}
-          workspaces={workspaces}
-          closeModal={closeModal}
-          reload={loadData}
-        />
-      </ModalWrapper>
+      {usagePoliciesEnabled && (
+        <ModalWrapper isOpen={isOpen}>
+          <UsagePolicyModal
+            policy={activePolicy}
+            teams={teams}
+            users={users}
+            workspaces={workspaces}
+            closeModal={closeModal}
+            reload={loadData}
+          />
+        </ModalWrapper>
+      )}
     </div>
   );
 }

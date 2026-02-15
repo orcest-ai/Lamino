@@ -6,6 +6,7 @@ import "react-loading-skeleton/dist/skeleton.css";
 import Admin from "@/models/admin";
 import CTAButton from "@/components/lib/CTAButton";
 import showToast from "@/utils/toast";
+import useEnterpriseFeatureFlags from "@/hooks/useEnterpriseFeatureFlags";
 
 const BREAKDOWN_OPTIONS = [
   "eventType",
@@ -24,6 +25,8 @@ export default function AdminUsageMonitoring() {
   const [overview, setOverview] = useState(null);
   const [series, setSeries] = useState([]);
   const [breakdown, setBreakdown] = useState([]);
+  const { loading: featureLoading, isEnabled } = useEnterpriseFeatureFlags();
+  const usageMonitoringEnabled = isEnabled("enterprise_usage_monitoring");
 
   const query = useMemo(() => ({ days }), [days]);
 
@@ -41,8 +44,13 @@ export default function AdminUsageMonitoring() {
   };
 
   useEffect(() => {
+    if (featureLoading) return;
+    if (!usageMonitoringEnabled) {
+      setLoading(false);
+      return;
+    }
     loadData();
-  }, [days, breakdownBy]);
+  }, [days, breakdownBy, featureLoading, usageMonitoringEnabled]);
 
   const exportCsv = async () => {
     const csv = await Admin.usageExportCsv(query);
@@ -82,41 +90,43 @@ export default function AdminUsageMonitoring() {
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-4 items-end py-4">
-            <div>
-              <label className="text-theme-text-secondary text-xs block mb-1">
-                Time Window (days)
-              </label>
-              <input
-                type="number"
-                min={1}
-                max={365}
-                value={days}
-                onChange={(e) => setDays(Number(e.target.value || 30))}
-                className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-32 p-2.5"
-              />
+          {usageMonitoringEnabled && (
+            <div className="flex flex-wrap gap-4 items-end py-4">
+              <div>
+                <label className="text-theme-text-secondary text-xs block mb-1">
+                  Time Window (days)
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={365}
+                  value={days}
+                  onChange={(e) => setDays(Number(e.target.value || 30))}
+                  className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-32 p-2.5"
+                />
+              </div>
+              <div>
+                <label className="text-theme-text-secondary text-xs block mb-1">
+                  Breakdown By
+                </label>
+                <select
+                  value={breakdownBy}
+                  onChange={(e) => setBreakdownBy(e.target.value)}
+                  className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-48 p-2.5"
+                >
+                  {BREAKDOWN_OPTIONS.map((field) => (
+                    <option key={field} value={field}>
+                      {field}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <CTAButton onClick={loadData}>Refresh</CTAButton>
+              <CTAButton onClick={exportCsv}>Export CSV</CTAButton>
             </div>
-            <div>
-              <label className="text-theme-text-secondary text-xs block mb-1">
-                Breakdown By
-              </label>
-              <select
-                value={breakdownBy}
-                onChange={(e) => setBreakdownBy(e.target.value)}
-                className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-48 p-2.5"
-              >
-                {BREAKDOWN_OPTIONS.map((field) => (
-                  <option key={field} value={field}>
-                    {field}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <CTAButton onClick={loadData}>Refresh</CTAButton>
-            <CTAButton onClick={exportCsv}>Export CSV</CTAButton>
-          </div>
+          )}
 
-          {loading ? (
+          {featureLoading || loading ? (
             <Skeleton.default
               height="60vh"
               width="100%"
@@ -126,6 +136,10 @@ export default function AdminUsageMonitoring() {
               className="w-full p-4 rounded-b-2xl rounded-tr-2xl rounded-tl-sm mt-2"
               containerClassName="flex w-full"
             />
+          ) : !usageMonitoringEnabled ? (
+            <div className="rounded-lg border border-white/10 bg-theme-settings-input-bg px-4 py-5 text-theme-text-secondary text-sm mt-2">
+              Usage monitoring is disabled by feature flag.
+            </div>
           ) : (
             <div className="space-y-6 pb-12">
               <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

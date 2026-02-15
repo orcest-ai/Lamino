@@ -9,6 +9,7 @@ import ModalWrapper from "@/components/ModalWrapper";
 import CTAButton from "@/components/lib/CTAButton";
 import { useModal } from "@/hooks/useModal";
 import showToast from "@/utils/toast";
+import useEnterpriseFeatureFlags from "@/hooks/useEnterpriseFeatureFlags";
 
 export default function AdminTeams() {
   const { isOpen, openModal, closeModal } = useModal();
@@ -17,6 +18,8 @@ export default function AdminTeams() {
   const [users, setUsers] = useState([]);
   const [workspaces, setWorkspaces] = useState([]);
   const [activeTeam, setActiveTeam] = useState(null);
+  const { loading: featureLoading, isEnabled } = useEnterpriseFeatureFlags();
+  const teamsEnabled = isEnabled("enterprise_teams");
 
   const loadData = async () => {
     setLoading(true);
@@ -32,8 +35,13 @@ export default function AdminTeams() {
   };
 
   useEffect(() => {
+    if (featureLoading) return;
+    if (!teamsEnabled) {
+      setLoading(false);
+      return;
+    }
     loadData();
-  }, []);
+  }, [featureLoading, teamsEnabled]);
 
   const onCreate = () => {
     setActiveTeam(null);
@@ -79,16 +87,18 @@ export default function AdminTeams() {
               Group users into teams and grant workspace access by team.
             </p>
           </div>
-          <div className="w-full justify-end flex">
-            <CTAButton
-              onClick={onCreate}
-              className="mt-3 mr-0 mb-4 md:-mb-14 z-10"
-            >
-              <UsersThree className="h-4 w-4" weight="bold" /> New Team
-            </CTAButton>
-          </div>
+          {teamsEnabled && (
+            <div className="w-full justify-end flex">
+              <CTAButton
+                onClick={onCreate}
+                className="mt-3 mr-0 mb-4 md:-mb-14 z-10"
+              >
+                <UsersThree className="h-4 w-4" weight="bold" /> New Team
+              </CTAButton>
+            </div>
+          )}
           <div className="overflow-x-auto mt-6">
-            {loading ? (
+            {featureLoading || loading ? (
               <Skeleton.default
                 height="80vh"
                 width="100%"
@@ -98,6 +108,10 @@ export default function AdminTeams() {
                 className="w-full p-4 rounded-b-2xl rounded-tr-2xl rounded-tl-sm"
                 containerClassName="flex w-full"
               />
+            ) : !teamsEnabled ? (
+              <div className="rounded-lg border border-white/10 bg-theme-settings-input-bg px-4 py-5 text-theme-text-secondary text-sm">
+                Team management is disabled by feature flag.
+              </div>
             ) : (
               <table className="w-full text-xs text-left rounded-lg min-w-[700px] border-spacing-0">
                 <thead className="text-theme-text-secondary text-xs leading-[18px] font-bold uppercase border-white/10 border-b">
@@ -162,15 +176,17 @@ export default function AdminTeams() {
           </div>
         </div>
       </div>
-      <ModalWrapper isOpen={isOpen}>
-        <TeamModal
-          team={activeTeam}
-          users={users}
-          workspaces={workspaces}
-          closeModal={closeModal}
-          reload={loadData}
-        />
-      </ModalWrapper>
+      {teamsEnabled && (
+        <ModalWrapper isOpen={isOpen}>
+          <TeamModal
+            team={activeTeam}
+            users={users}
+            workspaces={workspaces}
+            closeModal={closeModal}
+            reload={loadData}
+          />
+        </ModalWrapper>
+      )}
     </div>
   );
 }
