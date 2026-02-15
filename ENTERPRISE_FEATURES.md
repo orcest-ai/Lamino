@@ -122,6 +122,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - admin:read API key can read /v1/admin/usage/overview
 # - admin:read API key can read /v1/admin/prompt-templates and /v1/admin/usage-policies
 # - usage monitoring checks include timeseries, breakdown, and CSV export on both session and /v1 admin routes
+# - usage dashboard freshness checks verify filtered overview totals increase after probe event insertion
 # - usage breakdown validation checks include invalid `by` field rejection on both session and /v1 admin routes
 # - admin:read key denial checks include write attempts to team, prompt-template, and usage-policy create routes
 # - prompt template lifecycle checks include create + apply-to-workspace + v1 versions-read validation
