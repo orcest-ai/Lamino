@@ -86,4 +86,8 @@ cd server && yarn swagger
 
 # full enterprise API smoke test (requires running server)
 cd server && ./scripts/enterprise-smoke-test.sh
+
+# convenience script aliases from repo root
+yarn test:enterprise
+yarn smoke:enterprise
 ```
