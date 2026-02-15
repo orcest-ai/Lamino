@@ -148,7 +148,7 @@ contains_text() {
 cleanup() {
   set +e
   if [[ -n "${ADMIN_TOKEN:-}" ]]; then
-    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\",\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN:-}"
+    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_prompt_library\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\",\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN:-}"
   fi
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
@@ -302,6 +302,22 @@ if ! contains_text "$HTTP_BODY" "summary"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+
+log "Verifying prompt library feature gate denies template routes when disabled"
+request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_prompt_library flag"
+request "GET" "/admin/prompt-templates" "" "${ADMIN_TOKEN}"
+assert_status "403" "prompt templates blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_prompt_library"; then
+  log "FAILED: disabled feature response missing enterprise_prompt_library marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_prompt_library flag"
+request "GET" "/admin/prompt-templates" "" "${ADMIN_TOKEN}"
+assert_status "200" "prompt templates restored when feature enabled"
 
 log "Verifying usage policy feature gate denies policy routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${ADMIN_TOKEN}"
