@@ -102,6 +102,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - enterprise_prompt_library gate disable/enable around /admin/prompt-templates
 # - enterprise_usage_policies gate disable blocks /admin/usage-policies/new
 # - admin:read API key can read /v1/admin/usage/overview
+# - admin:read API key can read /v1/admin/prompt-templates and /v1/admin/usage-policies
 
 # convenience script aliases from repo root
 yarn test:enterprise
