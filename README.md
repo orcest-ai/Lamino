@@ -85,6 +85,8 @@ This repository now includes an additive enterprise feature layer designed for b
   - `enterprise_usage_monitoring`
   - `enterprise_usage_policies`
 
+See [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md) for endpoint mapping, migration notes, and validation commands.
+
 ### Supported LLMs, Embedder Models, Speech models, and Vector Databases
 
 **Large Language Models (LLMs):**
