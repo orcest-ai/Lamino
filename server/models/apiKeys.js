@@ -51,6 +51,18 @@ const ApiKey = {
     return !this.isRevoked(apiKey) && !this.isExpired(apiKey);
   },
 
+  parseNullableDate: function (field = "date", value = null) {
+    if (value === null || value === undefined || value === "")
+      return { date: null, error: null };
+    const parsed = new Date(value);
+    if (!Number.isFinite(parsed.getTime()))
+      return {
+        date: null,
+        error: `Invalid ${field} datetime.`,
+      };
+    return { date: parsed, error: null };
+  },
+
   create: async function (payload = {}) {
     const normalizedPayload =
       payload && typeof payload === "object"
@@ -60,6 +72,8 @@ const ApiKey = {
     const name = normalizedPayload?.name || null;
     const scopes = normalizedPayload?.scopes || [this.defaultScope];
     const expiresAt = normalizedPayload?.expiresAt || null;
+    const parsedExpiry = this.parseNullableDate("expiresAt", expiresAt);
+    if (parsedExpiry.error) return { apiKey: null, error: parsedExpiry.error };
     try {
       const apiKey = await prisma.api_keys.create({
         data: {
@@ -67,7 +81,7 @@ const ApiKey = {
           createdBy,
           name: name ? String(name).slice(0, 255) : null,
           scopes: this.normalizeScopes(scopes).join(","),
-          expiresAt: expiresAt ? new Date(expiresAt) : null,
+          expiresAt: parsedExpiry.date,
         },
       });
 
@@ -101,10 +115,14 @@ const ApiKey = {
           updates.scopes = this.normalizeScopes(value).join(",");
           break;
         case "expiresAt":
-          updates.expiresAt = value ? new Date(value) : null;
+          const parsedExpiry = this.parseNullableDate("expiresAt", value);
+          if (parsedExpiry.error) return { apiKey: null, error: parsedExpiry.error };
+          updates.expiresAt = parsedExpiry.date;
           break;
         case "revokedAt":
-          updates.revokedAt = value ? new Date(value) : null;
+          const parsedRevoked = this.parseNullableDate("revokedAt", value);
+          if (parsedRevoked.error) return { apiKey: null, error: parsedRevoked.error };
+          updates.revokedAt = parsedRevoked.date;
           break;
         default:
           break;

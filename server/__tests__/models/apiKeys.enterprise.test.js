@@ -1,11 +1,18 @@
+const mockCreate = jest.fn();
+const mockFindFirst = jest.fn();
+const mockUpdate = jest.fn();
+const mockCount = jest.fn();
+const mockDeleteMany = jest.fn();
+const mockFindMany = jest.fn();
+
 jest.mock("../../utils/prisma", () => ({
   api_keys: {
-    create: jest.fn(),
-    findFirst: jest.fn(),
-    update: jest.fn(),
-    count: jest.fn(),
-    deleteMany: jest.fn(),
-    findMany: jest.fn(),
+    create: (...args) => mockCreate(...args),
+    findFirst: (...args) => mockFindFirst(...args),
+    update: (...args) => mockUpdate(...args),
+    count: (...args) => mockCount(...args),
+    deleteMany: (...args) => mockDeleteMany(...args),
+    findMany: (...args) => mockFindMany(...args),
   },
 }));
 
@@ -15,6 +22,10 @@ const {
 } = require("../../utils/middleware/validApiKey");
 
 describe("Enterprise API key helpers", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("normalizes, de-duplicates, and parses scopes", () => {
     expect(ApiKey.normalizeScopes("admin:read, admin:read, workspace:chat")).toEqual([
       "admin:read",
@@ -46,6 +57,35 @@ describe("Enterprise API key helpers", () => {
     expect(ApiKey.isUsable(malformed)).toBe(false);
     expect(ApiKey.isUsable(revoked)).toBe(false);
     expect(ApiKey.isUsable(active)).toBe(true);
+  });
+
+  it("rejects malformed expiresAt payloads before writes", async () => {
+    const created = await ApiKey.create({
+      createdBy: 1,
+      scopes: ["admin:read"],
+      expiresAt: "not-a-date",
+    });
+    expect(created).toEqual({
+      apiKey: null,
+      error: "Invalid expiresAt datetime.",
+    });
+    expect(mockCreate).not.toHaveBeenCalled();
+
+    const updatedExpiry = await ApiKey.update(1, { expiresAt: "bad-expiry" });
+    expect(updatedExpiry).toEqual({
+      apiKey: null,
+      error: "Invalid expiresAt datetime.",
+    });
+    expect(mockUpdate).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed revokedAt update payloads before writes", async () => {
+    const updated = await ApiKey.update(1, { revokedAt: "bad-revoked-at" });
+    expect(updated).toEqual({
+      apiKey: null,
+      error: "Invalid revokedAt datetime.",
+    });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 });
 
