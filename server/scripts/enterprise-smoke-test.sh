@@ -145,6 +145,22 @@ contains_text() {
   [[ "$text" == *"$needle"* ]]
 }
 
+wait_for_api() {
+  local attempts="${1:-30}"
+  local delay_seconds="${2:-1}"
+  local i
+  for ((i = 1; i <= attempts; i++)); do
+    if curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
+      HTTP_STATUS="200"
+      HTTP_BODY=""
+      return 0
+    fi
+    sleep "$delay_seconds"
+  done
+  request "GET" "/ping"
+  return 1
+}
+
 cleanup() {
   set +e
   if [[ -n "${ADMIN_TOKEN:-}" ]]; then
@@ -186,8 +202,11 @@ USER_NAME="qa-user-${RUN_ID}"
 MANAGER_USER_NAME="qa-manager-${RUN_ID}"
 
 log "Checking API reachability at ${BASE_URL}"
-request "GET" "/ping"
-assert_status "200" "ping healthcheck"
+if ! wait_for_api 60 1; then
+  log "FAILED: API did not become ready at ${BASE_URL}/ping"
+  log "Last status=${HTTP_STATUS} body=${HTTP_BODY}"
+  exit 1
+fi
 
 log "Logging in as admin user"
 request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
