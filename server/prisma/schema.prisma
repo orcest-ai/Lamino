@@ -19,8 +19,13 @@ model api_keys {
   id            Int      @id @default(autoincrement())
   secret        String?  @unique
   createdBy     Int?
+  name          String?
+  scopes        String?
+  expiresAt     DateTime?
+  revokedAt     DateTime?
   createdAt     DateTime @default(now())
   lastUpdatedAt DateTime @default(now())
+  usage_events  usage_events[] @relation("usage_event_api_key")
 }
 
 model workspace_documents {
@@ -85,6 +90,14 @@ model users {
   prompt_history               prompt_history[]
   desktop_mobile_devices       desktop_mobile_devices[]
   workspace_parsed_files       workspace_parsed_files[]
+  team_memberships             team_members[]               @relation("team_member_user")
+  created_teams                teams[]                      @relation("team_creator")
+  created_prompt_templates     prompt_templates[]           @relation("prompt_template_creator")
+  created_prompt_template_versions prompt_template_versions[] @relation("prompt_template_version_creator")
+  approved_prompt_template_versions prompt_template_versions[] @relation("prompt_template_version_approver")
+  usage_events                 usage_events[]               @relation("usage_event_user")
+  created_usage_policies       usage_policies[]             @relation("usage_policy_creator")
+  assigned_usage_policies      usage_policies[]             @relation("usage_policy_user")
 }
 
 model recovery_codes {
@@ -153,6 +166,153 @@ model workspaces {
   workspace_agent_invocations  workspace_agent_invocations[]
   prompt_history               prompt_history[]
   workspace_parsed_files       workspace_parsed_files[]
+  team_workspaces              team_workspaces[]
+  usage_events                 usage_events[]               @relation("usage_event_workspace")
+  usage_policies               usage_policies[]             @relation("usage_policy_workspace")
+}
+
+model teams {
+  id            Int              @id @default(autoincrement())
+  name          String
+  slug          String           @unique
+  description   String?
+  createdBy     Int?
+  createdAt     DateTime         @default(now())
+  lastUpdatedAt DateTime         @default(now())
+  creator       users?           @relation("team_creator", fields: [createdBy], references: [id], onDelete: SetNull)
+  members       team_members[]
+  workspaces    team_workspaces[]
+  prompt_templates prompt_templates[]
+  usage_events  usage_events[]   @relation("usage_event_team")
+  usage_policies usage_policies[] @relation("usage_policy_team")
+
+  @@index([createdBy])
+}
+
+model team_members {
+  id            Int      @id @default(autoincrement())
+  teamId        Int
+  userId        Int
+  role          String   @default("member")
+  createdAt     DateTime @default(now())
+  lastUpdatedAt DateTime @default(now())
+  team          teams    @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user          users    @relation("team_member_user", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, userId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model team_workspaces {
+  id            Int       @id @default(autoincrement())
+  teamId        Int
+  workspaceId   Int
+  createdAt     DateTime  @default(now())
+  lastUpdatedAt DateTime  @default(now())
+  team          teams     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  workspace     workspaces @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([teamId, workspaceId])
+  @@index([teamId])
+  @@index([workspaceId])
+}
+
+model prompt_templates {
+  id            Int                      @id @default(autoincrement())
+  uuid          String                   @unique
+  name          String
+  slug          String
+  description   String?
+  scope         String                   @default("system") // system, team, user
+  teamId        Int?
+  createdBy     Int?
+  isPublished   Boolean                  @default(false)
+  createdAt     DateTime                 @default(now())
+  lastUpdatedAt DateTime                 @default(now())
+  team          teams?                   @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  creator       users?                   @relation("prompt_template_creator", fields: [createdBy], references: [id], onDelete: SetNull)
+  versions      prompt_template_versions[]
+
+  @@unique([teamId, slug])
+  @@index([teamId])
+  @@index([createdBy])
+}
+
+model prompt_template_versions {
+  id            Int              @id @default(autoincrement())
+  templateId    Int
+  version       Int              @default(1)
+  prompt        String
+  changelog     String?
+  createdBy     Int?
+  approvedBy    Int?
+  createdAt     DateTime         @default(now())
+  template      prompt_templates @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  creator       users?           @relation("prompt_template_version_creator", fields: [createdBy], references: [id], onDelete: SetNull)
+  approver      users?           @relation("prompt_template_version_approver", fields: [approvedBy], references: [id], onDelete: SetNull)
+
+  @@unique([templateId, version])
+  @@index([templateId])
+  @@index([createdBy])
+  @@index([approvedBy])
+}
+
+model usage_events {
+  id               Int        @id @default(autoincrement())
+  eventType        String     @default("chat_completion")
+  userId           Int?
+  workspaceId      Int?
+  teamId           Int?
+  apiKeyId         Int?
+  chatId           Int?
+  threadId         Int?
+  provider         String?
+  model            String?
+  mode             String?
+  promptTokens     Int        @default(0)
+  completionTokens Int        @default(0)
+  totalTokens      Int        @default(0)
+  durationMs       Int?
+  metadata         String?
+  occurredAt       DateTime   @default(now())
+  user             users?     @relation("usage_event_user", fields: [userId], references: [id], onDelete: SetNull)
+  workspace        workspaces? @relation("usage_event_workspace", fields: [workspaceId], references: [id], onDelete: SetNull)
+  team             teams?     @relation("usage_event_team", fields: [teamId], references: [id], onDelete: SetNull)
+  apiKey           api_keys?  @relation("usage_event_api_key", fields: [apiKeyId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([occurredAt])
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([teamId])
+  @@index([apiKeyId])
+}
+
+model usage_policies {
+  id            Int        @id @default(autoincrement())
+  name          String
+  description   String?
+  enabled       Boolean    @default(true)
+  scope         String     @default("system") // system, team, workspace, user
+  teamId        Int?
+  workspaceId   Int?
+  userId        Int?
+  priority      Int        @default(100)
+  rules         String     @default("{}")
+  createdBy     Int?
+  createdAt     DateTime   @default(now())
+  lastUpdatedAt DateTime   @default(now())
+  team          teams?     @relation("usage_policy_team", fields: [teamId], references: [id], onDelete: SetNull)
+  workspace     workspaces? @relation("usage_policy_workspace", fields: [workspaceId], references: [id], onDelete: SetNull)
+  user          users?     @relation("usage_policy_user", fields: [userId], references: [id], onDelete: SetNull)
+  creator       users?     @relation("usage_policy_creator", fields: [createdBy], references: [id], onDelete: SetNull)
+
+  @@index([scope])
+  @@index([teamId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([createdBy])
 }
 
 model workspace_threads {
