@@ -928,6 +928,130 @@ function apiAdminEndpoints(app) {
   );
 
   app.get(
+    "/v1/admin/teams/:teamId",
+    [validApiKey, requireFeature("enterprise_teams")],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const team = await Team.get({ id: Number(teamId) });
+        if (!team)
+          return response.status(404).json({
+            team: null,
+            error: "Team not found.",
+          });
+        const members = await TeamMember.whereWithUser({ teamId: Number(teamId) });
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: Number(teamId),
+        });
+        response.status(200).json({
+          team: {
+            ...team,
+            members,
+            workspaces,
+            userIds: members.map((member) => member.userId),
+            workspaceIds: workspaces.map((workspace) => workspace.workspaceId),
+          },
+          error: null,
+        });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/v1/admin/teams/:teamId/members",
+    [validApiKey, requireFeature("enterprise_teams")],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({
+            members: [],
+            error: "Team not found.",
+          });
+        const members = await TeamMember.whereWithUser({ teamId: Number(teamId) });
+        response.status(200).json({ members, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/v1/admin/teams/:teamId/workspaces",
+    [validApiKey, requireFeature("enterprise_teams")],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({
+            workspaces: [],
+            error: "Team not found.",
+          });
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: Number(teamId),
+        });
+        response.status(200).json({ workspaces, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/v1/admin/teams/:teamId/access-map",
+    [validApiKey, requireFeature("enterprise_teams")],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const team = await Team.get({ id: Number(teamId) });
+        if (!team)
+          return response.status(404).json({
+            map: null,
+            error: "Team not found.",
+          });
+        const members = await TeamMember.whereWithUser({ teamId: Number(teamId) });
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: Number(teamId),
+        });
+        response.status(200).json({
+          map: {
+            team,
+            members,
+            workspaces,
+          },
+          error: null,
+        });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
     "/v1/admin/prompt-templates",
     [validApiKey, requireFeature("enterprise_prompt_library")],
     async (_request, response) => {
