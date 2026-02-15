@@ -366,6 +366,12 @@ assert_status "200" "admin:read key teams list"
 request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage overview"
 
+request "GET" "/v1/admin/prompt-templates" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key prompt templates list"
+
+request "GET" "/v1/admin/usage-policies" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key usage policies list"
+
 log "Verifying admin:read key can fetch team detail endpoints"
 request "GET" "/v1/admin/teams/${TEAM_ID}" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key team detail"
