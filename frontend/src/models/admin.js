@@ -155,6 +155,103 @@ const Admin = {
       });
   },
 
+  // Team Management
+  teams: async () => {
+    return await fetch(`${API_BASE}/admin/teams`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.teams || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  team: async (teamId) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.team || null)
+      .catch((e) => {
+        console.error(e);
+        return null;
+      });
+  },
+  newTeam: async (data = {}) => {
+    return await fetch(`${API_BASE}/admin/teams/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { team: null, error: e.message };
+      });
+  },
+  updateTeam: async (teamId, data = {}) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, team: null, error: e.message };
+      });
+  },
+  deleteTeam: async (teamId) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  updateTeamMembers: async (teamId, members = []) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}/update-members`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify({ members }),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  updateTeamWorkspaces: async (teamId, workspaceIds = []) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}/update-workspaces`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify({ workspaceIds }),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  teamAccessMap: async (teamId) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}/access-map`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.map || null)
+      .catch((e) => {
+        console.error(e);
+        return null;
+      });
+  },
+
   // System Preferences
   /**
    * Fetches system preferences by fields
@@ -205,10 +302,15 @@ const Admin = {
         return { apiKeys: [], error: e.message };
       });
   },
-  generateApiKey: async function () {
+  generateApiKey: async function ({
+    name = null,
+    scopes = ["*"],
+    expiresAt = null,
+  } = {}) {
     return fetch(`${API_BASE}/admin/generate-api-key`, {
       method: "POST",
       headers: baseHeaders(),
+      body: JSON.stringify({ name, scopes, expiresAt }),
     })
       .then((res) => {
         if (!res.ok) {
@@ -219,6 +321,18 @@ const Admin = {
       .catch((e) => {
         console.error(e);
         return { apiKey: null, error: e.message };
+      });
+  },
+  updateApiKey: async function (apiKeyId = "", updates = {}) {
+    return fetch(`${API_BASE}/admin/api-keys/${apiKeyId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(updates),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, apiKey: null, error: e.message };
       });
   },
   deleteApiKey: async function (apiKeyId = "") {

@@ -3,7 +3,7 @@ const prisma = require("../utils/prisma");
 const ApiKey = {
   tablename: "api_keys",
   writable: ["name", "scopes", "expiresAt", "revokedAt"],
-  defaultScope: "workspace:chat",
+  defaultScope: "*",
 
   makeSecret: () => {
     const uuidAPIKey = require("uuid-apikey");
@@ -12,10 +12,14 @@ const ApiKey = {
 
   normalizeScopes: function (scopes = []) {
     if (typeof scopes === "string")
-      return scopes
-        .split(",")
-        .map((scope) => scope.trim())
-        .filter(Boolean);
+      return [
+        ...new Set(
+          scopes
+            .split(",")
+            .map((scope) => scope.trim())
+            .filter(Boolean)
+        ),
+      ];
     if (!Array.isArray(scopes)) return [this.defaultScope];
     const normalized = scopes.map((scope) => String(scope).trim()).filter(Boolean);
     return normalized.length > 0 ? [...new Set(normalized)] : [this.defaultScope];

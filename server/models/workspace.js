@@ -35,6 +35,34 @@ function isNullOrNaN(value) {
 const Workspace = {
   defaultPrompt: SystemSettings.saneDefaultSystemPrompt,
 
+  membershipClauseForUser: function (user = null) {
+    if (!user?.id) return {};
+    return {
+      OR: [
+        {
+          workspace_users: {
+            some: {
+              user_id: Number(user.id),
+            },
+          },
+        },
+        {
+          team_workspaces: {
+            some: {
+              team: {
+                members: {
+                  some: {
+                    userId: Number(user.id),
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+  },
+
   // Used for generic updates so we can validate keys in request body
   // commented fields are not writable, but are available on the db object
   writable: [
@@ -274,11 +302,7 @@ const Workspace = {
       const workspace = await prisma.workspaces.findFirst({
         where: {
           ...clause,
-          workspace_users: {
-            some: {
-              user_id: user?.id,
-            },
-          },
+          ...this.membershipClauseForUser(user),
         },
         include: {
           workspace_users: true,
@@ -400,11 +424,7 @@ const Workspace = {
       const workspaces = await prisma.workspaces.findMany({
         where: {
           ...clause,
-          workspace_users: {
-            some: {
-              user_id: user.id,
-            },
-          },
+          ...this.membershipClauseForUser(user),
         },
         ...(limit !== null ? { take: limit } : {}),
         ...(orderBy !== null ? { orderBy } : {}),

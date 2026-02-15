@@ -8,6 +8,9 @@ const { User } = require("../models/user");
 const { DocumentVectors } = require("../models/vectors");
 const { Workspace } = require("../models/workspace");
 const { WorkspaceChats } = require("../models/workspaceChats");
+const { Team } = require("../models/team");
+const { TeamMember } = require("../models/teamMembers");
+const { TeamWorkspace } = require("../models/teamWorkspaces");
 const {
   getVectorDbClass,
   getEmbeddingEngineSelection,
@@ -28,6 +31,27 @@ const ImportedPlugin = require("../utils/agents/imported");
 const {
   simpleSSOLoginDisabledMiddleware,
 } = require("../utils/middleware/simpleSSOEnabled");
+
+function sanitizeMemberPayload(payload = [], fallbackRole = "member") {
+  if (!Array.isArray(payload)) return [];
+  const members = [];
+  for (const member of payload) {
+    const userId = Number(member?.userId || member?.id || member);
+    if (!userId || Number.isNaN(userId)) continue;
+    members.push({
+      userId,
+      role: member?.role || fallbackRole,
+    });
+  }
+  return members;
+}
+
+function sanitizeIdArray(payload = []) {
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .map((item) => Number(item))
+    .filter((item) => !Number.isNaN(item) && item > 0);
+}
 
 function adminEndpoints(app) {
   if (!app) return;
@@ -319,6 +343,304 @@ function adminEndpoints(app) {
     }
   );
 
+  app.get(
+    "/admin/teams",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (_request, response) => {
+      try {
+        const teams = await Team.where({}, null, { createdAt: "desc" });
+        const teamsWithMappings = [];
+
+        for (const team of teams) {
+          const members = await TeamMember.whereWithUser({ teamId: team.id });
+          const workspaces = await TeamWorkspace.whereWithWorkspace({
+            teamId: team.id,
+          });
+          teamsWithMappings.push({
+            ...team,
+            members,
+            workspaces,
+            userIds: members.map((member) => member.userId),
+            workspaceIds: workspaces.map((workspace) => workspace.workspaceId),
+          });
+        }
+        response.status(200).json({ teams: teamsWithMappings, error: null });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/teams/:teamId",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { teamId } = request.params;
+        const team = await Team.get({ id: Number(teamId) });
+        if (!team) return response.status(404).json({ team: null, error: "Team not found." });
+        const members = await TeamMember.whereWithUser({ teamId: Number(teamId) });
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: Number(teamId),
+        });
+        response.status(200).json({
+          team: {
+            ...team,
+            members,
+            workspaces,
+            userIds: members.map((member) => member.userId),
+            workspaceIds: workspaces.map((workspace) => workspace.workspaceId),
+          },
+          error: null,
+        });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/teams/new",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const body = reqBody(request);
+        const { team, error } = await Team.new({
+          name: body?.name,
+          description: body?.description,
+          createdBy: user?.id,
+        });
+        if (!team) return response.status(200).json({ team: null, error });
+
+        let members = sanitizeMemberPayload(body?.members || body?.userIds || []);
+        if (members.length === 0 && user?.id) {
+          members = [{ userId: user.id, role: "owner" }];
+        }
+        for (const member of members) {
+          await TeamMember.upsert({ teamId: team.id, ...member });
+        }
+
+        const workspaceIds = sanitizeIdArray(body?.workspaceIds || []);
+        if (workspaceIds.length > 0) {
+          await TeamWorkspace.createManyWorkspaces({
+            teamId: team.id,
+            workspaceIds,
+          });
+        }
+
+        await EventLogs.logEvent(
+          "team_created",
+          {
+            teamName: team.name,
+            createdBy: user?.username,
+          },
+          user?.id
+        );
+
+        const teamMembers = await TeamMember.whereWithUser({ teamId: team.id });
+        const teamWorkspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: team.id,
+        });
+        response.status(200).json({
+          team: {
+            ...team,
+            members: teamMembers,
+            workspaces: teamWorkspaces,
+            userIds: teamMembers.map((member) => member.userId),
+            workspaceIds: teamWorkspaces.map(
+              (workspace) => workspace.workspaceId
+            ),
+          },
+          error: null,
+        });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/teams/:teamId",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({ success: false, error: "Team not found." });
+        const { team, error } = await Team.update(teamId, reqBody(request));
+        response.status(200).json({ success: !!team, team, error });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.delete(
+    "/admin/teams/:teamId",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({ success: false, error: "Team not found." });
+        await Team.delete({ id: Number(teamId) });
+        await EventLogs.logEvent(
+          "team_deleted",
+          {
+            teamName: existing.name,
+            deletedBy: user?.username,
+          },
+          user?.id
+        );
+        response.status(200).json({ success: true, error: null });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/teams/:teamId/members",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { teamId } = request.params;
+        const members = await TeamMember.whereWithUser({ teamId: Number(teamId) });
+        response.status(200).json({ members, error: null });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/teams/:teamId/update-members",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({ success: false, error: "Team not found." });
+        const body = reqBody(request);
+        const members = sanitizeMemberPayload(body?.members || body?.userIds || []);
+        await TeamMember.delete({ teamId: Number(teamId) });
+        for (const member of members) {
+          await TeamMember.upsert({
+            teamId: Number(teamId),
+            userId: member.userId,
+            role: member.role || "member",
+          });
+        }
+        await EventLogs.logEvent(
+          "team_members_updated",
+          {
+            teamName: existing.name,
+            memberCount: members.length,
+            updatedBy: user?.username,
+          },
+          user?.id
+        );
+        response.status(200).json({ success: true, error: null });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/teams/:teamId/workspaces",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { teamId } = request.params;
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: Number(teamId),
+        });
+        response.status(200).json({ workspaces, error: null });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/teams/:teamId/update-workspaces",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({ success: false, error: "Team not found." });
+        const body = reqBody(request);
+        const workspaceIds = sanitizeIdArray(body?.workspaceIds || []);
+        await TeamWorkspace.delete({ teamId: Number(teamId) });
+        if (workspaceIds.length > 0) {
+          await TeamWorkspace.createManyWorkspaces({
+            teamId: Number(teamId),
+            workspaceIds,
+          });
+        }
+        await EventLogs.logEvent(
+          "team_workspaces_updated",
+          {
+            teamName: existing.name,
+            workspaceCount: workspaceIds.length,
+            updatedBy: user?.username,
+          },
+          user?.id
+        );
+        response.status(200).json({ success: true, error: null });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/teams/:teamId/access-map",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { teamId } = request.params;
+        const team = await Team.get({ id: Number(teamId) });
+        if (!team)
+          return response.status(404).json({ map: null, error: "Team not found." });
+        const members = await TeamMember.whereWithUser({ teamId: Number(teamId) });
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: Number(teamId),
+        });
+        response.status(200).json({
+          map: {
+            team,
+            members,
+            workspaces,
+          },
+          error: null,
+        });
+      } catch (e) {
+        console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
   // System preferences but only by array of labels
   app.get(
     "/admin/system-preferences-for",
@@ -456,7 +778,13 @@ function adminEndpoints(app) {
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
-        const { apiKey, error } = await ApiKey.create(user.id);
+        const body = reqBody(request);
+        const { apiKey, error } = await ApiKey.create({
+          createdBy: user.id,
+          name: body?.name || null,
+          scopes: body?.scopes || [ApiKey.defaultScope],
+          expiresAt: body?.expiresAt || null,
+        });
         await EventLogs.logEvent(
           "api_key_created",
           { createdBy: user?.username },
@@ -469,6 +797,35 @@ function adminEndpoints(app) {
       } catch (e) {
         console.error(e);
         response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/api-keys/:id",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin])],
+    async (request, response) => {
+      try {
+        const { id } = request.params;
+        if (!id || Number.isNaN(Number(id)))
+          return response.status(400).json({
+            success: false,
+            error: "Invalid API key id.",
+          });
+        const updates = reqBody(request);
+        const { apiKey, error } = await ApiKey.update(Number(id), updates);
+        return response.status(200).json({
+          success: !!apiKey,
+          apiKey,
+          error,
+        });
+      } catch (error) {
+        console.error(error);
+        response.status(500).json({
+          success: false,
+          apiKey: null,
+          error: "Could not update API key.",
+        });
       }
     }
   );

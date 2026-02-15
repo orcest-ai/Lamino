@@ -5,9 +5,33 @@ const { User } = require("../../../models/user");
 const { Workspace } = require("../../../models/workspace");
 const { WorkspaceChats } = require("../../../models/workspaceChats");
 const { WorkspaceUser } = require("../../../models/workspaceUsers");
+const { Team } = require("../../../models/team");
+const { TeamMember } = require("../../../models/teamMembers");
+const { TeamWorkspace } = require("../../../models/teamWorkspaces");
 const { canModifyAdmin } = require("../../../utils/helpers/admin");
 const { multiUserMode, reqBody } = require("../../../utils/http");
 const { validApiKey } = require("../../../utils/middleware/validApiKey");
+
+function sanitizeMemberPayload(payload = [], fallbackRole = "member") {
+  if (!Array.isArray(payload)) return [];
+  const members = [];
+  for (const member of payload) {
+    const userId = Number(member?.userId || member?.id || member);
+    if (!userId || Number.isNaN(userId)) continue;
+    members.push({
+      userId,
+      role: member?.role || fallbackRole,
+    });
+  }
+  return members;
+}
+
+function sanitizeIdArray(payload = []) {
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .map((item) => Number(item))
+    .filter((item) => !Number.isNaN(item) && item > 0);
+}
 
 function apiAdminEndpoints(app) {
   if (!app) return;
@@ -654,6 +678,187 @@ function apiAdminEndpoints(app) {
         });
       } catch (e) {
         console.error(e);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get("/v1/admin/teams", [validApiKey], async (_request, response) => {
+    try {
+      if (!multiUserMode(response)) {
+        response.sendStatus(401).end();
+        return;
+      }
+      const teams = await Team.where({}, null, { createdAt: "desc" });
+      const teamsWithMappings = [];
+      for (const team of teams) {
+        const members = await TeamMember.whereWithUser({ teamId: team.id });
+        const workspaces = await TeamWorkspace.whereWithWorkspace({
+          teamId: team.id,
+        });
+        teamsWithMappings.push({
+          ...team,
+          members,
+          workspaces,
+          userIds: members.map((member) => member.userId),
+          workspaceIds: workspaces.map((workspace) => workspace.workspaceId),
+        });
+      }
+      response.status(200).json({ teams: teamsWithMappings, error: null });
+    } catch (error) {
+      console.error(error);
+      response.sendStatus(500).end();
+    }
+  });
+
+  app.post("/v1/admin/teams/new", [validApiKey], async (request, response) => {
+    try {
+      if (!multiUserMode(response)) {
+        response.sendStatus(401).end();
+        return;
+      }
+      const body = reqBody(request);
+      const { team, error } = await Team.new({
+        name: body?.name,
+        description: body?.description,
+        createdBy: response.locals?.apiKey?.createdBy || null,
+      });
+      if (!team) return response.status(200).json({ team: null, error });
+
+      const members = sanitizeMemberPayload(body?.members || body?.userIds || []);
+      for (const member of members) {
+        await TeamMember.upsert({ teamId: team.id, ...member });
+      }
+
+      const workspaceIds = sanitizeIdArray(body?.workspaceIds || []);
+      if (workspaceIds.length > 0) {
+        await TeamWorkspace.createManyWorkspaces({
+          teamId: team.id,
+          workspaceIds,
+        });
+      }
+
+      response.status(200).json({ team, error: null });
+    } catch (error) {
+      console.error(error);
+      response.sendStatus(500).end();
+    }
+  });
+
+  app.post(
+    "/v1/admin/teams/:teamId",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Team not found.",
+          });
+        const { team, error } = await Team.update(teamId, reqBody(request));
+        response.status(200).json({ success: !!team, team, error });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.delete(
+    "/v1/admin/teams/:teamId",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Team not found.",
+          });
+        await Team.delete({ id: Number(teamId) });
+        response.status(200).json({ success: true, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/v1/admin/teams/:teamId/update-members",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Team not found.",
+          });
+        const body = reqBody(request);
+        const members = sanitizeMemberPayload(
+          body?.members || body?.userIds || []
+        );
+        await TeamMember.delete({ teamId: Number(teamId) });
+        for (const member of members) {
+          await TeamMember.upsert({
+            teamId: Number(teamId),
+            userId: member.userId,
+            role: member.role || "member",
+          });
+        }
+        response.status(200).json({ success: true, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/v1/admin/teams/:teamId/update-workspaces",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { teamId } = request.params;
+        const existing = await Team.get({ id: Number(teamId) });
+        if (!existing)
+          return response.status(404).json({
+            success: false,
+            error: "Team not found.",
+          });
+        const body = reqBody(request);
+        const workspaceIds = sanitizeIdArray(body?.workspaceIds || []);
+        await TeamWorkspace.delete({ teamId: Number(teamId) });
+        if (workspaceIds.length > 0) {
+          await TeamWorkspace.createManyWorkspaces({
+            teamId: Number(teamId),
+            workspaceIds,
+          });
+        }
+        response.status(200).json({ success: true, error: null });
+      } catch (error) {
+        console.error(error);
         response.sendStatus(500).end();
       }
     }
