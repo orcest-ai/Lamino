@@ -119,6 +119,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - usage monitoring checks include timeseries, breakdown, and CSV export on both session and /v1 admin routes
 # - usage breakdown validation checks include invalid `by` field rejection on both session and /v1 admin routes
 # - admin:read key denial checks include write attempts to team, prompt-template, and usage-policy create routes
+# - prompt template lifecycle checks include create + apply-to-workspace + v1 versions-read validation
 
 # convenience script aliases from repo root
 yarn test:enterprise
