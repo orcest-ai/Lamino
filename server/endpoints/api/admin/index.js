@@ -12,6 +12,10 @@ const { PromptTemplate } = require("../../../models/promptTemplate");
 const { PromptTemplateVersion } = require("../../../models/promptTemplateVersion");
 const { UsageEvents } = require("../../../models/usageEvents");
 const { UsagePolicies } = require("../../../models/usagePolicies");
+const {
+  usageBaseClause,
+  timeSeriesBucket,
+} = require("../../../utils/helpers/usageFilters");
 const { canModifyAdmin } = require("../../../utils/helpers/admin");
 const { multiUserMode, reqBody } = require("../../../utils/http");
 const { validApiKey } = require("../../../utils/middleware/validApiKey");
@@ -56,38 +60,6 @@ async function promptTemplateAccessClause(createdBy = null) {
         : []),
     ],
   };
-}
-
-function usageTimeRange(query = {}) {
-  const days = Number(query?.days || 30);
-  const to = query?.to ? new Date(query.to) : new Date();
-  const from = query?.from
-    ? new Date(query.from)
-    : new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
-  return { from, to };
-}
-
-function usageBaseClause(query = {}) {
-  const { from, to } = usageTimeRange(query);
-  const clause = {
-    occurredAt: {
-      gte: from,
-      lte: to,
-    },
-  };
-  if (query?.userId) clause.userId = Number(query.userId);
-  if (query?.workspaceId) clause.workspaceId = Number(query.workspaceId);
-  if (query?.teamId) clause.teamId = Number(query.teamId);
-  if (query?.eventType) clause.eventType = String(query.eventType);
-  if (query?.provider) clause.provider = String(query.provider);
-  if (query?.model) clause.model = String(query.model);
-  return clause;
-}
-
-function timeSeriesBucket(date = new Date(), interval = "day") {
-  const iso = new Date(date).toISOString();
-  if (interval === "hour") return iso.slice(0, 13) + ":00";
-  return iso.slice(0, 10);
 }
 
 function apiAdminEndpoints(app) {
