@@ -148,7 +148,7 @@ contains_text() {
 cleanup() {
   set +e
   if [[ -n "${ADMIN_TOKEN:-}" ]]; then
-    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${ADMIN_TOKEN:-}"
+    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\"}" "${ADMIN_TOKEN:-}"
   fi
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
@@ -282,6 +282,27 @@ assert_status "200" "re-enable enterprise_teams flag"
 request "GET" "/admin/teams" "" "${ADMIN_TOKEN}"
 assert_status "200" "team list restored when feature enabled"
 
+log "Verifying usage monitoring feature gate denies overview route when disabled"
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_monitoring\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_usage_monitoring flag"
+request "GET" "/admin/usage/overview" "" "${ADMIN_TOKEN}"
+assert_status "403" "usage overview blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_usage_monitoring"; then
+  log "FAILED: disabled feature response missing enterprise_usage_monitoring marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_monitoring\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_usage_monitoring flag"
+request "GET" "/admin/usage/overview" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage overview restored when feature enabled"
+if ! contains_text "$HTTP_BODY" "summary"; then
+  log "FAILED: usage overview response missing summary payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Creating strict prompt-length usage policy"
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-strict-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":50,\"rules\":{\"maxPromptLength\":10}}" "${ADMIN_TOKEN}"
 assert_status "200" "create strict usage policy"
@@ -311,6 +332,9 @@ ADMIN_READ_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
 log "Verifying admin:read key can read teams"
 request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key teams list"
+
+request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key usage overview"
 
 log "Verifying admin:read key can fetch team detail endpoints"
 request "GET" "/v1/admin/teams/${TEAM_ID}" "" "${ADMIN_READ_KEY}"
