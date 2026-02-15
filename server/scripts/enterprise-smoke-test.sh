@@ -210,18 +210,34 @@ fi
 
 log "Logging in as admin user"
 request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
-assert_status "200" "admin login request"
-ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+if [[ "$HTTP_STATUS" == "200" ]]; then
+  ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+elif [[ "$HTTP_STATUS" == "401" || "$HTTP_STATUS" == "422" ]]; then
+  ADMIN_TOKEN=""
+else
+  log "FAILED: admin login request (unexpected status ${HTTP_STATUS})"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
-if [[ -z "$ADMIN_TOKEN" ]]; then
+if [[ -z "${ADMIN_TOKEN}" ]]; then
   log "Admin login unavailable, attempting multi-user bootstrap"
+  BOOTSTRAP_USERNAME="${ADMIN_USERNAME}"
   request "POST" "/system/enable-multi-user" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+
+  if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
+    BOOTSTRAP_USERNAME="${ADMIN_USERNAME}-${RUN_ID}"
+    log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
+    request "POST" "/system/enable-multi-user" "{\"username\":\"${BOOTSTRAP_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+  fi
+
   if [[ "$HTTP_STATUS" != "200" && "$HTTP_STATUS" != "400" ]]; then
     log "FAILED: bootstrap multi-user mode (${HTTP_STATUS})"
     log "Response: ${HTTP_BODY}"
     exit 1
   fi
 
+  ADMIN_USERNAME="${BOOTSTRAP_USERNAME}"
   request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
   assert_status "200" "admin login after bootstrap"
   ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
