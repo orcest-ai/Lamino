@@ -105,6 +105,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - enterprise_usage_policies gate disable blocks /admin/usage-policies/new
 # - admin:read API key can read /v1/admin/usage/overview
 # - admin:read API key can read /v1/admin/prompt-templates and /v1/admin/usage-policies
+# - usage monitoring checks include timeseries, breakdown, and CSV export on both session and /v1 admin routes
 
 # convenience script aliases from repo root
 yarn test:enterprise
