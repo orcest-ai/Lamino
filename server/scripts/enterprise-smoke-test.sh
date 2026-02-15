@@ -396,6 +396,14 @@ if ! contains_text "$HTTP_BODY" "${TEMPLATE_PROMPT}"; then
   exit 1
 fi
 
+request "GET" "/workspace/${WORKSPACE_SLUG}" "" "${ADMIN_TOKEN}"
+assert_status "200" "workspace details after template apply"
+if ! contains_text "$HTTP_BODY" "${TEMPLATE_PROMPT}"; then
+  log "FAILED: workspace prompt did not match applied template."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Verifying usage policy feature gate denies policy routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_usage_policies flag"
@@ -516,6 +524,14 @@ request "POST" "/v1/admin/usage-policies/new" "{\"name\":\"qa-policy-denied-${RU
 assert_status "403" "admin:read key denied on usage policy create"
 if ! contains_text "$HTTP_BODY" "admin:write"; then
   log "FAILED: missing admin:write scope denial for usage policy create."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/v1/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-denied-update-${RUN_ID}\"}" "${ADMIN_READ_KEY}"
+assert_status "403" "admin:read key denied on api key update"
+if ! contains_text "$HTTP_BODY" "admin:write"; then
+  log "FAILED: missing admin:write scope denial for api key update."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
