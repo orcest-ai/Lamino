@@ -438,6 +438,14 @@ if ! contains_text "$HTTP_BODY" "Prompt length exceeds policy limit"; then
   exit 1
 fi
 
+request "GET" "/v1/admin/teams" "" "${CHAT_KEY}"
+assert_status "403" "workspace:chat key denied admin team listing"
+if ! contains_text "$HTTP_BODY" "admin:read"; then
+  log "FAILED: workspace:chat key denial missing admin:read requirement message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Creating admin read-only API key"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-admin-read-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create admin read-only key"
