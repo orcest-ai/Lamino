@@ -97,6 +97,8 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - manager user can list/create teams
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
+# - enterprise_usage_monitoring gate disable/enable around /admin/usage/overview
+# - admin:read API key can read /v1/admin/usage/overview
 
 # convenience script aliases from repo root
 yarn test:enterprise
