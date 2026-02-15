@@ -78,4 +78,12 @@ describe("API scope resolution from request path", () => {
     });
     expect(scope).toBe("admin:write");
   });
+
+  it("maps usage monitoring reads under admin path to admin:read", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/admin/usage/overview",
+    });
+    expect(scope).toBe("admin:read");
+  });
 });
