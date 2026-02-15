@@ -1588,6 +1588,121 @@ function apiAdminEndpoints(app) {
     }
   );
 
+  app.get("/v1/admin/api-keys", [validApiKey], async (_request, response) => {
+    try {
+      if (!multiUserMode(response)) {
+        response.sendStatus(401).end();
+        return;
+      }
+      const { ApiKey } = require("../../../models/apiKeys");
+      const apiKeys = await ApiKey.whereWithUser({});
+      response.status(200).json({ apiKeys, error: null });
+    } catch (error) {
+      console.error(error);
+      response.status(500).json({
+        apiKeys: [],
+        error: "Could not list API keys.",
+      });
+    }
+  });
+
+  app.post(
+    "/v1/admin/generate-api-key",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { ApiKey } = require("../../../models/apiKeys");
+        const body = reqBody(request);
+        const createdBy = response.locals?.apiKey?.createdBy || null;
+        const { apiKey, error } = await ApiKey.create({
+          createdBy,
+          name: body?.name || null,
+          scopes: body?.scopes || [ApiKey.defaultScope],
+          expiresAt: body?.expiresAt || null,
+        });
+        if (apiKey) {
+          await EventLogs.logEvent("api_key_created", {
+            createdBy: createdBy || "api",
+            via: "developer_api",
+          });
+        }
+        response.status(200).json({ apiKey, error });
+      } catch (error) {
+        console.error(error);
+        response.status(500).json({
+          apiKey: null,
+          error: "Could not create API key.",
+        });
+      }
+    }
+  );
+
+  app.post(
+    "/v1/admin/api-keys/:id",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { id } = request.params;
+        if (!id || Number.isNaN(Number(id)))
+          return response.status(400).json({
+            success: false,
+            apiKey: null,
+            error: "Invalid API key id.",
+          });
+        const { ApiKey } = require("../../../models/apiKeys");
+        const { apiKey, error } = await ApiKey.update(Number(id), reqBody(request));
+        response.status(200).json({ success: !!apiKey, apiKey, error });
+      } catch (error) {
+        console.error(error);
+        response.status(500).json({
+          success: false,
+          apiKey: null,
+          error: "Could not update API key.",
+        });
+      }
+    }
+  );
+
+  app.delete(
+    "/v1/admin/api-keys/:id",
+    [validApiKey],
+    async (request, response) => {
+      try {
+        if (!multiUserMode(response)) {
+          response.sendStatus(401).end();
+          return;
+        }
+        const { id } = request.params;
+        if (!id || Number.isNaN(Number(id)))
+          return response.status(400).json({
+            success: false,
+            error: "Invalid API key id.",
+          });
+        const { ApiKey } = require("../../../models/apiKeys");
+        await ApiKey.delete({ id: Number(id) });
+        await EventLogs.logEvent("api_key_deleted", {
+          deletedBy: response.locals?.apiKey?.createdBy || "api",
+          via: "developer_api",
+        });
+        response.status(200).json({ success: true, error: null });
+      } catch (error) {
+        console.error(error);
+        response.status(500).json({
+          success: false,
+          error: "Could not delete API key.",
+        });
+      }
+    }
+  );
+
   app.post(
     "/v1/admin/preferences",
     [validApiKey],
