@@ -1,6 +1,11 @@
 const prisma = require("../utils/prisma");
 
 const UsageEvents = {
+  toIntOrDefault: function (value, fallback = 0) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
+  },
+
   sanitizePayload: function (data = {}) {
     return {
       eventType: String(data?.eventType || "chat_completion"),
@@ -13,10 +18,13 @@ const UsageEvents = {
       provider: data?.provider ? String(data.provider) : null,
       model: data?.model ? String(data.model) : null,
       mode: data?.mode ? String(data.mode) : null,
-      promptTokens: Number(data?.promptTokens || 0),
-      completionTokens: Number(data?.completionTokens || 0),
-      totalTokens: Number(data?.totalTokens || 0),
-      durationMs: data?.durationMs ? Number(data.durationMs) : null,
+      promptTokens: this.toIntOrDefault(data?.promptTokens, 0),
+      completionTokens: this.toIntOrDefault(data?.completionTokens, 0),
+      totalTokens: this.toIntOrDefault(data?.totalTokens, 0),
+      durationMs:
+        data?.durationMs === null || data?.durationMs === undefined
+          ? null
+          : this.toIntOrDefault(data.durationMs, null),
       metadata: data?.metadata
         ? JSON.stringify(data.metadata)
         : data?.metadataRaw

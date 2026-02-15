@@ -49,6 +49,20 @@ describe("UsageEvents model", () => {
     expect(sanitized.occurredAt).toBeInstanceOf(Date);
   });
 
+  it("falls back malformed numeric metrics to safe defaults", () => {
+    const sanitized = UsageEvents.sanitizePayload({
+      promptTokens: "NaN-ish",
+      completionTokens: "15.9",
+      totalTokens: undefined,
+      durationMs: "invalid",
+    });
+
+    expect(sanitized.promptTokens).toBe(0);
+    expect(sanitized.completionTokens).toBe(15);
+    expect(sanitized.totalTokens).toBe(0);
+    expect(sanitized.durationMs).toBeNull();
+  });
+
   it("logs event rows and returns event payload", async () => {
     mockCreate.mockResolvedValueOnce({
       id: 44,
