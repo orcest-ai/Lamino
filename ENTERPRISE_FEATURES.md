@@ -94,6 +94,7 @@ cd server && yarn swagger
 cd server && ./scripts/enterprise-smoke-test.sh
 
 # smoke script now includes role matrix assertions:
+# - API /ping readiness retry loop before executing checks
 # - default user denied /admin/teams
 # - manager user can list/create teams
 # - enterprise_teams feature gate disable => /admin/teams denied
