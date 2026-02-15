@@ -148,7 +148,7 @@ contains_text() {
 cleanup() {
   set +e
   if [[ -n "${ADMIN_TOKEN:-}" ]]; then
-    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\"}" "${ADMIN_TOKEN:-}"
+    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\",\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN:-}"
   fi
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
@@ -302,6 +302,20 @@ if ! contains_text "$HTTP_BODY" "summary"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+
+log "Verifying usage policy feature gate denies policy routes when disabled"
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_usage_policies flag"
+request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-blocked-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":99,\"rules\":{\"maxPromptLength\":9}}" "${ADMIN_TOKEN}"
+assert_status "403" "usage policy create blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_usage_policies"; then
+  log "FAILED: disabled feature response missing enterprise_usage_policies marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_usage_policies flag"
 
 log "Creating strict prompt-length usage policy"
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-strict-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":50,\"rules\":{\"maxPromptLength\":10}}" "${ADMIN_TOKEN}"
