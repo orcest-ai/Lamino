@@ -338,6 +338,20 @@ if ! contains_text "$HTTP_BODY" "summary"; then
   exit 1
 fi
 
+request "GET" "/admin/usage/timeseries?interval=day" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage timeseries available when monitoring enabled"
+
+request "GET" "/admin/usage/breakdown?by=eventType" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage breakdown available when monitoring enabled"
+
+request "GET" "/admin/usage/export.csv" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage CSV export available when monitoring enabled"
+if ! contains_text "$HTTP_BODY" "id,occurredAt,eventType"; then
+  log "FAILED: usage export csv missing expected header row."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Verifying prompt library feature gate denies template routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_prompt_library flag"
@@ -400,6 +414,20 @@ assert_status "200" "admin:read key teams list"
 
 request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage overview"
+
+request "GET" "/v1/admin/usage/timeseries?interval=day" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key usage timeseries"
+
+request "GET" "/v1/admin/usage/breakdown?by=eventType" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key usage breakdown"
+
+request "GET" "/v1/admin/usage/export.csv" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key usage csv export"
+if ! contains_text "$HTTP_BODY" "id,occurredAt,eventType"; then
+  log "FAILED: v1 usage export csv missing expected header row."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "GET" "/v1/admin/prompt-templates" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key prompt templates list"
