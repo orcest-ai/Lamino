@@ -42,7 +42,9 @@ const ApiKey = {
 
   isExpired: function (apiKey = {}) {
     if (!apiKey?.expiresAt) return false;
-    return new Date(apiKey.expiresAt).getTime() <= Date.now();
+    const expiresAtMs = new Date(apiKey.expiresAt).getTime();
+    if (!Number.isFinite(expiresAtMs)) return true;
+    return expiresAtMs <= Date.now();
   },
 
   isUsable: function (apiKey = {}) {

@@ -37,10 +37,13 @@ describe("Enterprise API key helpers", () => {
     const expired = { expiresAt: new Date(Date.now() - 1000).toISOString() };
     const revoked = { revokedAt: new Date().toISOString() };
     const active = { expiresAt: new Date(Date.now() + 60_000).toISOString() };
+    const malformed = { expiresAt: "not-a-date" };
 
     expect(ApiKey.isExpired(expired)).toBe(true);
+    expect(ApiKey.isExpired(malformed)).toBe(true);
     expect(ApiKey.isRevoked(revoked)).toBe(true);
     expect(ApiKey.isUsable(expired)).toBe(false);
+    expect(ApiKey.isUsable(malformed)).toBe(false);
     expect(ApiKey.isUsable(revoked)).toBe(false);
     expect(ApiKey.isUsable(active)).toBe(true);
   });
