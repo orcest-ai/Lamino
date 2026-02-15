@@ -119,6 +119,14 @@ describe("API scope resolution from request path", () => {
     expect(scope).toBe("workspace:chat");
   });
 
+  it("maps non-stream workspace-thread routes to workspace:write", () => {
+    const scope = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/workspace-thread/12/message",
+    });
+    expect(scope).toBe("workspace:write");
+  });
+
   it("maps system endpoints to system:read", () => {
     const scope = requiredScopeForRequest({
       method: "GET",
@@ -138,6 +146,19 @@ describe("API scope resolution from request path", () => {
     });
     expect(readScope).toBe("users:read");
     expect(writeScope).toBe("users:write");
+  });
+
+  it("maps workspace routes by method to workspace read/write scopes", () => {
+    const readScope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/workspaces",
+    });
+    const writeScope = requiredScopeForRequest({
+      method: "PATCH",
+      path: "/v1/workspaces/slug",
+    });
+    expect(readScope).toBe("workspace:read");
+    expect(writeScope).toBe("workspace:write");
   });
 
   it("maps documents and embed routes by method", () => {
