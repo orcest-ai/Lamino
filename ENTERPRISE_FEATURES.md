@@ -128,3 +128,4 @@ Workflow reliability safeguards:
 - workflow-level concurrency cancellation for stale branch/PR runs
 - `/api/ping` readiness polling before smoke execution
 - automatic server log dump when smoke validation fails
+- smoke bootstrap fallback that retries with a unique admin username if `enable-multi-user` reports username collisions
