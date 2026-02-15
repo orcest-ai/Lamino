@@ -92,6 +92,10 @@ cd server && yarn swagger
 # full enterprise API smoke test (requires running server)
 cd server && ./scripts/enterprise-smoke-test.sh
 
+# smoke script now includes role matrix assertions:
+# - default user denied /admin/teams
+# - manager user can list/create teams
+
 # convenience script aliases from repo root
 yarn test:enterprise
 yarn smoke:enterprise
