@@ -62,4 +62,20 @@ describe("API scope resolution from request path", () => {
     });
     expect(scope).toBe("workspace:chat");
   });
+
+  it("maps team detail reads under admin path to admin:read", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/admin/teams/15/access-map",
+    });
+    expect(scope).toBe("admin:read");
+  });
+
+  it("maps team writes under admin path to admin:write", () => {
+    const scope = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/admin/teams/15/update-members",
+    });
+    expect(scope).toBe("admin:write");
+  });
 });
