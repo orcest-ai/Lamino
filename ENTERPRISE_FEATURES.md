@@ -6,6 +6,11 @@ This repository includes an additive enterprise layer for team and commercial op
 
 1. **Team Management**
    - Teams, memberships, and team-to-workspace assignments
+   - Team detail/read endpoints for access-map automation:
+     - `/api/v1/admin/teams/:teamId`
+     - `/api/v1/admin/teams/:teamId/members`
+     - `/api/v1/admin/teams/:teamId/workspaces`
+     - `/api/v1/admin/teams/:teamId/access-map`
    - Endpoints:
      - Session API: `/api/admin/teams*`
      - Developer API: `/api/v1/admin/teams*`
