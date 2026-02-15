@@ -70,6 +70,21 @@ AnythingLLM divides your documents into objects called `workspaces`. A Workspace
 - Full Developer API for custom integrations!
 - Much more...install and find out!
 
+### Enterprise modules (team/commercial-ready)
+
+This repository now includes an additive enterprise feature layer designed for business/team operation:
+
+- Team management (teams, memberships, and team-to-workspace assignment)
+- Prompt engineering library (templates, versions, approval, and apply-to-workspace)
+- Usage monitoring (normalized usage events + overview/timeseries/breakdowns/CSV export)
+- Usage policy management (system/team/workspace/user scoped JSON policies)
+- Scoped API key controls (scope-aware route checks, expiry, and revocation support)
+- Enterprise feature gates via `system_settings` labels:
+  - `enterprise_teams`
+  - `enterprise_prompt_library`
+  - `enterprise_usage_monitoring`
+  - `enterprise_usage_policies`
+
 ### Supported LLMs, Embedder Models, Speech models, and Vector Databases
 
 **Large Language Models (LLMs):**
