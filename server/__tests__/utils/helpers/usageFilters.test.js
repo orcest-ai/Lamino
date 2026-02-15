@@ -41,6 +41,15 @@ describe("usageFilters helper", () => {
     expect(clause.occurredAt.lte).toBeInstanceOf(Date);
   });
 
+  it("swaps from/to when an inverted time range is provided", () => {
+    const { from, to } = usageTimeRange({
+      from: "2026-03-10T00:00:00.000Z",
+      to: "2026-03-01T00:00:00.000Z",
+    });
+    expect(from.toISOString()).toBe("2026-03-01T00:00:00.000Z");
+    expect(to.toISOString()).toBe("2026-03-10T00:00:00.000Z");
+  });
+
   it("omits invalid id/string filters instead of emitting NaN or blanks", () => {
     const clause = usageBaseClause({
       userId: "NaN",

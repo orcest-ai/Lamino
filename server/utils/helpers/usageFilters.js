@@ -24,6 +24,9 @@ function usageTimeRange(query = {}) {
   const from =
     parseDateLike(query?.from) ||
     new Date(to.getTime() - safeDays * 24 * 60 * 60 * 1000);
+  if (from.getTime() > to.getTime()) {
+    return { from: to, to: from };
+  }
   return { from, to };
 }
 
