@@ -166,6 +166,9 @@ cleanup() {
   if [[ -n "${ADMIN_TOKEN:-}" ]]; then
     request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_prompt_library\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\",\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${TEMPLATE_ID:-}" ]]; then
+    request "DELETE" "/admin/prompt-templates/${TEMPLATE_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -200,6 +203,7 @@ MANAGER_TEAM_NAME="qa-manager-team-${RUN_ID}"
 WORKSPACE_NAME="qa-workspace-${RUN_ID}"
 USER_NAME="qa-user-${RUN_ID}"
 MANAGER_USER_NAME="qa-manager-${RUN_ID}"
+TEMPLATE_PROMPT="You are qa-template-${RUN_ID}."
 
 log "Checking API reachability at ${BASE_URL}"
 if ! wait_for_api 60 1; then
@@ -376,6 +380,19 @@ assert_status "200" "re-enable enterprise_prompt_library flag"
 request "GET" "/admin/prompt-templates" "" "${ADMIN_TOKEN}"
 assert_status "200" "prompt templates restored when feature enabled"
 
+log "Creating and applying prompt template to workspace"
+request "POST" "/admin/prompt-templates/new" "{\"name\":\"qa-template-${RUN_ID}\",\"scope\":\"system\",\"prompt\":\"${TEMPLATE_PROMPT}\"}" "${ADMIN_TOKEN}"
+assert_status "200" "create prompt template"
+TEMPLATE_ID="$(json_get "$HTTP_BODY" "template.id")"
+
+request "POST" "/admin/prompt-templates/${TEMPLATE_ID}/apply-to-workspace" "{\"workspaceId\":${WORKSPACE_ID}}" "${ADMIN_TOKEN}"
+assert_status "200" "apply prompt template to workspace"
+if ! contains_text "$HTTP_BODY" "${TEMPLATE_PROMPT}"; then
+  log "FAILED: applied template response missing expected prompt text."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Verifying usage policy feature gate denies policy routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_usage_policies flag"
@@ -447,6 +464,9 @@ fi
 
 request "GET" "/v1/admin/prompt-templates" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key prompt templates list"
+
+request "GET" "/v1/admin/prompt-templates/${TEMPLATE_ID}/versions" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key prompt template versions list"
 
 request "GET" "/v1/admin/usage-policies" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage policies list"
