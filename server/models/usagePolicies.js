@@ -190,7 +190,7 @@ const UsagePolicies = {
     };
 
     const policies = await this.where(where, null, [
-      { priority: "asc" },
+      { priority: "desc" },
       { id: "asc" },
     ]);
     return policies;

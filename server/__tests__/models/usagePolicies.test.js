@@ -16,14 +16,14 @@ describe("UsagePolicies precedence resolution", () => {
     jest.restoreAllMocks();
   });
 
-  it("applies policy rules in ascending priority order", async () => {
+  it("applies policy rules so lower priority value overrides", async () => {
     jest.spyOn(UsagePolicies, "effectiveFor").mockResolvedValue([
       {
-        id: 1,
-        priority: 10,
+        id: 3,
+        priority: 50,
         rules: JSON.stringify({
-          maxChatsPerDay: 100,
-          allowedModels: ["gpt-4o", "claude-3-5-sonnet"],
+          maxPromptLength: 12000,
+          allowedModels: ["gpt-4o-mini"],
         }),
       },
       {
@@ -34,11 +34,11 @@ describe("UsagePolicies precedence resolution", () => {
         }),
       },
       {
-        id: 3,
-        priority: 50,
+        id: 1,
+        priority: 10,
         rules: JSON.stringify({
-          maxPromptLength: 12000,
-          allowedModels: ["gpt-4o-mini"],
+          maxChatsPerDay: 100,
+          allowedModels: ["gpt-4o", "claude-3-5-sonnet"],
         }),
       },
     ]);
@@ -51,9 +51,9 @@ describe("UsagePolicies precedence resolution", () => {
 
     expect(policies).toHaveLength(3);
     expect(rules).toEqual({
-      maxChatsPerDay: 15,
+      maxChatsPerDay: 100,
       maxPromptLength: 12000,
-      allowedModels: ["gpt-4o-mini"],
+      allowedModels: ["gpt-4o", "claude-3-5-sonnet"],
     });
   });
 });
