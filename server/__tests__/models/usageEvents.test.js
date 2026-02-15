@@ -63,6 +63,20 @@ describe("UsageEvents model", () => {
     expect(sanitized.durationMs).toBeNull();
   });
 
+  it("clamps negative metric values to zero", () => {
+    const sanitized = UsageEvents.sanitizePayload({
+      promptTokens: -5,
+      completionTokens: "-3",
+      totalTokens: -8,
+      durationMs: -22,
+    });
+
+    expect(sanitized.promptTokens).toBe(0);
+    expect(sanitized.completionTokens).toBe(0);
+    expect(sanitized.totalTokens).toBe(0);
+    expect(sanitized.durationMs).toBe(0);
+  });
+
   it("logs event rows and returns event payload", async () => {
     mockCreate.mockResolvedValueOnce({
       id: 44,

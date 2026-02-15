@@ -7,6 +7,20 @@ const UsageEvents = {
   },
 
   sanitizePayload: function (data = {}) {
+    const promptTokens = Math.max(
+      0,
+      this.toIntOrDefault(data?.promptTokens, 0)
+    );
+    const completionTokens = Math.max(
+      0,
+      this.toIntOrDefault(data?.completionTokens, 0)
+    );
+    const totalTokens = Math.max(0, this.toIntOrDefault(data?.totalTokens, 0));
+    const durationValue =
+      data?.durationMs === null || data?.durationMs === undefined
+        ? null
+        : this.toIntOrDefault(data.durationMs, null);
+
     return {
       eventType: String(data?.eventType || "chat_completion"),
       userId: data?.userId ? Number(data.userId) : null,
@@ -18,13 +32,10 @@ const UsageEvents = {
       provider: data?.provider ? String(data.provider) : null,
       model: data?.model ? String(data.model) : null,
       mode: data?.mode ? String(data.mode) : null,
-      promptTokens: this.toIntOrDefault(data?.promptTokens, 0),
-      completionTokens: this.toIntOrDefault(data?.completionTokens, 0),
-      totalTokens: this.toIntOrDefault(data?.totalTokens, 0),
-      durationMs:
-        data?.durationMs === null || data?.durationMs === undefined
-          ? null
-          : this.toIntOrDefault(data.durationMs, null),
+      promptTokens,
+      completionTokens,
+      totalTokens,
+      durationMs: durationValue === null ? null : Math.max(0, durationValue),
       metadata: data?.metadata
         ? JSON.stringify(data.metadata)
         : data?.metadataRaw
