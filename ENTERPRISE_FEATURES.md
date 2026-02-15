@@ -25,6 +25,7 @@ This repository includes an additive enterprise layer for team and commercial op
    - Normalized `usage_events` capture from workspace/embed chat persistence
    - Metric sanitization guards convert malformed numeric usage values to safe defaults and clamp negative values before persistence
    - Usage analytics query filters sanitize invalid IDs/blank values to prevent malformed aggregate clauses
+   - Inverted `from/to` query windows are normalized to a valid chronological range
    - Overview, timeseries, breakdown, and CSV export APIs
    - Endpoints:
      - Session API: `/api/admin/usage/*`
