@@ -125,6 +125,20 @@ assert_status() {
   fi
 }
 
+assert_status_any() {
+  local context="$1"
+  shift
+  local expected
+  for expected in "$@"; do
+    if [[ "$HTTP_STATUS" == "$expected" ]]; then
+      return 0
+    fi
+  done
+  log "FAILED: ${context} (expected one of: $*, got ${HTTP_STATUS})"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+}
+
 contains_text() {
   local text="$1"
   local needle="$2"
@@ -133,6 +147,9 @@ contains_text() {
 
 cleanup() {
   set +e
+  if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
+    request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${ADMIN_READ_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -151,14 +168,19 @@ cleanup() {
   if [[ -n "${USER_ID:-}" ]]; then
     request "DELETE" "/admin/user/${USER_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${MANAGER_USER_ID:-}" ]]; then
+    request "DELETE" "/admin/user/${MANAGER_USER_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   set -e
 }
 
 trap cleanup EXIT
 
 TEAM_NAME="qa-team-${RUN_ID}"
+MANAGER_TEAM_NAME="qa-manager-team-${RUN_ID}"
 WORKSPACE_NAME="qa-workspace-${RUN_ID}"
 USER_NAME="qa-user-${RUN_ID}"
+MANAGER_USER_NAME="qa-manager-${RUN_ID}"
 
 log "Checking API reachability at ${BASE_URL}"
 request "GET" "/ping"
@@ -194,6 +216,11 @@ request "POST" "/admin/users/new" "{\"username\":\"${USER_NAME}\",\"password\":\
 assert_status "200" "create default user"
 USER_ID="$(json_get "$HTTP_BODY" "user.id")"
 
+log "Creating smoke-test manager user"
+request "POST" "/admin/users/new" "{\"username\":\"${MANAGER_USER_NAME}\",\"password\":\"ManagerUser123!\",\"role\":\"manager\"}" "${ADMIN_TOKEN}"
+assert_status "200" "create manager user"
+MANAGER_USER_ID="$(json_get "$HTTP_BODY" "user.id")"
+
 log "Creating workspace for team access check"
 request "POST" "/admin/workspaces/new" "{\"name\":\"${WORKSPACE_NAME}\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create workspace"
@@ -216,6 +243,25 @@ if ! contains_text "$HTTP_BODY" "$WORKSPACE_SLUG"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+
+log "Asserting default users cannot access team admin routes"
+request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
+assert_status_any "default user denied team admin list" "401" "403"
+
+log "Logging in as manager and validating team admin access"
+request "POST" "/request-token" "{\"username\":\"${MANAGER_USER_NAME}\",\"password\":\"ManagerUser123!\"}"
+assert_status "200" "manager login"
+MANAGER_TOKEN="$(json_get "$HTTP_BODY" "token")"
+request "GET" "/admin/teams" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can list teams"
+if ! contains_text "$HTTP_BODY" "$TEAM_NAME"; then
+  log "FAILED: manager team list did not include expected team."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can create team"
+MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
 
 log "Creating strict prompt-length usage policy"
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-strict-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":50,\"rules\":{\"maxPromptLength\":10}}" "${ADMIN_TOKEN}"
