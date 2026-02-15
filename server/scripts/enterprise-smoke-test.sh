@@ -5,6 +5,8 @@ BASE_URL="${BASE_URL:-http://localhost:3001/api}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
 RUN_ID="${RUN_ID:-$(date +%s)}"
+SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SERVER_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 HTTP_STATUS=""
 HTTP_BODY=""
@@ -143,6 +145,62 @@ contains_text() {
   local text="$1"
   local needle="$2"
   [[ "$text" == *"$needle"* ]]
+}
+
+inject_usage_event() {
+  local workspace_id="$1"
+  local user_id="$2"
+  local team_id="$3"
+  local prompt_tokens="$4"
+  local completion_tokens="$5"
+  local total_tokens="$6"
+  local duration_ms="$7"
+
+  node -e '
+const usageEventsPath = process.argv[1];
+const parseId = (raw) => {
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+};
+const parseIntValue = (raw, fallback = 0) => {
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.trunc(n) : fallback;
+};
+const payload = {
+  eventType: "smoke_usage_probe",
+  workspaceId: parseId(process.argv[2]),
+  userId: parseId(process.argv[3]),
+  teamId: parseId(process.argv[4]),
+  provider: "smoke-provider",
+  model: "smoke-model",
+  mode: "chat",
+  promptTokens: parseIntValue(process.argv[5]),
+  completionTokens: parseIntValue(process.argv[6]),
+  totalTokens: parseIntValue(process.argv[7]),
+  durationMs: parseIntValue(process.argv[8], null),
+  metadata: { source: "enterprise-smoke-test" },
+};
+const { UsageEvents } = require(usageEventsPath);
+(async () => {
+  const { event, error } = await UsageEvents.log(payload);
+  if (error || !event?.id) {
+    console.error(error || "Failed to create usage probe event.");
+    process.exit(1);
+  }
+  process.stdout.write(String(event.id));
+})().catch((error) => {
+  console.error(error?.message || String(error));
+  process.exit(1);
+});
+' \
+    "${SERVER_DIR}/models/usageEvents.js" \
+    "$workspace_id" \
+    "$user_id" \
+    "$team_id" \
+    "$prompt_tokens" \
+    "$completion_tokens" \
+    "$total_tokens" \
+    "$duration_ms"
 }
 
 wait_for_api() {
@@ -370,6 +428,44 @@ if ! contains_text "$HTTP_BODY" "id,occurredAt,eventType"; then
   exit 1
 fi
 
+log "Verifying usage monitoring reflects fresh usage events"
+request "GET" "/admin/usage/overview?workspaceId=${WORKSPACE_ID}" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage overview before probe event"
+BASE_USAGE_EVENTS="$(json_get "$HTTP_BODY" "summary.events")"
+BASE_USAGE_TOTAL_TOKENS="$(json_get "$HTTP_BODY" "summary.totalTokens")"
+PROBE_PROMPT_TOKENS=13
+PROBE_COMPLETION_TOKENS=8
+PROBE_TOTAL_TOKENS=21
+PROBE_DURATION_MS=210
+PROBE_USAGE_EVENT_ID="$(
+  inject_usage_event \
+    "${WORKSPACE_ID}" \
+    "${USER_ID}" \
+    "${TEAM_ID}" \
+    "${PROBE_PROMPT_TOKENS}" \
+    "${PROBE_COMPLETION_TOKENS}" \
+    "${PROBE_TOTAL_TOKENS}" \
+    "${PROBE_DURATION_MS}"
+)"
+if [[ -z "${PROBE_USAGE_EVENT_ID}" ]]; then
+  log "FAILED: usage probe event did not return an event id."
+  exit 1
+fi
+request "GET" "/admin/usage/overview?workspaceId=${WORKSPACE_ID}" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage overview after probe event"
+UPDATED_USAGE_EVENTS="$(json_get "$HTTP_BODY" "summary.events")"
+UPDATED_USAGE_TOTAL_TOKENS="$(json_get "$HTTP_BODY" "summary.totalTokens")"
+if (( UPDATED_USAGE_EVENTS < BASE_USAGE_EVENTS + 1 )); then
+  log "FAILED: usage event count did not increase after usage probe insertion."
+  log "Before events=${BASE_USAGE_EVENTS}, after events=${UPDATED_USAGE_EVENTS}, probeEventId=${PROBE_USAGE_EVENT_ID}"
+  exit 1
+fi
+if (( UPDATED_USAGE_TOTAL_TOKENS < BASE_USAGE_TOTAL_TOKENS + PROBE_TOTAL_TOKENS )); then
+  log "FAILED: usage total token count did not reflect probe event payload."
+  log "Before totalTokens=${BASE_USAGE_TOTAL_TOKENS}, after totalTokens=${UPDATED_USAGE_TOTAL_TOKENS}, expectedIncrease=${PROBE_TOTAL_TOKENS}, probeEventId=${PROBE_USAGE_EVENT_ID}"
+  exit 1
+fi
+
 log "Verifying prompt library feature gate denies template routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_prompt_library flag"
@@ -468,8 +564,13 @@ assert_status "200" "admin:read key usage overview handles inverted range"
 request "GET" "/v1/admin/usage/timeseries?interval=day" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage timeseries"
 
-request "GET" "/v1/admin/usage/breakdown?by=eventType" "" "${ADMIN_READ_KEY}"
+request "GET" "/v1/admin/usage/breakdown?by=eventType&workspaceId=${WORKSPACE_ID}" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage breakdown"
+if ! contains_text "$HTTP_BODY" "smoke_usage_probe"; then
+  log "FAILED: usage breakdown did not include smoke probe event type."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "GET" "/v1/admin/usage/breakdown?by=notAField" "" "${ADMIN_READ_KEY}"
 assert_status "400" "admin:read key breakdown invalid field rejection"
