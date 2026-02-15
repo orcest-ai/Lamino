@@ -118,4 +118,56 @@ describe("API scope resolution from request path", () => {
     });
     expect(scope).toBe("workspace:chat");
   });
+
+  it("maps system endpoints to system:read", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/system/ping",
+    });
+    expect(scope).toBe("system:read");
+  });
+
+  it("maps users routes by method to users read/write scopes", () => {
+    const readScope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/users",
+    });
+    const writeScope = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/users/invite",
+    });
+    expect(readScope).toBe("users:read");
+    expect(writeScope).toBe("users:write");
+  });
+
+  it("maps documents and embed routes by method", () => {
+    const docsRead = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/documents",
+    });
+    const docsWrite = requiredScopeForRequest({
+      method: "DELETE",
+      path: "/v1/documents/123",
+    });
+    const embedRead = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/embed/123",
+    });
+    const embedWrite = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/embed/123/chat",
+    });
+    expect(docsRead).toBe("documents:read");
+    expect(docsWrite).toBe("documents:write");
+    expect(embedRead).toBe("embed:read");
+    expect(embedWrite).toBe("embed:write");
+  });
+
+  it("returns null for unmapped routes", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/unknown/route",
+    });
+    expect(scope).toBeNull();
+  });
 });
