@@ -41,6 +41,21 @@ describe("usageFilters helper", () => {
     expect(clause.occurredAt.lte).toBeInstanceOf(Date);
   });
 
+  it("omits invalid id/string filters instead of emitting NaN or blanks", () => {
+    const clause = usageBaseClause({
+      userId: "NaN",
+      workspaceId: "-7",
+      teamId: "",
+      eventType: "   ",
+      provider: null,
+      model: undefined,
+    });
+
+    expect(clause).toEqual({
+      occurredAt: expect.any(Object),
+    });
+  });
+
   it("formats time buckets by day and hour", () => {
     const timestamp = "2026-02-15T22:30:45.000Z";
     expect(timeSeriesBucket(timestamp, "day")).toBe("2026-02-15");

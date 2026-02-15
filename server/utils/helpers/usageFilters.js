@@ -4,6 +4,19 @@ function parseDateLike(value = null) {
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function parseIdFilter(value = null) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+  return Math.trunc(parsed);
+}
+
+function parseStringFilter(value = null) {
+  if (value === null || value === undefined) return null;
+  const parsed = String(value).trim();
+  return parsed.length > 0 ? parsed : null;
+}
+
 function usageTimeRange(query = {}) {
   const parsedDays = Number(query?.days ?? 30);
   const safeDays = Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : 30;
@@ -23,12 +36,19 @@ function usageBaseClause(query = {}) {
     },
   };
 
-  if (query?.userId) clause.userId = Number(query.userId);
-  if (query?.workspaceId) clause.workspaceId = Number(query.workspaceId);
-  if (query?.teamId) clause.teamId = Number(query.teamId);
-  if (query?.eventType) clause.eventType = String(query.eventType);
-  if (query?.provider) clause.provider = String(query.provider);
-  if (query?.model) clause.model = String(query.model);
+  const userId = parseIdFilter(query?.userId);
+  const workspaceId = parseIdFilter(query?.workspaceId);
+  const teamId = parseIdFilter(query?.teamId);
+  const eventType = parseStringFilter(query?.eventType);
+  const provider = parseStringFilter(query?.provider);
+  const model = parseStringFilter(query?.model);
+
+  if (userId !== null) clause.userId = userId;
+  if (workspaceId !== null) clause.workspaceId = workspaceId;
+  if (teamId !== null) clause.teamId = teamId;
+  if (eventType) clause.eventType = eventType;
+  if (provider) clause.provider = provider;
+  if (model) clause.model = model;
   return clause;
 }
 
