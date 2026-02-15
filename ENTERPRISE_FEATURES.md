@@ -24,7 +24,7 @@ This repository includes an additive enterprise layer for team and commercial op
 3. **Usage Monitoring**
    - Normalized `usage_events` capture from workspace/embed chat persistence
    - Metric sanitization guards convert malformed numeric usage values to safe defaults and clamp negative values before persistence
-   - Usage analytics query filters sanitize invalid/blank values and require positive integer IDs
+   - Usage analytics query filters sanitize invalid/blank values, require positive integer IDs, and bound day-window inputs to sane limits
    - Inverted `from/to` query windows are normalized to a valid chronological range
    - Overview, timeseries, breakdown, and CSV export APIs
    - Endpoints:
