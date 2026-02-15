@@ -147,6 +147,9 @@ contains_text() {
 
 cleanup() {
   set +e
+  if [[ -n "${ADMIN_TOKEN:-}" ]]; then
+    request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -262,6 +265,22 @@ fi
 request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create team"
 MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
+
+log "Verifying team feature gate denies team routes when disabled"
+request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_teams flag"
+request "GET" "/admin/teams" "" "${ADMIN_TOKEN}"
+assert_status "403" "team list blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_teams"; then
+  log "FAILED: disabled feature response missing enterprise_teams marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_teams flag"
+request "GET" "/admin/teams" "" "${ADMIN_TOKEN}"
+assert_status "200" "team list restored when feature enabled"
 
 log "Creating strict prompt-length usage policy"
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-strict-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":50,\"rules\":{\"maxPromptLength\":10}}" "${ADMIN_TOKEN}"
