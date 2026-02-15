@@ -6,6 +6,20 @@ const UsageEvents = {
     return Number.isFinite(parsed) ? Math.trunc(parsed) : fallback;
   },
 
+  toPositiveIntOrNull: function (value) {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return null;
+    const normalized = Math.trunc(parsed);
+    return normalized > 0 ? normalized : null;
+  },
+
+  toDateOrNow: function (value) {
+    if (!value) return new Date();
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed : new Date();
+  },
+
   sanitizePayload: function (data = {}) {
     const promptTokens = Math.max(
       0,
@@ -23,12 +37,12 @@ const UsageEvents = {
 
     return {
       eventType: String(data?.eventType || "chat_completion"),
-      userId: data?.userId ? Number(data.userId) : null,
-      workspaceId: data?.workspaceId ? Number(data.workspaceId) : null,
-      teamId: data?.teamId ? Number(data.teamId) : null,
-      apiKeyId: data?.apiKeyId ? Number(data.apiKeyId) : null,
-      chatId: data?.chatId ? Number(data.chatId) : null,
-      threadId: data?.threadId ? Number(data.threadId) : null,
+      userId: this.toPositiveIntOrNull(data?.userId),
+      workspaceId: this.toPositiveIntOrNull(data?.workspaceId),
+      teamId: this.toPositiveIntOrNull(data?.teamId),
+      apiKeyId: this.toPositiveIntOrNull(data?.apiKeyId),
+      chatId: this.toPositiveIntOrNull(data?.chatId),
+      threadId: this.toPositiveIntOrNull(data?.threadId),
       provider: data?.provider ? String(data.provider) : null,
       model: data?.model ? String(data.model) : null,
       mode: data?.mode ? String(data.mode) : null,
@@ -41,7 +55,7 @@ const UsageEvents = {
         : data?.metadataRaw
           ? String(data.metadataRaw)
           : null,
-      occurredAt: data?.occurredAt ? new Date(data.occurredAt) : new Date(),
+      occurredAt: this.toDateOrNow(data?.occurredAt),
     };
   },
 

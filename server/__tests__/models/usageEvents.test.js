@@ -63,6 +63,30 @@ describe("UsageEvents model", () => {
     expect(sanitized.durationMs).toBeNull();
   });
 
+  it("normalizes invalid identifiers and malformed occurredAt values safely", () => {
+    const before = Date.now();
+    const sanitized = UsageEvents.sanitizePayload({
+      userId: "NaN-user",
+      workspaceId: -5,
+      teamId: "0",
+      apiKeyId: " ",
+      chatId: "12.9",
+      threadId: "33",
+      occurredAt: "invalid-date-value",
+    });
+    const after = Date.now();
+
+    expect(sanitized.userId).toBeNull();
+    expect(sanitized.workspaceId).toBeNull();
+    expect(sanitized.teamId).toBeNull();
+    expect(sanitized.apiKeyId).toBeNull();
+    expect(sanitized.chatId).toBe(12);
+    expect(sanitized.threadId).toBe(33);
+    expect(sanitized.occurredAt).toBeInstanceOf(Date);
+    expect(sanitized.occurredAt.getTime()).toBeGreaterThanOrEqual(before);
+    expect(sanitized.occurredAt.getTime()).toBeLessThanOrEqual(after);
+  });
+
   it("clamps negative metric values to zero", () => {
     const sanitized = UsageEvents.sanitizePayload({
       promptTokens: -5,
