@@ -159,4 +159,24 @@ describe("validApiKey middleware", () => {
     expect(next).toHaveBeenCalledTimes(1);
     expect(response.status).not.toHaveBeenCalled();
   });
+
+  it("permits routes without inferred required scope", async () => {
+    const request = {
+      header: jest.fn(() => "Bearer valid"),
+      method: "GET",
+      path: "/healthz",
+    };
+    const key = { id: 13, secret: "valid", scopes: "admin:read" };
+    mockGet.mockResolvedValueOnce(key);
+    mockIsUsable.mockReturnValueOnce(true);
+    mockParseScopes.mockReturnValueOnce(["admin:read"]);
+    const response = mockResponse();
+    const next = jest.fn();
+
+    await validApiKey(request, response, next);
+
+    expect(mockHasScope).not.toHaveBeenCalled();
+    expect(response.locals.apiKey.requiredScope).toBeNull();
+    expect(next).toHaveBeenCalledTimes(1);
+  });
 });
