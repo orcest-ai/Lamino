@@ -123,6 +123,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - usage breakdown validation checks include invalid `by` field rejection on both session and /v1 admin routes
 # - admin:read key denial checks include write attempts to team, prompt-template, and usage-policy create routes
 # - prompt template lifecycle checks include create + apply-to-workspace + v1 versions-read validation
+# - usage overview checks include inverted `from/to` range handling on both session and /v1 admin routes
 
 # convenience script aliases from repo root
 yarn test:enterprise
