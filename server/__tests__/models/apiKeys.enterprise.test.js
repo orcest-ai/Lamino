@@ -102,4 +102,20 @@ describe("API scope resolution from request path", () => {
     });
     expect(scope).toBe("admin:read");
   });
+
+  it("maps OpenAI-compatible chat endpoints to workspace:chat", () => {
+    const scope = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/openai/chat/completions",
+    });
+    expect(scope).toBe("workspace:chat");
+  });
+
+  it("maps workspace-thread stream endpoints to workspace:chat", () => {
+    const scope = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/workspace-thread/12/stream-chat",
+    });
+    expect(scope).toBe("workspace:chat");
+  });
 });
