@@ -2,19 +2,66 @@ const prisma = require("../utils/prisma");
 
 const ApiKey = {
   tablename: "api_keys",
-  writable: [],
+  writable: ["name", "scopes", "expiresAt", "revokedAt"],
+  defaultScope: "workspace:chat",
 
   makeSecret: () => {
     const uuidAPIKey = require("uuid-apikey");
     return uuidAPIKey.create().apiKey;
   },
 
-  create: async function (createdByUserId = null) {
+  normalizeScopes: function (scopes = []) {
+    if (typeof scopes === "string")
+      return scopes
+        .split(",")
+        .map((scope) => scope.trim())
+        .filter(Boolean);
+    if (!Array.isArray(scopes)) return [this.defaultScope];
+    const normalized = scopes.map((scope) => String(scope).trim()).filter(Boolean);
+    return normalized.length > 0 ? [...new Set(normalized)] : [this.defaultScope];
+  },
+
+  parseScopes: function (apiKey = {}) {
+    const parsed = this.normalizeScopes(apiKey?.scopes || this.defaultScope);
+    return parsed;
+  },
+
+  hasScope: function (apiKey = {}, expectedScope = null) {
+    if (!expectedScope) return true;
+    const scopes = this.parseScopes(apiKey);
+    return scopes.includes(expectedScope) || scopes.includes("*");
+  },
+
+  isRevoked: function (apiKey = {}) {
+    return !!apiKey?.revokedAt;
+  },
+
+  isExpired: function (apiKey = {}) {
+    if (!apiKey?.expiresAt) return false;
+    return new Date(apiKey.expiresAt).getTime() <= Date.now();
+  },
+
+  isUsable: function (apiKey = {}) {
+    return !this.isRevoked(apiKey) && !this.isExpired(apiKey);
+  },
+
+  create: async function (payload = {}) {
+    const normalizedPayload =
+      payload && typeof payload === "object"
+        ? payload
+        : { createdBy: Number(payload) };
+    const createdBy = normalizedPayload?.createdBy || null;
+    const name = normalizedPayload?.name || null;
+    const scopes = normalizedPayload?.scopes || [this.defaultScope];
+    const expiresAt = normalizedPayload?.expiresAt || null;
     try {
       const apiKey = await prisma.api_keys.create({
         data: {
           secret: this.makeSecret(),
-          createdBy: createdByUserId,
+          createdBy,
+          name: name ? String(name).slice(0, 255) : null,
+          scopes: this.normalizeScopes(scopes).join(","),
+          expiresAt: expiresAt ? new Date(expiresAt) : null,
         },
       });
 
@@ -32,6 +79,44 @@ const ApiKey = {
     } catch (error) {
       console.error("FAILED TO GET API KEY.", error.message);
       return null;
+    }
+  },
+
+  update: async function (id = null, data = {}) {
+    if (!id) return { apiKey: null, error: "No key id provided for update." };
+    const updates = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (!this.writable.includes(key)) continue;
+      switch (key) {
+        case "name":
+          updates.name = value ? String(value).slice(0, 255) : null;
+          break;
+        case "scopes":
+          updates.scopes = this.normalizeScopes(value).join(",");
+          break;
+        case "expiresAt":
+          updates.expiresAt = value ? new Date(value) : null;
+          break;
+        case "revokedAt":
+          updates.revokedAt = value ? new Date(value) : null;
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (Object.keys(updates).length === 0)
+      return { apiKey: null, error: "No valid updates provided." };
+
+    try {
+      const apiKey = await prisma.api_keys.update({
+        where: { id: Number(id) },
+        data: updates,
+      });
+      return { apiKey, error: null };
+    } catch (error) {
+      console.error("FAILED TO UPDATE API KEY.", error.message);
+      return { apiKey: null, error: error.message };
     }
   },
 
@@ -74,6 +159,10 @@ const ApiKey = {
       const apiKeys = await this.where(clause, limit);
 
       for (const apiKey of apiKeys) {
+        apiKey.scopes = this.parseScopes(apiKey);
+        apiKey.isExpired = this.isExpired(apiKey);
+        apiKey.isRevoked = this.isRevoked(apiKey);
+        apiKey.isUsable = this.isUsable(apiKey);
         if (!apiKey.createdBy) continue;
         const user = await User.get({ id: apiKey.createdBy });
         if (!user) continue;
