@@ -1,6 +1,7 @@
 const { TeamMember } = require("../../../models/teamMembers");
 const { UsageEvents } = require("../../../models/usageEvents");
 const { UsagePolicies } = require("../../../models/usagePolicies");
+const { SystemSettings } = require("../../../models/systemSettings");
 
 function startOfUtcDay() {
   const now = new Date();
@@ -34,6 +35,10 @@ async function resolvePolicyContext({ user = null, workspace = null }) {
 }
 
 async function enforceChatPolicies({ user = null, workspace = null, message = "" }) {
+  const featureFlags = await SystemSettings.getFeatureFlags();
+  if (featureFlags?.enterprise_usage_policies === false) {
+    return { allowed: true, rules: {}, policies: [], teamIds: [] };
+  }
   const { rules = {}, policies = [], teamIds = [] } = await resolvePolicyContext({
     user,
     workspace,

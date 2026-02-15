@@ -2,6 +2,7 @@ const mockTeamMemberWhere = jest.fn();
 const mockUsagePolicyResolveRulesFor = jest.fn();
 const mockUsageEventsCount = jest.fn();
 const mockUsageEventsAggregate = jest.fn();
+const mockGetFeatureFlags = jest.fn();
 
 jest.mock("../../../../server/models/teamMembers", () => ({
   TeamMember: {
@@ -22,6 +23,12 @@ jest.mock("../../../../server/models/usageEvents", () => ({
   },
 }));
 
+jest.mock("../../../../server/models/systemSettings", () => ({
+  SystemSettings: {
+    getFeatureFlags: (...args) => mockGetFeatureFlags(...args),
+  },
+}));
+
 const { enforceChatPolicies } = require("../../../../server/utils/helpers/policies/chatPolicy");
 
 describe("Chat policy enforcement", () => {
@@ -31,6 +38,9 @@ describe("Chat policy enforcement", () => {
     mockUsagePolicyResolveRulesFor.mockResolvedValue({
       rules: {},
       policies: [],
+    });
+    mockGetFeatureFlags.mockResolvedValue({
+      enterprise_usage_policies: true,
     });
     mockUsageEventsCount.mockResolvedValue(0);
     mockUsageEventsAggregate.mockResolvedValue({

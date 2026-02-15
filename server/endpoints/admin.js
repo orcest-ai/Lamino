@@ -35,6 +35,7 @@ const ImportedPlugin = require("../utils/agents/imported");
 const {
   simpleSSOLoginDisabledMiddleware,
 } = require("../utils/middleware/simpleSSOEnabled");
+const { requireFeature } = require("../utils/middleware/featureGate");
 
 function sanitizeMemberPayload(payload = [], fallbackRole = "member") {
   if (!Array.isArray(payload)) return [];
@@ -403,7 +404,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/teams",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (_request, response) => {
       try {
         const teams = await Team.where({}, null, { createdAt: "desc" });
@@ -432,7 +437,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/teams/:teamId",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { teamId } = request.params;
@@ -461,7 +470,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/teams/new",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -523,7 +536,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/teams/:teamId",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { teamId } = request.params;
@@ -541,7 +558,11 @@ function adminEndpoints(app) {
 
   app.delete(
     "/admin/teams/:teamId",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -568,7 +589,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/teams/:teamId/members",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { teamId } = request.params;
@@ -583,7 +608,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/teams/:teamId/update-members",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -620,7 +649,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/teams/:teamId/workspaces",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { teamId } = request.params;
@@ -637,7 +670,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/teams/:teamId/update-workspaces",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -673,7 +710,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/teams/:teamId/access-map",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_teams"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { teamId } = request.params;
@@ -701,7 +742,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/prompt-templates",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -721,7 +766,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/prompt-templates/new",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -770,7 +819,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/prompt-templates/:templateId",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -803,7 +856,11 @@ function adminEndpoints(app) {
 
   app.delete(
     "/admin/prompt-templates/:templateId",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -829,7 +886,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/prompt-templates/:templateId/versions",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -857,7 +918,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/prompt-templates/:templateId/versions/new",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -894,7 +959,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/prompt-templates/:templateId/versions/:versionId/approve",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -935,7 +1004,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/prompt-templates/:templateId/apply-to-workspace",
-    [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_prompt_library"),
+      flexUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -1016,7 +1089,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/usage-policies",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_policies"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (_request, response) => {
       try {
         const policies = await UsagePolicies.whereWithRelations(
@@ -1034,7 +1111,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/usage-policies/new",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_policies"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const user = await userFromSession(request, response);
@@ -1053,7 +1134,11 @@ function adminEndpoints(app) {
 
   app.post(
     "/admin/usage-policies/:id",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_policies"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { id } = request.params;
@@ -1071,7 +1156,11 @@ function adminEndpoints(app) {
 
   app.delete(
     "/admin/usage-policies/:id",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_policies"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const { id } = request.params;
@@ -1086,7 +1175,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/usage-policies/effective",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_policies"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const teamIds = request.query?.teamIds
@@ -1112,7 +1205,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/usage/overview",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_monitoring"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const clause = usageBaseClause(request.query);
@@ -1136,7 +1233,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/usage/timeseries",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_monitoring"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const clause = usageBaseClause(request.query);
@@ -1185,7 +1286,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/usage/breakdown",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_monitoring"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const by = String(request.query?.by || "eventType");
@@ -1218,7 +1323,11 @@ function adminEndpoints(app) {
 
   app.get(
     "/admin/usage/export.csv",
-    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    [
+      validatedRequest,
+      requireFeature("enterprise_usage_monitoring"),
+      strictMultiUserRoleValid([ROLES.admin, ROLES.manager]),
+    ],
     async (request, response) => {
       try {
         const clause = usageBaseClause(request.query);

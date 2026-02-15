@@ -718,10 +718,34 @@ const SystemSettings = {
     return connections;
   },
   getFeatureFlags: async function () {
+    const enterpriseTeams =
+      await SystemSettings.get({ label: "enterprise_teams" });
+    const enterprisePromptLibrary =
+      await SystemSettings.get({ label: "enterprise_prompt_library" });
+    const enterpriseUsageMonitoring =
+      await SystemSettings.get({ label: "enterprise_usage_monitoring" });
+    const enterpriseUsagePolicies =
+      await SystemSettings.get({ label: "enterprise_usage_policies" });
     return {
       experimental_live_file_sync:
         (await SystemSettings.get({ label: "experimental_live_file_sync" }))
           ?.value === "enabled",
+      enterprise_teams:
+        enterpriseTeams?.value
+          ? enterpriseTeams.value === "enabled"
+          : true,
+      enterprise_prompt_library:
+        enterprisePromptLibrary?.value
+          ? enterprisePromptLibrary.value === "enabled"
+          : true,
+      enterprise_usage_monitoring:
+        enterpriseUsageMonitoring?.value
+          ? enterpriseUsageMonitoring.value === "enabled"
+          : true,
+      enterprise_usage_policies:
+        enterpriseUsagePolicies?.value
+          ? enterpriseUsagePolicies.value === "enabled"
+          : true,
     };
   },
 

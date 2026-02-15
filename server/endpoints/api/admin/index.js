@@ -15,6 +15,7 @@ const { UsagePolicies } = require("../../../models/usagePolicies");
 const { canModifyAdmin } = require("../../../utils/helpers/admin");
 const { multiUserMode, reqBody } = require("../../../utils/http");
 const { validApiKey } = require("../../../utils/middleware/validApiKey");
+const { requireFeature } = require("../../../utils/middleware/featureGate");
 
 function sanitizeMemberPayload(payload = [], fallbackRole = "member") {
   if (!Array.isArray(payload)) return [];
@@ -739,7 +740,10 @@ function apiAdminEndpoints(app) {
     }
   );
 
-  app.get("/v1/admin/teams", [validApiKey], async (_request, response) => {
+  app.get(
+    "/v1/admin/teams",
+    [validApiKey, requireFeature("enterprise_teams")],
+    async (_request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -767,7 +771,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.post("/v1/admin/teams/new", [validApiKey], async (request, response) => {
+  app.post(
+    "/v1/admin/teams/new",
+    [validApiKey, requireFeature("enterprise_teams")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -803,7 +810,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/teams/:teamId",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_teams")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -828,7 +835,7 @@ function apiAdminEndpoints(app) {
 
   app.delete(
     "/v1/admin/teams/:teamId",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_teams")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -853,7 +860,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/teams/:teamId/update-members",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_teams")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -889,7 +896,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/teams/:teamId/update-workspaces",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_teams")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -922,7 +929,7 @@ function apiAdminEndpoints(app) {
 
   app.get(
     "/v1/admin/prompt-templates",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (_request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -947,7 +954,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/prompt-templates/new",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -984,7 +991,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/prompt-templates/:templateId",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1018,7 +1025,7 @@ function apiAdminEndpoints(app) {
 
   app.delete(
     "/v1/admin/prompt-templates/:templateId",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1049,7 +1056,7 @@ function apiAdminEndpoints(app) {
 
   app.get(
     "/v1/admin/prompt-templates/:templateId/versions",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1082,7 +1089,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/prompt-templates/:templateId/versions/new",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1126,7 +1133,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/prompt-templates/:templateId/versions/:versionId/approve",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1172,7 +1179,7 @@ function apiAdminEndpoints(app) {
 
   app.post(
     "/v1/admin/prompt-templates/:templateId/apply-to-workspace",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_prompt_library")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1245,7 +1252,10 @@ function apiAdminEndpoints(app) {
     }
   );
 
-  app.get("/v1/admin/usage-policies", [validApiKey], async (_request, response) => {
+  app.get(
+    "/v1/admin/usage-policies",
+    [validApiKey, requireFeature("enterprise_usage_policies")],
+    async (_request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1263,7 +1273,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.post("/v1/admin/usage-policies/new", [validApiKey], async (request, response) => {
+  app.post(
+    "/v1/admin/usage-policies/new",
+    [validApiKey, requireFeature("enterprise_usage_policies")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1281,7 +1294,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.post("/v1/admin/usage-policies/:id", [validApiKey], async (request, response) => {
+  app.post(
+    "/v1/admin/usage-policies/:id",
+    [validApiKey, requireFeature("enterprise_usage_policies")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1299,7 +1315,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.delete("/v1/admin/usage-policies/:id", [validApiKey], async (request, response) => {
+  app.delete(
+    "/v1/admin/usage-policies/:id",
+    [validApiKey, requireFeature("enterprise_usage_policies")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1316,7 +1335,7 @@ function apiAdminEndpoints(app) {
 
   app.get(
     "/v1/admin/usage-policies/effective",
-    [validApiKey],
+    [validApiKey, requireFeature("enterprise_usage_policies")],
     async (request, response) => {
       try {
         if (!multiUserMode(response)) {
@@ -1344,7 +1363,10 @@ function apiAdminEndpoints(app) {
     }
   );
 
-  app.get("/v1/admin/usage/overview", [validApiKey], async (request, response) => {
+  app.get(
+    "/v1/admin/usage/overview",
+    [validApiKey, requireFeature("enterprise_usage_monitoring")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1368,7 +1390,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.get("/v1/admin/usage/timeseries", [validApiKey], async (request, response) => {
+  app.get(
+    "/v1/admin/usage/timeseries",
+    [validApiKey, requireFeature("enterprise_usage_monitoring")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1414,7 +1439,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.get("/v1/admin/usage/breakdown", [validApiKey], async (request, response) => {
+  app.get(
+    "/v1/admin/usage/breakdown",
+    [validApiKey, requireFeature("enterprise_usage_monitoring")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
@@ -1444,7 +1472,10 @@ function apiAdminEndpoints(app) {
     }
   });
 
-  app.get("/v1/admin/usage/export.csv", [validApiKey], async (request, response) => {
+  app.get(
+    "/v1/admin/usage/export.csv",
+    [validApiKey, requireFeature("enterprise_usage_monitoring")],
+    async (request, response) => {
     try {
       if (!multiUserMode(response)) {
         response.sendStatus(401).end();
