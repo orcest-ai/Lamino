@@ -53,7 +53,7 @@ describe("usageFilters helper", () => {
   it("omits invalid id/string filters instead of emitting NaN or blanks", () => {
     const clause = usageBaseClause({
       userId: "NaN",
-      workspaceId: "-7",
+      workspaceId: "4.2",
       teamId: "",
       eventType: "   ",
       provider: null,

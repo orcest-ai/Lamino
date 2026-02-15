@@ -7,8 +7,8 @@ function parseDateLike(value = null) {
 function parseIdFilter(value = null) {
   if (value === null || value === undefined || value === "") return null;
   const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return Math.trunc(parsed);
+  if (!Number.isInteger(parsed) || parsed <= 0) return null;
+  return parsed;
 }
 
 function parseStringFilter(value = null) {
