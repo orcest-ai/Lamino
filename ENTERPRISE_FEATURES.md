@@ -88,6 +88,7 @@ yarn test \
 
 # api key scope mapping suite includes coverage for:
 # - admin/workspace/workspace-thread/openai route families
+# - workspace-thread stream/non-stream distinctions (`workspace:chat` vs `workspace:write`)
 # - users/system/documents/embed route families
 # - unmapped route fallback behavior
 # validApiKey middleware suite includes:
