@@ -39,10 +39,13 @@ jobs:
       - name: Build frontend
         run: cd frontend && yarn build
 
+      - name: Prepare database for smoke test
+        run: cd server && npx prisma migrate deploy
+
       - name: Run enterprise smoke test
         run: |
           cd server
-          PORT=3001 NODE_ENV=development JWT_SECRET=ci-enterprise-secret node index.js > /tmp/anythingllm-server.log 2>&1 &
+          PORT=3001 NODE_ENV=development JWT_SECRET=ci-enterprise-secret AUTH_TOKEN=ci-single-user-token node index.js > /tmp/anythingllm-server.log 2>&1 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID || true' EXIT
           for i in {1..60}; do
