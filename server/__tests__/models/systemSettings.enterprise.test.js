@@ -48,4 +48,27 @@ describe("SystemSettings enterprise feature flags", () => {
     expect(flags.enterprise_usage_monitoring).toBe(true);
     expect(flags.experimental_live_file_sync).toBe(false);
   });
+
+  it("prefers dedicated enterprise labels over feature_flags JSON", async () => {
+    jest.spyOn(SystemSettings, "get").mockImplementation(async ({ label }) => {
+      const lookup = {
+        feature_flags: {
+          value: JSON.stringify({
+            enterprise_teams: false,
+            enterprise_prompt_library: false,
+          }),
+        },
+        enterprise_teams: { value: "enabled" },
+        enterprise_prompt_library: { value: "disabled" },
+        experimental_live_file_sync: { value: "enabled" },
+      };
+      return lookup[label] || null;
+    });
+
+    const flags = await SystemSettings.getFeatureFlags();
+
+    expect(flags.enterprise_teams).toBe(true);
+    expect(flags.enterprise_prompt_library).toBe(false);
+    expect(flags.experimental_live_file_sync).toBe(true);
+  });
 });
