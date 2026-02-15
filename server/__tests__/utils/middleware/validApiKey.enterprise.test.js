@@ -179,4 +179,25 @@ describe("validApiKey middleware", () => {
     expect(response.locals.apiKey.requiredScope).toBeNull();
     expect(next).toHaveBeenCalledTimes(1);
   });
+
+  it("stores multi-user mode status from system settings in locals", async () => {
+    mockIsMultiUserMode.mockResolvedValueOnce(false);
+    const request = {
+      header: jest.fn(() => "Bearer valid"),
+      method: "GET",
+      path: "/v1/admin/teams",
+    };
+    const key = { id: 14, secret: "valid", scopes: "admin:read" };
+    mockGet.mockResolvedValueOnce(key);
+    mockIsUsable.mockReturnValueOnce(true);
+    mockHasScope.mockReturnValueOnce(true);
+    mockParseScopes.mockReturnValueOnce(["admin:read"]);
+    const response = mockResponse();
+    const next = jest.fn();
+
+    await validApiKey(request, response, next);
+
+    expect(response.locals.multiUserMode).toBe(false);
+    expect(next).toHaveBeenCalledTimes(1);
+  });
 });
