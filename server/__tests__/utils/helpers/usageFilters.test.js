@@ -17,6 +17,20 @@ describe("usageFilters helper", () => {
     expect(to.getTime()).toBeGreaterThan(from.getTime());
   });
 
+  it("normalizes days to positive integer values with upper bound", () => {
+    const normalized = usageTimeRange({
+      days: "12.9",
+      to: "2026-04-20T00:00:00.000Z",
+    });
+    const capped = usageTimeRange({
+      days: "9999",
+      to: "2026-04-20T00:00:00.000Z",
+    });
+
+    expect(normalized.from.toISOString()).toBe("2026-04-08T00:00:00.000Z");
+    expect(capped.from.toISOString()).toBe("2025-04-20T00:00:00.000Z");
+  });
+
   it("builds usage where clause with optional filters", () => {
     const clause = usageBaseClause({
       from: "2026-01-01T00:00:00.000Z",

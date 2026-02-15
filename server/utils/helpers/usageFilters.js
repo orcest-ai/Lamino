@@ -19,7 +19,10 @@ function parseStringFilter(value = null) {
 
 function usageTimeRange(query = {}) {
   const parsedDays = Number(query?.days ?? 30);
-  const safeDays = Number.isFinite(parsedDays) && parsedDays > 0 ? parsedDays : 30;
+  const safeDays =
+    Number.isFinite(parsedDays) && parsedDays > 0
+      ? Math.min(365, Math.trunc(parsedDays))
+      : 30;
   const to = parseDateLike(query?.to) || new Date();
   const from =
     parseDateLike(query?.from) ||
