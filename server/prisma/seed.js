@@ -5,6 +5,10 @@ async function main() {
   const settings = [
     { label: "multi_user_mode", value: "false" },
     { label: "logo_filename", value: "anything-llm.png" },
+    { label: "enterprise_teams", value: "enabled" },
+    { label: "enterprise_prompt_library", value: "enabled" },
+    { label: "enterprise_usage_monitoring", value: "enabled" },
+    { label: "enterprise_usage_policies", value: "enabled" },
   ];
 
   for (let setting of settings) {
