@@ -110,3 +110,21 @@ cd server && ./scripts/enterprise-smoke-test.sh
 yarn test:enterprise
 yarn smoke:enterprise
 ```
+
+## CI validation workflow
+
+The repository includes an `Enterprise Validation` GitHub Actions workflow that runs on `push` and `pull_request` for the enterprise branch work.
+
+Validation stages:
+
+- install root/server/frontend dependencies
+- run `yarn test:enterprise`
+- build frontend bundle
+- run `npx prisma migrate deploy` in `server`
+- boot server and run `server/scripts/enterprise-smoke-test.sh`
+
+Workflow reliability safeguards:
+
+- workflow-level concurrency cancellation for stale branch/PR runs
+- `/api/ping` readiness polling before smoke execution
+- automatic server log dump when smoke validation fails
