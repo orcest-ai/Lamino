@@ -86,6 +86,11 @@ yarn test \
   server/__tests__/utils/middleware/featureGate.test.js \
   server/__tests__/utils/middleware/validApiKey.enterprise.test.js
 
+# api key scope mapping suite includes coverage for:
+# - admin/workspace/workspace-thread/openai route families
+# - users/system/documents/embed route families
+# - unmapped route fallback behavior
+
 # frontend compile + route validation
 cd frontend && yarn build
 
