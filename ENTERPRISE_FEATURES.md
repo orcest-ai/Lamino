@@ -41,6 +41,7 @@ This repository includes an additive enterprise layer for team and commercial op
 5. **Commercial API Key Controls**
    - Scoped keys, expiry, revocation support, and route-level scope enforcement
    - Invalid/malformed key expiry timestamps are treated as expired for fail-safe access control
+   - API key create/update payloads validate date fields (`expiresAt`, `revokedAt`) and reject malformed datetime values
    - Session API:
      - `/api/admin/generate-api-key`
      - `/api/admin/api-keys/:id`
