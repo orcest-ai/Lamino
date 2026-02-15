@@ -357,6 +357,136 @@ const Admin = {
       });
   },
 
+  // Usage monitoring
+  usageOverview: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage/overview${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => res?.summary || null)
+      .catch((e) => {
+        console.error(e);
+        return null;
+      });
+  },
+  usageTimeSeries: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage/timeseries${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => res?.series || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  usageBreakdown: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage/breakdown${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => res?.breakdown || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  usageExportCsv: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return fetch(`${API_BASE}/admin/usage/export.csv${search ? `?${search}` : ""}`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to export usage CSV.");
+        return res.text();
+      })
+      .catch((e) => {
+        console.error(e);
+        return "";
+      });
+  },
+
+  // Usage policies
+  usagePolicies: async () => {
+    return await fetch(`${API_BASE}/admin/usage-policies`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.policies || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newUsagePolicy: async (data = {}) => {
+    return await fetch(`${API_BASE}/admin/usage-policies/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { policy: null, error: e.message };
+      });
+  },
+  updateUsagePolicy: async (policyId, updates = {}) => {
+    return await fetch(`${API_BASE}/admin/usage-policies/${policyId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(updates),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, policy: null, error: e.message };
+      });
+  },
+  deleteUsagePolicy: async (policyId) => {
+    return await fetch(`${API_BASE}/admin/usage-policies/${policyId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  effectiveUsagePolicy: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage-policies/effective${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => ({ rules: res?.rules || {}, policies: res?.policies || [] }))
+      .catch((e) => {
+        console.error(e);
+        return { rules: {}, policies: [] };
+      });
+  },
+
   // System Preferences
   /**
    * Fetches system preferences by fields

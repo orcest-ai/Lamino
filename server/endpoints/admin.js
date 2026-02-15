@@ -13,6 +13,8 @@ const { TeamMember } = require("../models/teamMembers");
 const { TeamWorkspace } = require("../models/teamWorkspaces");
 const { PromptTemplate } = require("../models/promptTemplate");
 const { PromptTemplateVersion } = require("../models/promptTemplateVersion");
+const { UsageEvents } = require("../models/usageEvents");
+const { UsagePolicies } = require("../models/usagePolicies");
 const {
   getVectorDbClass,
   getEmbeddingEngineSelection,
@@ -75,6 +77,38 @@ async function promptTemplateAccessClause(user = null) {
         : []),
     ],
   };
+}
+
+function usageTimeRange(query = {}) {
+  const days = Number(query?.days || 30);
+  const to = query?.to ? new Date(query.to) : new Date();
+  const from = query?.from
+    ? new Date(query.from)
+    : new Date(to.getTime() - days * 24 * 60 * 60 * 1000);
+  return { from, to };
+}
+
+function usageBaseClause(query = {}) {
+  const { from, to } = usageTimeRange(query);
+  const clause = {
+    occurredAt: {
+      gte: from,
+      lte: to,
+    },
+  };
+  if (query?.userId) clause.userId = Number(query.userId);
+  if (query?.workspaceId) clause.workspaceId = Number(query.workspaceId);
+  if (query?.teamId) clause.teamId = Number(query.teamId);
+  if (query?.eventType) clause.eventType = String(query.eventType);
+  if (query?.provider) clause.provider = String(query.provider);
+  if (query?.model) clause.model = String(query.model);
+  return clause;
+}
+
+function timeSeriesBucket(date = new Date(), interval = "day") {
+  const iso = new Date(date).toISOString();
+  if (interval === "hour") return iso.slice(0, 13) + ":00";
+  return iso.slice(0, 10);
 }
 
 function adminEndpoints(app) {
@@ -973,6 +1007,265 @@ function adminEndpoints(app) {
           template,
           version,
         });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/usage-policies",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (_request, response) => {
+      try {
+        const policies = await UsagePolicies.whereWithRelations(
+          {},
+          null,
+          [{ priority: "asc" }, { id: "asc" }]
+        );
+        response.status(200).json({ policies, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/usage-policies/new",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const user = await userFromSession(request, response);
+        const body = reqBody(request);
+        const { policy, error } = await UsagePolicies.new({
+          ...body,
+          createdBy: user?.id,
+        });
+        response.status(200).json({ policy, error });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.post(
+    "/admin/usage-policies/:id",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { id } = request.params;
+        const { policy, error } = await UsagePolicies.update(
+          Number(id),
+          reqBody(request)
+        );
+        response.status(200).json({ success: !!policy, policy, error });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.delete(
+    "/admin/usage-policies/:id",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const { id } = request.params;
+        await UsagePolicies.delete({ id: Number(id) });
+        response.status(200).json({ success: true, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/usage-policies/effective",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const teamIds = request.query?.teamIds
+          ? String(request.query.teamIds)
+              .split(",")
+              .map((id) => Number(id))
+              .filter((id) => !Number.isNaN(id))
+          : [];
+        const { rules, policies } = await UsagePolicies.resolveRulesFor({
+          userId: request.query?.userId ? Number(request.query.userId) : null,
+          workspaceId: request.query?.workspaceId
+            ? Number(request.query.workspaceId)
+            : null,
+          teamIds,
+        });
+        response.status(200).json({ rules, policies, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/usage/overview",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const clause = usageBaseClause(request.query);
+        const aggregate = await UsageEvents.aggregate(clause);
+        response.status(200).json({
+          summary: {
+            events: aggregate?._count?.id || 0,
+            promptTokens: aggregate?._sum?.promptTokens || 0,
+            completionTokens: aggregate?._sum?.completionTokens || 0,
+            totalTokens: aggregate?._sum?.totalTokens || 0,
+            durationMs: aggregate?._sum?.durationMs || 0,
+          },
+          error: null,
+        });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/usage/timeseries",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const clause = usageBaseClause(request.query);
+        const interval =
+          String(request.query?.interval || "day").toLowerCase() === "hour"
+            ? "hour"
+            : "day";
+        const events = await UsageEvents.where(clause, 10000, {
+          occurredAt: "asc",
+        });
+        const buckets = {};
+        for (const event of events) {
+          const bucket = timeSeriesBucket(event.occurredAt, interval);
+          if (!buckets[bucket]) {
+            buckets[bucket] = {
+              period: bucket,
+              events: 0,
+              promptTokens: 0,
+              completionTokens: 0,
+              totalTokens: 0,
+              durationMs: 0,
+            };
+          }
+          buckets[bucket].events += 1;
+          buckets[bucket].promptTokens += Number(event.promptTokens || 0);
+          buckets[bucket].completionTokens += Number(
+            event.completionTokens || 0
+          );
+          buckets[bucket].totalTokens += Number(event.totalTokens || 0);
+          buckets[bucket].durationMs += Number(event.durationMs || 0);
+        }
+
+        response.status(200).json({
+          interval,
+          series: Object.values(buckets).sort((a, b) =>
+            a.period.localeCompare(b.period)
+          ),
+          error: null,
+        });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/usage/breakdown",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const by = String(request.query?.by || "eventType");
+        const validBy = [
+          "eventType",
+          "userId",
+          "workspaceId",
+          "teamId",
+          "provider",
+          "model",
+          "mode",
+        ];
+        if (!validBy.includes(by))
+          return response.status(400).json({
+            breakdown: [],
+            error: `Invalid breakdown field: ${by}`,
+          });
+        const clause = usageBaseClause(request.query);
+        const breakdown = await UsageEvents.groupBy({
+          by: [by],
+          where: clause,
+        });
+        response.status(200).json({ breakdown, error: null });
+      } catch (error) {
+        console.error(error);
+        response.sendStatus(500).end();
+      }
+    }
+  );
+
+  app.get(
+    "/admin/usage/export.csv",
+    [validatedRequest, strictMultiUserRoleValid([ROLES.admin, ROLES.manager])],
+    async (request, response) => {
+      try {
+        const clause = usageBaseClause(request.query);
+        const events = await UsageEvents.where(clause, 50000, {
+          occurredAt: "desc",
+        });
+        const headers = [
+          "id",
+          "occurredAt",
+          "eventType",
+          "userId",
+          "workspaceId",
+          "teamId",
+          "apiKeyId",
+          "provider",
+          "model",
+          "mode",
+          "promptTokens",
+          "completionTokens",
+          "totalTokens",
+          "durationMs",
+        ];
+        const rows = events.map((event) =>
+          [
+            event.id,
+            new Date(event.occurredAt).toISOString(),
+            event.eventType,
+            event.userId ?? "",
+            event.workspaceId ?? "",
+            event.teamId ?? "",
+            event.apiKeyId ?? "",
+            event.provider ?? "",
+            event.model ?? "",
+            event.mode ?? "",
+            event.promptTokens ?? 0,
+            event.completionTokens ?? 0,
+            event.totalTokens ?? 0,
+            event.durationMs ?? "",
+          ].join(",")
+        );
+        const csv = [headers.join(","), ...rows].join("\n");
+        response.setHeader("Content-Type", "text/csv");
+        response.setHeader(
+          "Content-Disposition",
+          "attachment; filename=\"usage-events.csv\""
+        );
+        response.status(200).send(csv);
       } catch (error) {
         console.error(error);
         response.sendStatus(500).end();

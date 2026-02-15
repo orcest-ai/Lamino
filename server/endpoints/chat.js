@@ -17,6 +17,7 @@ const { WorkspaceThread } = require("../models/workspaceThread");
 const { User } = require("../models/user");
 const truncate = require("truncate");
 const { getModelTag } = require("./utils");
+const { enforceChatPolicies } = require("../utils/helpers/policies/chatPolicy");
 
 function chatEndpoints(app) {
   if (!app) return;
@@ -56,6 +57,23 @@ function chatEndpoints(app) {
             sources: [],
             close: true,
             error: `You have met your maximum 24 hour chat quota of ${user.dailyMessageLimit} chats. Try again later.`,
+          });
+          return;
+        }
+
+        const policyCheck = await enforceChatPolicies({
+          user,
+          workspace,
+          message,
+        });
+        if (!policyCheck.allowed) {
+          writeResponseChunk(response, {
+            id: uuidv4(),
+            type: "abort",
+            textResponse: null,
+            sources: [],
+            close: true,
+            error: policyCheck.error,
           });
           return;
         }
@@ -143,6 +161,23 @@ function chatEndpoints(app) {
             sources: [],
             close: true,
             error: `You have met your maximum 24 hour chat quota of ${user.dailyMessageLimit} chats. Try again later.`,
+          });
+          return;
+        }
+
+        const policyCheck = await enforceChatPolicies({
+          user,
+          workspace,
+          message,
+        });
+        if (!policyCheck.allowed) {
+          writeResponseChunk(response, {
+            id: uuidv4(),
+            type: "abort",
+            textResponse: null,
+            sources: [],
+            close: true,
+            error: policyCheck.error,
           });
           return;
         }

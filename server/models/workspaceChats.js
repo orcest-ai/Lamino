@@ -1,5 +1,64 @@
 const prisma = require("../utils/prisma");
 const { safeJSONStringify } = require("../utils/helpers/chat/responses");
+const { UsageEvents } = require("./usageEvents");
+
+function parseUsageMetrics(metrics = {}) {
+  const promptTokens = Number(
+    metrics?.prompt_tokens ?? metrics?.promptTokens ?? 0
+  );
+  const completionTokens = Number(
+    metrics?.completion_tokens ?? metrics?.completionTokens ?? 0
+  );
+  const totalTokens = Number(
+    metrics?.total_tokens ?? metrics?.totalTokens ?? promptTokens + completionTokens
+  );
+  const durationRaw = Number(metrics?.duration ?? metrics?.durationMs ?? 0);
+  const durationMs =
+    !Number.isFinite(durationRaw) || durationRaw <= 0
+      ? null
+      : durationRaw > 1000
+        ? Math.round(durationRaw)
+        : Math.round(durationRaw * 1000);
+  return {
+    promptTokens: Number.isFinite(promptTokens) ? promptTokens : 0,
+    completionTokens: Number.isFinite(completionTokens) ? completionTokens : 0,
+    totalTokens: Number.isFinite(totalTokens) ? totalTokens : 0,
+    durationMs,
+  };
+}
+
+async function resolveTeamForUsage(workspaceId = null, userId = null) {
+  if (!workspaceId) return null;
+  try {
+    if (userId) {
+      const membershipMatch = await prisma.team_workspaces.findFirst({
+        where: {
+          workspaceId: Number(workspaceId),
+          team: {
+            members: {
+              some: {
+                userId: Number(userId),
+              },
+            },
+          },
+        },
+        select: {
+          teamId: true,
+        },
+      });
+      if (membershipMatch?.teamId) return membershipMatch.teamId;
+    }
+
+    const anyWorkspaceTeam = await prisma.team_workspaces.findFirst({
+      where: { workspaceId: Number(workspaceId) },
+      select: { teamId: true },
+    });
+    return anyWorkspaceTeam?.teamId || null;
+  } catch (error) {
+    console.error(error.message);
+    return null;
+  }
+}
 
 const WorkspaceChats = {
   new: async function ({
@@ -21,6 +80,32 @@ const WorkspaceChats = {
           thread_id: threadId,
           api_session_id: apiSessionId,
           include,
+        },
+      });
+
+      const usageMetrics = parseUsageMetrics(response?.metrics || {});
+      const teamId = await resolveTeamForUsage(workspaceId, user?.id || null);
+      await UsageEvents.log({
+        eventType: threadId ? "workspace_thread_chat" : "workspace_chat",
+        userId: user?.id || null,
+        workspaceId,
+        teamId,
+        chatId: chat.id,
+        threadId: threadId || null,
+        mode: response?.type || null,
+        promptTokens: usageMetrics.promptTokens,
+        completionTokens: usageMetrics.completionTokens,
+        totalTokens: usageMetrics.totalTokens,
+        durationMs: usageMetrics.durationMs,
+        metadata: {
+          include,
+          apiSessionId,
+          hasAttachments:
+            Array.isArray(response?.attachments) &&
+            response.attachments.length > 0,
+          sourceCount: Array.isArray(response?.sources)
+            ? response.sources.length
+            : 0,
         },
       });
       return { chat, message: null };
