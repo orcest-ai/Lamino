@@ -344,6 +344,14 @@ assert_status "200" "usage timeseries available when monitoring enabled"
 request "GET" "/admin/usage/breakdown?by=eventType" "" "${ADMIN_TOKEN}"
 assert_status "200" "usage breakdown available when monitoring enabled"
 
+request "GET" "/admin/usage/breakdown?by=notAField" "" "${ADMIN_TOKEN}"
+assert_status "400" "usage breakdown rejects invalid field"
+if ! contains_text "$HTTP_BODY" "Invalid breakdown field"; then
+  log "FAILED: invalid breakdown response missing expected error text."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 request "GET" "/admin/usage/export.csv" "" "${ADMIN_TOKEN}"
 assert_status "200" "usage CSV export available when monitoring enabled"
 if ! contains_text "$HTTP_BODY" "id,occurredAt,eventType"; then
@@ -420,6 +428,14 @@ assert_status "200" "admin:read key usage timeseries"
 
 request "GET" "/v1/admin/usage/breakdown?by=eventType" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage breakdown"
+
+request "GET" "/v1/admin/usage/breakdown?by=notAField" "" "${ADMIN_READ_KEY}"
+assert_status "400" "admin:read key breakdown invalid field rejection"
+if ! contains_text "$HTTP_BODY" "Invalid breakdown field"; then
+  log "FAILED: v1 invalid breakdown response missing expected error text."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "GET" "/v1/admin/usage/export.csv" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage csv export"
