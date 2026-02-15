@@ -20,24 +20,19 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import showToast from "@/utils/toast";
 import System from "@/models/system";
-import Admin from "@/models/admin";
 import Option from "./MenuOption";
 import { CanViewChatHistoryProvider } from "../CanViewChatHistory";
 import useAppVersion from "@/hooks/useAppVersion";
+import useEnterpriseFeatureFlags from "@/hooks/useEnterpriseFeatureFlags";
 
 export default function SettingsSidebar() {
   const { t } = useTranslation();
   const { logo } = useLogo();
   const { user } = useUser();
+  const { flags: featureFlags } = useEnterpriseFeatureFlags();
   const sidebarRef = useRef(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showBgOverlay, setShowBgOverlay] = useState(false);
-  const [featureFlags, setFeatureFlags] = useState({
-    enterprise_teams: true,
-    enterprise_prompt_library: true,
-    enterprise_usage_monitoring: true,
-    enterprise_usage_policies: true,
-  });
 
   useEffect(() => {
     function handleBg() {
@@ -51,19 +46,6 @@ export default function SettingsSidebar() {
     }
     handleBg();
   }, [showSidebar]);
-
-  useEffect(() => {
-    async function getFeatureFlags() {
-      const response = await Admin.systemPreferencesByFields(["feature_flags"]);
-      const flags = response?.settings?.feature_flags;
-      if (!flags || typeof flags !== "object") return;
-      setFeatureFlags((prev) => ({
-        ...prev,
-        ...flags,
-      }));
-    }
-    getFeatureFlags();
-  }, []);
 
   if (isMobile) {
     return (
