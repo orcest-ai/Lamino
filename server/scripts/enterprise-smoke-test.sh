@@ -342,6 +342,9 @@ if ! contains_text "$HTTP_BODY" "summary"; then
   exit 1
 fi
 
+request "GET" "/admin/usage/overview?from=2026-03-10T00:00:00.000Z&to=2026-03-01T00:00:00.000Z" "" "${ADMIN_TOKEN}"
+assert_status "200" "usage overview handles inverted from/to range"
+
 request "GET" "/admin/usage/timeseries?interval=day" "" "${ADMIN_TOKEN}"
 assert_status "200" "usage timeseries available when monitoring enabled"
 
@@ -439,6 +442,9 @@ assert_status "200" "admin:read key teams list"
 
 request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage overview"
+
+request "GET" "/v1/admin/usage/overview?from=2026-03-10T00:00:00.000Z&to=2026-03-01T00:00:00.000Z" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key usage overview handles inverted range"
 
 request "GET" "/v1/admin/usage/timeseries?interval=day" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage timeseries"
