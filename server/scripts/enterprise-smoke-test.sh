@@ -544,6 +544,14 @@ fi
 
 request "GET" "/admin/api-keys" "" "${MANAGER_TOKEN}"
 assert_status_any "manager denied admin api key listing" "401" "403"
+request "POST" "/admin/generate-api-key" "{\"name\":\"qa-manager-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${MANAGER_TOKEN}"
+if [[ "$HTTP_STATUS" == "200" ]]; then
+  UNEXPECTED_MANAGER_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "id")"
+  if [[ -n "$UNEXPECTED_MANAGER_KEY_ID" ]]; then
+    API_KEY_IDS+=("$UNEXPECTED_MANAGER_KEY_ID")
+  fi
+fi
+assert_status_any "manager denied admin api key creation" "401" "403"
 
 request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create team"
