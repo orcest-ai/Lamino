@@ -44,6 +44,9 @@ mkdir -p "$(dirname "${LOG_PATH}")"
 
 echo "[enterprise-local-validation] Using BASE_URL=${BASE_URL}"
 echo "[enterprise-local-validation] Log file: ${LOG_PATH}"
+if [[ -n "${EXTRA_SMOKE_ARGS}" ]]; then
+  echo "[enterprise-local-validation] EXTRA_SMOKE_ARGS=${EXTRA_SMOKE_ARGS}"
+fi
 
 if [[ "${RESET_DB}" == "1" ]]; then
   echo "[enterprise-local-validation] Resetting SQLite database."
