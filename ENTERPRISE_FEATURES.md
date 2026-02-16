@@ -298,6 +298,7 @@ Workflow reliability safeguards:
 - local validator enforces smoke summary invariants (`status=success`, `currentPhase=completed`, `requestCount>0`), required matrix-phase coverage in `phaseHistory`, and `verificationMatrix.status=pass` before reporting success (including `single-user` checks only when smoke starts from `multi_user_mode=false`)
 - local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
 - GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, CI aggregate validation summary, smoke summary, bootstrap validation summary, bootstrap scenario summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
+- GitHub workflow failure handler also prints server log + CI/smoke/bootstrap summaries inline in run logs before exit
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic
