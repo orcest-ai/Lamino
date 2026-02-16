@@ -368,7 +368,9 @@ fi
 TEAM_NAME="$(compose_name "qa-team-" 64 "${RUN_SUFFIX}")"
 MANAGER_TEAM_NAME="$(compose_name "qa-manager-team-" 64 "${RUN_SUFFIX}")"
 MANAGER_TEAM_UPDATED_NAME="$(compose_name "qa-manager-team-updated-" 64 "${RUN_SUFFIX}")"
+MANAGER_TEMPLATE_NAME="$(compose_name "qa-manager-template-" 64 "${RUN_SUFFIX}")"
 MANAGER_TEMPLATE_UPDATED_NAME="$(compose_name "qa-manager-template-updated-" 64 "${RUN_SUFFIX}")"
+MANAGER_POLICY_NAME="$(compose_name "qa-manager-policy-" 64 "${RUN_SUFFIX}")"
 MANAGER_POLICY_UPDATED_NAME="$(compose_name "qa-manager-policy-updated-" 64 "${RUN_SUFFIX}")"
 WORKSPACE_NAME="$(compose_name "qa-workspace-" 64 "${RUN_SUFFIX}")"
 ISOLATED_WORKSPACE_NAME="$(compose_name "qa-isolated-workspace-" 64 "${RUN_SUFFIX}")"
@@ -379,7 +381,9 @@ TEMPLATE_PROMPT="You are $(compose_name "qa-template-" 64 "${RUN_SUFFIX}")."
 assert_max_length "TEAM_NAME" "${TEAM_NAME}" 64
 assert_max_length "MANAGER_TEAM_NAME" "${MANAGER_TEAM_NAME}" 64
 assert_max_length "MANAGER_TEAM_UPDATED_NAME" "${MANAGER_TEAM_UPDATED_NAME}" 64
+assert_max_length "MANAGER_TEMPLATE_NAME" "${MANAGER_TEMPLATE_NAME}" 64
 assert_max_length "MANAGER_TEMPLATE_UPDATED_NAME" "${MANAGER_TEMPLATE_UPDATED_NAME}" 64
+assert_max_length "MANAGER_POLICY_NAME" "${MANAGER_POLICY_NAME}" 64
 assert_max_length "MANAGER_POLICY_UPDATED_NAME" "${MANAGER_POLICY_UPDATED_NAME}" 64
 assert_max_length "WORKSPACE_NAME" "${WORKSPACE_NAME}" 64
 assert_max_length "ISOLATED_WORKSPACE_NAME" "${ISOLATED_WORKSPACE_NAME}" 64
@@ -590,14 +594,14 @@ request "GET" "/admin/usage/export.csv" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage csv export reads"
 request "GET" "/admin/usage-policies" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage policy reads"
-request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-default-denied-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${TEAM_USER_TOKEN}"
+request "POST" "/admin/usage-policies/new" "{\"name\":$(json_quote "$(compose_name "qa-default-denied-policy-" 64 "${RUN_SUFFIX}")"),\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${TEAM_USER_TOKEN}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_DEFAULT_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
 fi
 assert_status "401" "default user denied usage policy writes"
 request "GET" "/admin/prompt-templates" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied prompt template reads"
-request "POST" "/admin/prompt-templates/new" "{\"name\":\"qa-default-denied-template-${RUN_ID}\",\"scope\":\"system\"}" "${TEAM_USER_TOKEN}"
+request "POST" "/admin/prompt-templates/new" "{\"name\":$(json_quote "$(compose_name "qa-default-denied-template-" 64 "${RUN_SUFFIX}")"),\"scope\":\"system\"}" "${TEAM_USER_TOKEN}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_DEFAULT_TEMPLATE_ID="$(json_get_or_empty "$HTTP_BODY" "template.id")"
 fi
@@ -722,7 +726,7 @@ if ! contains_text "$HTTP_BODY" "rules"; then
 fi
 request "GET" "/admin/prompt-templates" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read prompt templates"
-request "POST" "/admin/prompt-templates/new" "{\"name\":\"qa-manager-template-${RUN_ID}\",\"scope\":\"system\",\"prompt\":\"Manager template ${RUN_ID}\"}" "${MANAGER_TOKEN}"
+request "POST" "/admin/prompt-templates/new" "{\"name\":$(json_quote "${MANAGER_TEMPLATE_NAME}"),\"scope\":\"system\",\"prompt\":\"Manager template ${RUN_ID}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create prompt template"
 MANAGER_TEMPLATE_ID="$(json_get_or_empty "$HTTP_BODY" "template.id")"
 request "GET" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}/versions" "" "${MANAGER_TOKEN}"
@@ -765,8 +769,15 @@ if [[ "${MANAGER_UPDATED_TEMPLATE_NAME}" != "${MANAGER_TEMPLATE_UPDATED_NAME}" ]
 fi
 request "DELETE" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can delete prompt template"
+request "GET" "/admin/prompt-templates" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager prompt template delete persisted"
+if contains_text "$HTTP_BODY" "${MANAGER_TEMPLATE_UPDATED_NAME}"; then
+  log "FAILED: manager prompt template delete did not remove updated template from listing."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 MANAGER_TEMPLATE_ID=""
-request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-manager-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${MANAGER_TOKEN}"
+request "POST" "/admin/usage-policies/new" "{\"name\":$(json_quote "${MANAGER_POLICY_NAME}"),\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create usage policy"
 MANAGER_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
 request "POST" "/admin/usage-policies/${MANAGER_POLICY_ID}" "{\"name\":$(json_quote "${MANAGER_POLICY_UPDATED_NAME}"),\"enabled\":true}" "${MANAGER_TOKEN}"
@@ -786,6 +797,13 @@ if [[ "${MANAGER_UPDATED_POLICY_NAME}" != "${MANAGER_POLICY_UPDATED_NAME}" || "$
 fi
 request "DELETE" "/admin/usage-policies/${MANAGER_POLICY_ID}" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can delete usage policy"
+request "GET" "/admin/usage-policies" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager usage policy delete persisted"
+if contains_text "$HTTP_BODY" "${MANAGER_POLICY_UPDATED_NAME}"; then
+  log "FAILED: manager usage policy delete did not remove updated policy from listing."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 MANAGER_POLICY_ID=""
 
 request "GET" "/admin/api-keys" "" "${MANAGER_TOKEN}"
