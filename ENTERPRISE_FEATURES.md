@@ -143,7 +143,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - smoke fails fast with explicit credential guidance when multi-user mode is already enabled but admin login credentials are invalid
 # - bootstrap `enable-multi-user` 400 payload rejections now fail immediately with explicit diagnostics unless the error is a handled username-collision retry
 # - default user denied /admin/teams
-# - default user denied `/admin/system-preferences` writes
+# - default user denied `/admin/system-preferences` reads/writes
 # - default user denied admin API-key routes with strict role-auth status checks (`401`) (e.g., `/admin/api-keys`, `/admin/generate-api-key`, `/admin/api-keys/:id` update, and `/admin/delete-api-key/:id` delete)
 # - manager user can list/create teams
 # - manager user is denied admin-only api key management routes with strict role-auth status checks (`401`) (e.g., `/admin/api-keys`, `/admin/generate-api-key`, `/admin/api-keys/:id` update, and `/admin/delete-api-key/:id` delete)

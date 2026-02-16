@@ -540,6 +540,8 @@ fi
 log "Asserting default users cannot access team admin routes"
 request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team admin list"
+request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied system preference reads"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied system preference updates"
 request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
