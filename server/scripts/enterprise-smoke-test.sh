@@ -549,6 +549,12 @@ ORIGINAL_CUSTOM_APP_NAME_JSON="$(json_get_json_value "$HTTP_BODY" "settings.cust
 if [[ -z "${ORIGINAL_CUSTOM_APP_NAME_JSON}" ]]; then
   ORIGINAL_CUSTOM_APP_NAME_JSON="null"
 fi
+request "GET" "/admin/system-preferences-for?labels=feature_flags" "" "${ADMIN_TOKEN}"
+assert_status "200" "capture baseline feature flags before manager denial checks"
+BASELINE_ENTERPRISE_TEAMS_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_teams")"
+BASELINE_ENTERPRISE_PROMPT_LIBRARY_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_prompt_library")"
+BASELINE_ENTERPRISE_USAGE_MONITORING_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_usage_monitoring")"
+BASELINE_ENTERPRISE_USAGE_POLICIES_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_usage_policies")"
 
 MANAGER_TEMP_APP_NAME="qa-manager-app-${RUN_ID}"
 request "POST" "/admin/system-preferences" "{\"custom_app_name\":$(json_quote "${MANAGER_TEMP_APP_NAME}")}" "${MANAGER_TOKEN}"
@@ -615,6 +621,20 @@ request "POST" "/admin/system-preferences" "{\"feature_flags\":{\"enterprise_tea
 assert_status "403" "manager denied feature_flags preference writes"
 if ! contains_text "$HTTP_BODY" "Managers cannot update feature_flags"; then
   log "FAILED: manager feature_flags denial missing expected error message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "GET" "/admin/system-preferences-for?labels=feature_flags" "" "${ADMIN_TOKEN}"
+assert_status "200" "verify enterprise feature flags unchanged after manager denied writes"
+POST_MANAGER_ENTERPRISE_TEAMS_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_teams")"
+POST_MANAGER_ENTERPRISE_PROMPT_LIBRARY_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_prompt_library")"
+POST_MANAGER_ENTERPRISE_USAGE_MONITORING_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_usage_monitoring")"
+POST_MANAGER_ENTERPRISE_USAGE_POLICIES_FLAG="$(json_get_or_empty "$HTTP_BODY" "settings.feature_flags.enterprise_usage_policies")"
+if [[ "${POST_MANAGER_ENTERPRISE_TEAMS_FLAG}" != "${BASELINE_ENTERPRISE_TEAMS_FLAG}" || "${POST_MANAGER_ENTERPRISE_PROMPT_LIBRARY_FLAG}" != "${BASELINE_ENTERPRISE_PROMPT_LIBRARY_FLAG}" || "${POST_MANAGER_ENTERPRISE_USAGE_MONITORING_FLAG}" != "${BASELINE_ENTERPRISE_USAGE_MONITORING_FLAG}" || "${POST_MANAGER_ENTERPRISE_USAGE_POLICIES_FLAG}" != "${BASELINE_ENTERPRISE_USAGE_POLICIES_FLAG}" ]]; then
+  log "FAILED: manager denied writes unexpectedly changed enterprise feature flags."
+  log "Baseline: teams=${BASELINE_ENTERPRISE_TEAMS_FLAG}, prompt=${BASELINE_ENTERPRISE_PROMPT_LIBRARY_FLAG}, monitoring=${BASELINE_ENTERPRISE_USAGE_MONITORING_FLAG}, policies=${BASELINE_ENTERPRISE_USAGE_POLICIES_FLAG}"
+  log "Current: teams=${POST_MANAGER_ENTERPRISE_TEAMS_FLAG}, prompt=${POST_MANAGER_ENTERPRISE_PROMPT_LIBRARY_FLAG}, monitoring=${POST_MANAGER_ENTERPRISE_USAGE_MONITORING_FLAG}, policies=${POST_MANAGER_ENTERPRISE_USAGE_POLICIES_FLAG}"
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
