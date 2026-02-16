@@ -101,6 +101,17 @@ describe("UsageEvents model", () => {
     expect(sanitized.durationMs).toBe(0);
   });
 
+  it("parses retention days as strict positive integers", () => {
+    expect(UsageEvents.parseRetentionDays(undefined)).toBeNull();
+    expect(UsageEvents.parseRetentionDays("")).toBeNull();
+    expect(UsageEvents.parseRetentionDays("bad")).toBeNull();
+    expect(UsageEvents.parseRetentionDays("7.5")).toBeNull();
+    expect(UsageEvents.parseRetentionDays(0)).toBeNull();
+    expect(UsageEvents.parseRetentionDays(-3)).toBeNull();
+    expect(UsageEvents.parseRetentionDays("30")).toBe(30);
+    expect(UsageEvents.parseRetentionDays(14)).toBe(14);
+  });
+
   it("logs event rows and returns event payload", async () => {
     mockCreate.mockResolvedValueOnce({
       id: 44,
