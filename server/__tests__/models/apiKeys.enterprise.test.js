@@ -213,11 +213,16 @@ describe("API scope resolution from request path", () => {
   });
 
   it("maps auth endpoints to auth:read", () => {
-    const scope = requiredScopeForRequest({
+    const sessionScope = requiredScopeForRequest({
       method: "GET",
       path: "/v1/auth/session",
     });
-    expect(scope).toBe("auth:read");
+    const rootScope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/auth",
+    });
+    expect(sessionScope).toBe("auth:read");
+    expect(rootScope).toBe("auth:read");
   });
 
   it("maps users routes by method to users read/write scopes", () => {
