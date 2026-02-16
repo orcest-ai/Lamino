@@ -4,8 +4,10 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://localhost:3001}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-change-me-now-1234}"
+SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-}"
 MAX_RETRIES="${MAX_RETRIES:-60}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
+AUTH_HEADER_ARGS=()
 
 log() {
   printf '[bootstrap-enterprise] %s\n' "$*"
@@ -20,12 +22,13 @@ Options:
   --base-url <url>           AnythingLLM base URL (default: http://localhost:3001)
   --admin-username <name>    Initial multi-user admin username
   --admin-password <pass>    Initial multi-user admin password
+  --single-user-token <pass> Single-user AUTH_TOKEN password (required when AUTH_TOKEN/JWT_SECRET are set)
   --max-retries <n>          Max readiness retries (default: 60)
   --sleep-seconds <n>        Seconds between retries (default: 2)
   -h, --help                 Show this help text
 
 Environment variables:
-  BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, MAX_RETRIES, SLEEP_SECONDS
+  BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, SINGLE_USER_AUTH_TOKEN, MAX_RETRIES, SLEEP_SECONDS
 EOF
 }
 
@@ -41,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --admin-password)
       ADMIN_PASSWORD="$2"
+      shift 2
+      ;;
+    --single-user-token)
+      SINGLE_USER_AUTH_TOKEN="$2"
       shift 2
       ;;
     --max-retries)
@@ -62,6 +69,16 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/\\r}"
+  value="${value//$'\t'/\\t}"
+  printf '%s' "$value"
+}
 
 wait_for_api() {
   local attempt=1
@@ -95,8 +112,11 @@ is_multi_user_enabled() {
 
 enable_multi_user() {
   local payload response
-  payload="$(printf '{"username":"%s","password":"%s"}' "$ADMIN_USERNAME" "$ADMIN_PASSWORD")"
+  payload="$(printf '{"username":"%s","password":"%s"}' \
+    "$(json_escape "$ADMIN_USERNAME")" \
+    "$(json_escape "$ADMIN_PASSWORD")")"
   response="$(curl -fsS -X POST "${BASE_URL}/api/system/enable-multi-user" \
+    "${AUTH_HEADER_ARGS[@]}" \
     -H "Content-Type: application/json" \
     -d "$payload" || true)"
 
@@ -116,7 +136,44 @@ enable_multi_user() {
   fi
 
   log "Failed enabling multi-user mode. Response: $response"
+  if [[ -z "$SINGLE_USER_AUTH_TOKEN" && "$response" == *"No auth token found."* ]]; then
+    log "Hint: pass --single-user-token or set SINGLE_USER_AUTH_TOKEN when AUTH_TOKEN is configured."
+  fi
   return 1
+}
+
+request_single_user_session() {
+  if [[ -z "$SINGLE_USER_AUTH_TOKEN" ]]; then
+    return 0
+  fi
+
+  log "Requesting single-user session token for bootstrap."
+
+  local payload response session_token
+  payload="$(printf '{"password":"%s"}' "$(json_escape "$SINGLE_USER_AUTH_TOKEN")")"
+  response="$(curl -sS -X POST "${BASE_URL}/api/request-token" \
+    -H "Content-Type: application/json" \
+    -d "$payload" || true)"
+
+  if [[ -z "$response" ]]; then
+    log "No response from /api/request-token"
+    return 1
+  fi
+
+  if [[ "$response" != *'"valid":true'* ]]; then
+    log "Failed acquiring single-user session token. Response: $response"
+    return 1
+  fi
+
+  session_token="$(printf '%s' "$response" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+  if [[ -z "$session_token" ]]; then
+    log "Token response was valid but no token was found. Response: $response"
+    return 1
+  fi
+
+  AUTH_HEADER_ARGS=(-H "Authorization: Bearer ${session_token}")
+  log "Single-user session token acquired."
+  return 0
 }
 
 main() {
@@ -132,6 +189,7 @@ main() {
     log "WARNING: You are using the default bootstrap password."
   fi
 
+  request_single_user_session
   enable_multi_user
   log "Bootstrap complete."
 }

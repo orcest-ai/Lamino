@@ -50,10 +50,21 @@ docker compose -f docker-compose.enterprise.yml up -d
   --admin-password "replace-this-password-now"
 ```
 
+If your `.env.enterprise` sets `AUTH_TOKEN` + `JWT_SECRET`, include the same single-user password during bootstrap so the script can mint an auth session before enabling multi-user mode:
+
+```bash
+./bootstrap-enterprise.sh \
+  --base-url http://localhost:3001 \
+  --single-user-token "replace-with-your-auth-token-password" \
+  --admin-username admin \
+  --admin-password "replace-this-password-now"
+```
+
 What this does:
 
 - boots AnythingLLM in Docker with persistent storage
 - waits for the API to become healthy
+- optionally obtains a single-user session token (when `--single-user-token` is provided)
 - enables multi-user mode
 - creates the initial admin account
 
