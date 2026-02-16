@@ -107,7 +107,8 @@ yarn test \
   server/__tests__/utils/middleware/validApiKey.enterprise.test.js \
   server/__tests__/utils/middleware/multiUserProtected.enterprise.test.js \
   server/__tests__/utils/backgroundWorkers.enterprise.test.js \
-  server/__tests__/jobs/helpers.enterprise.test.js
+  server/__tests__/jobs/helpers.enterprise.test.js \
+  server/__tests__/jobs/cleanupUsageEvents.enterprise.test.js
 
 # api key scope mapping suite includes coverage for:
 # - admin/workspace/workspace-thread/openai route families
@@ -125,6 +126,10 @@ yarn test \
 # job helper suite includes:
 # - standalone direct-run logging fallback when `process.send` is unavailable
 # - child-process logging path when `process.send` is present
+# cleanup usage-events job suite includes:
+# - disabled-retention no-op behavior
+# - successful prune logging path
+# - prune error logging path
 # multiUserProtected middleware suite includes:
 # - strict/flex role gate behavior across enabled/disabled multi-user mode
 # - default strict/flex role tuple includes both admin and manager access paths
