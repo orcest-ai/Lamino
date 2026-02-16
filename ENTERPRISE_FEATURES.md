@@ -101,8 +101,9 @@ yarn test \
 
 # api key scope mapping suite includes coverage for:
 # - admin/workspace/workspace-thread/openai route families
+# - prompt-template version/apply + usage-policy effective nested admin route variants
 # - workspace-thread stream/non-stream distinctions (`workspace:chat` vs `workspace:write`)
-# - users/system/documents/embed route families
+# - users/system/auth/documents/embed route families
 # - unmapped route fallback behavior
 # validApiKey middleware suite includes:
 # - revoked/expired/missing-scope denial paths

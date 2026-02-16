@@ -146,6 +146,40 @@ describe("API scope resolution from request path", () => {
     expect(scope).toBe("admin:read");
   });
 
+  it("maps prompt version/apply and effective policy admin routes by method", () => {
+    const promptVersionsRead = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/admin/prompt-templates/12/versions",
+    });
+    const promptVersionsWrite = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/admin/prompt-templates/12/versions/new",
+    });
+    const promptApproveWrite = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/admin/prompt-templates/12/versions/9/approve",
+    });
+    const promptApplyWrite = requiredScopeForRequest({
+      method: "POST",
+      path: "/v1/admin/prompt-templates/12/apply-to-workspace",
+    });
+    const effectiveRead = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/admin/usage-policies/effective",
+    });
+    const usagePolicyDeleteWrite = requiredScopeForRequest({
+      method: "DELETE",
+      path: "/v1/admin/usage-policies/12",
+    });
+
+    expect(promptVersionsRead).toBe("admin:read");
+    expect(promptVersionsWrite).toBe("admin:write");
+    expect(promptApproveWrite).toBe("admin:write");
+    expect(promptApplyWrite).toBe("admin:write");
+    expect(effectiveRead).toBe("admin:read");
+    expect(usagePolicyDeleteWrite).toBe("admin:write");
+  });
+
   it("maps OpenAI-compatible chat endpoints to workspace:chat", () => {
     const scope = requiredScopeForRequest({
       method: "POST",
@@ -176,6 +210,14 @@ describe("API scope resolution from request path", () => {
       path: "/v1/system/ping",
     });
     expect(scope).toBe("system:read");
+  });
+
+  it("maps auth endpoints to auth:read", () => {
+    const scope = requiredScopeForRequest({
+      method: "GET",
+      path: "/v1/auth/session",
+    });
+    expect(scope).toBe("auth:read");
   });
 
   it("maps users routes by method to users read/write scopes", () => {
