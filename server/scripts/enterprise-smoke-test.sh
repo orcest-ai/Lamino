@@ -148,6 +148,10 @@ contains_text() {
   [[ "$text" == *"$needle"* ]]
 }
 
+json_quote() {
+  node -e 'process.stdout.write(JSON.stringify(process.argv[1] ?? ""));' "$1"
+}
+
 inject_usage_event() {
   local workspace_id="$1"
   local user_id="$2"
@@ -291,7 +295,7 @@ assert_status "200" "read multi-user mode setting"
 CURRENT_MULTI_USER_MODE="$(json_get_or_empty "$HTTP_BODY" "multiUserMode")"
 if [[ "${CURRENT_MULTI_USER_MODE}" == "false" && -n "${SINGLE_USER_AUTH_TOKEN}" ]]; then
   log "Verifying single-user authentication path before bootstrap"
-  request "POST" "/request-token" "{\"password\":\"invalid-${RUN_ID}\"}"
+  request "POST" "/request-token" "{\"password\":$(json_quote "invalid-${RUN_ID}")}"
   assert_status "401" "single-user login rejects invalid auth token"
   if ! contains_text "$HTTP_BODY" "Invalid password provided"; then
     log "FAILED: single-user invalid-login response missing expected message."
@@ -299,7 +303,7 @@ if [[ "${CURRENT_MULTI_USER_MODE}" == "false" && -n "${SINGLE_USER_AUTH_TOKEN}" 
     exit 1
   fi
 
-  request "POST" "/request-token" "{\"password\":\"${SINGLE_USER_AUTH_TOKEN}\"}"
+  request "POST" "/request-token" "{\"password\":$(json_quote "${SINGLE_USER_AUTH_TOKEN}")}"
   assert_status "200" "single-user login accepts auth token"
   SINGLE_USER_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
   if [[ -z "${SINGLE_USER_TOKEN}" ]]; then
@@ -312,9 +316,13 @@ elif [[ "${CURRENT_MULTI_USER_MODE}" == "false" ]]; then
 fi
 
 log "Logging in as admin user"
-request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+request "POST" "/request-token" "{\"username\":$(json_quote "${ADMIN_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
   ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+  ADMIN_USER_ID="$(json_get_or_empty "$HTTP_BODY" "user.id")"
+  if [[ -z "${ADMIN_USER_ID}" ]]; then
+    ADMIN_TOKEN=""
+  fi
 elif [[ "$HTTP_STATUS" == "401" || "$HTTP_STATUS" == "422" ]]; then
   ADMIN_TOKEN=""
 else
@@ -326,12 +334,12 @@ fi
 if [[ -z "${ADMIN_TOKEN}" ]]; then
   log "Admin login unavailable, attempting multi-user bootstrap"
   BOOTSTRAP_USERNAME="${ADMIN_USERNAME}"
-  request "POST" "/system/enable-multi-user" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+  request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${ADMIN_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 
   if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
     BOOTSTRAP_USERNAME="${ADMIN_USERNAME}-${RUN_ID}"
     log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
-    request "POST" "/system/enable-multi-user" "{\"username\":\"${BOOTSTRAP_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+    request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
   fi
 
   if [[ "$HTTP_STATUS" != "200" && "$HTTP_STATUS" != "400" ]]; then
@@ -341,12 +349,13 @@ if [[ -z "${ADMIN_TOKEN}" ]]; then
   fi
 
   ADMIN_USERNAME="${BOOTSTRAP_USERNAME}"
-  request "POST" "/request-token" "{\"username\":\"${ADMIN_USERNAME}\",\"password\":\"${ADMIN_PASSWORD}\"}"
+  request "POST" "/request-token" "{\"username\":$(json_quote "${ADMIN_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
   assert_status "200" "admin login after bootstrap"
   ADMIN_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+  ADMIN_USER_ID="$(json_get_or_empty "$HTTP_BODY" "user.id")"
 fi
 
-if [[ -z "$ADMIN_TOKEN" ]]; then
+if [[ -z "$ADMIN_TOKEN" || -z "${ADMIN_USER_ID:-}" ]]; then
   log "FAILED: unable to obtain admin token."
   log "Response: ${HTTP_BODY}"
   exit 1
