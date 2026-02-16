@@ -17,12 +17,13 @@ SKIP_OPENAPI_CHECK="${SKIP_OPENAPI_CHECK:-0}"
 SKIP_FRONTEND_BUILD="${SKIP_FRONTEND_BUILD:-0}"
 SKIP_USAGE_CLEANUP_CHECK="${SKIP_USAGE_CLEANUP_CHECK:-0}"
 CI_USAGE_RETENTION_DAYS_CHECK="${CI_USAGE_RETENTION_DAYS_CHECK:-1}"
+CI_VALIDATE_USAGE_CLEANUP_NOOP="${CI_VALIDATE_USAGE_CLEANUP_NOOP:-1}"
 CI_EXTRA_SMOKE_ARGS="${CI_EXTRA_SMOKE_ARGS:-}"
 
 cd "${REPO_ROOT}"
 
 echo "[enterprise-ci-local] Starting CI-equivalent enterprise validation pipeline."
-echo "[enterprise-ci-local] Settings: RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK}"
+echo "[enterprise-ci-local] Settings: RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK} CI_VALIDATE_USAGE_CLEANUP_NOOP=${CI_VALIDATE_USAGE_CLEANUP_NOOP}"
 if [[ -n "${CI_EXTRA_SMOKE_ARGS}" ]]; then
   echo "[enterprise-ci-local] CI_EXTRA_SMOKE_ARGS=${CI_EXTRA_SMOKE_ARGS}"
 fi
@@ -71,8 +72,15 @@ fi
 if [[ "${SKIP_USAGE_CLEANUP_CHECK}" == "1" ]]; then
   echo "[enterprise-ci-local] Skipping usage cleanup command check (SKIP_USAGE_CLEANUP_CHECK=1)."
 else
-  echo "[enterprise-ci-local] Running usage cleanup command check."
+  echo "[enterprise-ci-local] Running usage cleanup command check (retention enabled path)."
   USAGE_EVENTS_RETENTION_DAYS="${CI_USAGE_RETENTION_DAYS_CHECK}" yarn usage:cleanup-events
+
+  if [[ "${CI_VALIDATE_USAGE_CLEANUP_NOOP}" == "1" ]]; then
+    echo "[enterprise-ci-local] Running usage cleanup command check (retention disabled/no-op path)."
+    USAGE_EVENTS_RETENTION_DAYS="" yarn usage:cleanup-events
+  else
+    echo "[enterprise-ci-local] Skipping usage cleanup no-op check (CI_VALIDATE_USAGE_CLEANUP_NOOP=0)."
+  fi
 fi
 
 echo "[enterprise-ci-local] CI-equivalent enterprise validation succeeded."

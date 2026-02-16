@@ -210,6 +210,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
   - Optional for quicker local debugging: `SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 yarn validate:enterprise:ci-local`.
   - Optional to mirror fresh CI dependency installation: `RUN_INSTALL=1 yarn validate:enterprise:ci-local`.
   - Optional cleanup-check retention override: `CI_USAGE_RETENTION_DAYS_CHECK=30 yarn validate:enterprise:ci-local`.
+  - Optional to skip retention-disabled cleanup no-op validation: `CI_VALIDATE_USAGE_CLEANUP_NOOP=0 yarn validate:enterprise:ci-local`.
   - Optional extra smoke flags passthrough: `CI_EXTRA_SMOKE_ARGS="--run-id ci-local-extra-001" yarn validate:enterprise:ci-local`.
 
 See [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md) for full validation matrix details.

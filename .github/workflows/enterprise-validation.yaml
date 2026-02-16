@@ -47,6 +47,7 @@ jobs:
           CI_ADMIN_PASSWORD="EnterprisePass123!" \
           CI_RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
           CI_USAGE_RETENTION_DAYS_CHECK="1" \
+          CI_VALIDATE_USAGE_CLEANUP_NOOP="1" \
           CI_LOG_PATH="/tmp/anythingllm-server.log" \
           yarn validate:enterprise:ci-local || {
             echo "Enterprise validation pipeline failed; dumping server log."

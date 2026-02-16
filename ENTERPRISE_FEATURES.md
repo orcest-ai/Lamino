@@ -248,6 +248,7 @@ CI-local runner environment controls:
 - `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
 - `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
 - `CI_USAGE_RETENTION_DAYS_CHECK=<days>` → override retention days used for cleanup-command check (defaults to `1`).
+- `CI_VALIDATE_USAGE_CLEANUP_NOOP=0` → skip the additional retention-disabled/no-op cleanup validation path.
 - `CI_EXTRA_SMOKE_ARGS="..."` → append extra smoke-test CLI flags for the nested local validator invocation.
 
 Local validator runner controls:
@@ -268,7 +269,9 @@ Validation stages:
 
 - install root/server/frontend dependencies
 - run one-command CI-equivalent validator (`yarn validate:enterprise:ci-local`) with CI-specific env (enterprise tests + OpenAPI drift check + frontend build + deterministic smoke reset/migrate/collision-seeding)
-- CI-equivalent validator also runs a one-off usage cleanup command check (`yarn usage:cleanup-events`) with configurable retention input
+- CI-equivalent validator also runs one-off usage cleanup command checks (`yarn usage:cleanup-events`) for:
+  - retention-enabled path (`CI_USAGE_RETENTION_DAYS_CHECK`)
+  - retention-disabled/no-op path (unless `CI_VALIDATE_USAGE_CLEANUP_NOOP=0`)
 
 Workflow reliability safeguards:
 
@@ -282,4 +285,5 @@ Workflow reliability safeguards:
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic
 - CI validator runs with `SEED_BOOTSTRAP_COLLISION=1`, which seeds collision fixture usernames (`seed` + first retry candidate) before smoke execution so bootstrap collision retries are exercised every run
 - CI validator explicitly sets `CI_USAGE_RETENTION_DAYS_CHECK=1` so one-off usage cleanup command validation is deterministic across runs
+- CI validator explicitly sets `CI_VALIDATE_USAGE_CLEANUP_NOOP=1` so retention-disabled/no-op cleanup behavior is also validated on every run
 - smoke bootstrap fallback retries `enable-multi-user` with progressively unique normalized usernames (run-id based, then timestamp/random fallback) when username-collision errors are returned
