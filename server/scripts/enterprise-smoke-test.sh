@@ -368,6 +368,8 @@ fi
 TEAM_NAME="$(compose_name "qa-team-" 64 "${RUN_SUFFIX}")"
 MANAGER_TEAM_NAME="$(compose_name "qa-manager-team-" 64 "${RUN_SUFFIX}")"
 MANAGER_TEAM_UPDATED_NAME="$(compose_name "qa-manager-team-updated-" 64 "${RUN_SUFFIX}")"
+MANAGER_TEMPLATE_UPDATED_NAME="$(compose_name "qa-manager-template-updated-" 64 "${RUN_SUFFIX}")"
+MANAGER_POLICY_UPDATED_NAME="$(compose_name "qa-manager-policy-updated-" 64 "${RUN_SUFFIX}")"
 WORKSPACE_NAME="$(compose_name "qa-workspace-" 64 "${RUN_SUFFIX}")"
 ISOLATED_WORKSPACE_NAME="$(compose_name "qa-isolated-workspace-" 64 "${RUN_SUFFIX}")"
 USER_NAME="$(compose_name "qa-user-" 32 "${RUN_SUFFIX}")"
@@ -377,6 +379,8 @@ TEMPLATE_PROMPT="You are $(compose_name "qa-template-" 64 "${RUN_SUFFIX}")."
 assert_max_length "TEAM_NAME" "${TEAM_NAME}" 64
 assert_max_length "MANAGER_TEAM_NAME" "${MANAGER_TEAM_NAME}" 64
 assert_max_length "MANAGER_TEAM_UPDATED_NAME" "${MANAGER_TEAM_UPDATED_NAME}" 64
+assert_max_length "MANAGER_TEMPLATE_UPDATED_NAME" "${MANAGER_TEMPLATE_UPDATED_NAME}" 64
+assert_max_length "MANAGER_POLICY_UPDATED_NAME" "${MANAGER_POLICY_UPDATED_NAME}" 64
 assert_max_length "WORKSPACE_NAME" "${WORKSPACE_NAME}" 64
 assert_max_length "ISOLATED_WORKSPACE_NAME" "${ISOLATED_WORKSPACE_NAME}" 64
 assert_max_length "USER_NAME" "${USER_NAME}" 32
@@ -750,18 +754,33 @@ if [[ "${MANAGER_APPLIED_WORKSPACE_PROMPT}" != "${MANAGER_TEMPLATE_PROMPT}" ]]; 
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
-request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "{\"name\":\"qa-manager-template-updated-${RUN_ID}\"}" "${MANAGER_TOKEN}"
+request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "{\"name\":$(json_quote "${MANAGER_TEMPLATE_UPDATED_NAME}")}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can update prompt template"
+MANAGER_UPDATED_TEMPLATE_NAME="$(json_get_or_empty "$HTTP_BODY" "template.name")"
+if [[ "${MANAGER_UPDATED_TEMPLATE_NAME}" != "${MANAGER_TEMPLATE_UPDATED_NAME}" ]]; then
+  log "FAILED: manager prompt template update did not persist expected name."
+  log "Expected: ${MANAGER_TEMPLATE_UPDATED_NAME} | Actual: ${MANAGER_UPDATED_TEMPLATE_NAME}"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 request "DELETE" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can delete prompt template"
 MANAGER_TEMPLATE_ID=""
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-manager-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create usage policy"
 MANAGER_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
-request "POST" "/admin/usage-policies/${MANAGER_POLICY_ID}" "{\"name\":\"qa-manager-policy-updated-${RUN_ID}\",\"enabled\":true}" "${MANAGER_TOKEN}"
+request "POST" "/admin/usage-policies/${MANAGER_POLICY_ID}" "{\"name\":$(json_quote "${MANAGER_POLICY_UPDATED_NAME}"),\"enabled\":true}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can update usage policy"
 if ! contains_text "$HTTP_BODY" "\"success\":true"; then
   log "FAILED: manager usage policy update did not return success payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+MANAGER_UPDATED_POLICY_NAME="$(json_get_or_empty "$HTTP_BODY" "policy.name")"
+MANAGER_UPDATED_POLICY_ENABLED="$(json_get_or_empty "$HTTP_BODY" "policy.enabled")"
+if [[ "${MANAGER_UPDATED_POLICY_NAME}" != "${MANAGER_POLICY_UPDATED_NAME}" || "${MANAGER_UPDATED_POLICY_ENABLED}" != "true" ]]; then
+  log "FAILED: manager usage policy update did not persist expected values."
+  log "Expected name/enabled: ${MANAGER_POLICY_UPDATED_NAME}/true | Actual: ${MANAGER_UPDATED_POLICY_NAME}/${MANAGER_UPDATED_POLICY_ENABLED}"
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
