@@ -429,6 +429,9 @@ request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAG
 assert_status "200" "manager can create team"
 MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
 
+request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${MANAGER_TOKEN}"
+assert_status_any "manager denied system preference writes" "401" "403"
+
 log "Verifying team feature gate denies team routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_teams flag"

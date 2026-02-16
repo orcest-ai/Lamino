@@ -1450,7 +1450,26 @@ function adminEndpoints(app) {
     [validatedRequest, flexUserRoleValid([ROLES.admin, ROLES.manager])],
     async (request, response) => {
       try {
-        const updates = reqBody(request);
+        const updates = reqBody(request) || {};
+        const updateKeys = Object.keys(updates);
+        const managerRestrictedKeys = new Set([
+          "feature_flags",
+          "enterprise_teams",
+          "enterprise_prompt_library",
+          "enterprise_usage_monitoring",
+          "enterprise_usage_policies",
+        ]);
+        if (response?.locals?.user?.role === ROLES.manager) {
+          const blockedKey = updateKeys.find((key) =>
+            managerRestrictedKeys.has(key)
+          );
+          if (blockedKey) {
+            return response.status(403).json({
+              success: false,
+              error: `Managers cannot update ${blockedKey}.`,
+            });
+          }
+        }
         await SystemSettings.updateSettings(updates);
         response.status(200).json({ success: true, error: null });
       } catch (e) {

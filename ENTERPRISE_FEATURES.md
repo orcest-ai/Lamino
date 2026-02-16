@@ -70,6 +70,7 @@ When disabled:
 - gated routes return `403`
 - enterprise navigation items are hidden in the admin sidebar
 - usage policy enforcement is bypassed if `enterprise_usage_policies` is disabled
+- manager-role updates to enterprise feature-flag settings are denied (`/admin/system-preferences` is admin-only for enterprise flag keys)
 
 ## Migration and compatibility notes
 
@@ -127,6 +128,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - default user denied /admin/teams
 # - manager user can list/create teams
+# - manager user is denied system-preference writes (admin-only boundary assertion)
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
