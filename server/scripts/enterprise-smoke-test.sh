@@ -177,6 +177,19 @@ json_quote() {
   node -e 'process.stdout.write(JSON.stringify(process.argv[1] ?? ""));' "$1"
 }
 
+compose_name() {
+  local prefix="$1"
+  local max_len="$2"
+  local suffix="$3"
+  if [[ "${#prefix}" -ge "$max_len" ]]; then
+    printf '%s' "${prefix:0:${max_len}}"
+    return 0
+  fi
+  local available=$((max_len - ${#prefix}))
+  local normalized_suffix="${suffix:0:${available}}"
+  printf '%s%s' "$prefix" "$normalized_suffix"
+}
+
 inject_usage_event() {
   local workspace_id="$1"
   local user_id="$2"
@@ -303,13 +316,18 @@ cleanup() {
 
 trap cleanup EXIT
 
-TEAM_NAME="qa-team-${RUN_ID}"
-MANAGER_TEAM_NAME="qa-manager-team-${RUN_ID}"
-WORKSPACE_NAME="qa-workspace-${RUN_ID}"
-ISOLATED_WORKSPACE_NAME="qa-isolated-workspace-${RUN_ID}"
-USER_NAME="qa-user-${RUN_ID}"
-MANAGER_USER_NAME="qa-manager-${RUN_ID}"
-TEMPLATE_PROMPT="You are qa-template-${RUN_ID}."
+RUN_SUFFIX="$(printf '%s' "$RUN_ID" | tr -cd '[:alnum:]' | cut -c1-24)"
+if [[ -z "$RUN_SUFFIX" ]]; then
+  RUN_SUFFIX="$(date +%s | tr -cd '[:alnum:]' | cut -c1-12)"
+fi
+
+TEAM_NAME="$(compose_name "qa-team-" 64 "${RUN_SUFFIX}")"
+MANAGER_TEAM_NAME="$(compose_name "qa-manager-team-" 64 "${RUN_SUFFIX}")"
+WORKSPACE_NAME="$(compose_name "qa-workspace-" 64 "${RUN_SUFFIX}")"
+ISOLATED_WORKSPACE_NAME="$(compose_name "qa-isolated-workspace-" 64 "${RUN_SUFFIX}")"
+USER_NAME="$(compose_name "qa-user-" 32 "${RUN_SUFFIX}")"
+MANAGER_USER_NAME="$(compose_name "qa-manager-" 32 "${RUN_SUFFIX}")"
+TEMPLATE_PROMPT="You are $(compose_name "qa-template-" 64 "${RUN_SUFFIX}")."
 
 log "Checking API reachability at ${BASE_URL}"
 if ! wait_for_api 60 1; then
