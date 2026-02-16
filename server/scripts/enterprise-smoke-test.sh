@@ -190,6 +190,17 @@ compose_name() {
   printf '%s%s' "$prefix" "$normalized_suffix"
 }
 
+normalize_username_seed() {
+  local raw="$1"
+  local max_len="${2:-24}"
+  local sanitized
+  sanitized="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9._-' | cut -c1-"$max_len")"
+  if [[ -z "$sanitized" || ! "$sanitized" =~ ^[a-z] ]]; then
+    sanitized="admin"
+  fi
+  printf '%s' "$sanitized"
+}
+
 inject_usage_event() {
   local workspace_id="$1"
   local user_id="$2"
@@ -379,11 +390,12 @@ fi
 
 if [[ -z "${ADMIN_TOKEN}" ]]; then
   log "Admin login unavailable, attempting multi-user bootstrap"
-  BOOTSTRAP_USERNAME="${ADMIN_USERNAME}"
-  request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${ADMIN_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+  BOOTSTRAP_USERNAME_SEED="$(normalize_username_seed "${ADMIN_USERNAME}" 24)"
+  BOOTSTRAP_USERNAME="${BOOTSTRAP_USERNAME_SEED}"
+  request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 
   if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
-    BOOTSTRAP_USERNAME="${ADMIN_USERNAME}-${RUN_ID}"
+    BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
     log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
     request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
   fi

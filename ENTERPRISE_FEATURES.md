@@ -130,6 +130,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - smoke supports explicit `--single-user-token`/`SINGLE_USER_AUTH_TOKEN` input so CI can always validate the single-user auth branch deterministically
 # - generated smoke fixture names now normalize/truncate (and lowercase where needed) run-id suffixes to keep username/workspace/team payloads within backend validation limits even with long custom run ids
 # - admin credential payloads are JSON-escaped so special characters in usernames/passwords are handled safely during login/bootstrap requests
+# - bootstrap username seeds are normalized (lowercased, sanitized, length-bounded) before `enable-multi-user` retries to avoid invalid-username edge cases
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - default user denied /admin/teams
 # - manager user can list/create teams
