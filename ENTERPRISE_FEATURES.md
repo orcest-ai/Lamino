@@ -103,6 +103,10 @@ yarn test \
 # - revoked/expired/missing-scope denial paths
 # - no-required-scope pass-through
 # - response locals propagation for multi-user mode + api key context
+# chatPolicy suite includes:
+# - provider/model denylist enforcement
+# - prompt-length, max-chats/day, max-tokens/day enforcement paths
+# - feature-gate bypass behavior when enterprise usage policies are disabled
 
 # frontend compile + route validation
 cd frontend && yarn build
