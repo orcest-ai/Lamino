@@ -155,6 +155,7 @@ inject_usage_event() {
   local completion_tokens="$5"
   local total_tokens="$6"
   local duration_ms="$7"
+  local event_type="${8:-smoke_usage_probe}"
 
   node -e '
 const usageEventsPath = process.argv[1];
@@ -167,7 +168,7 @@ const parseIntValue = (raw, fallback = 0) => {
   return Number.isFinite(n) ? Math.trunc(n) : fallback;
 };
 const payload = {
-  eventType: "smoke_usage_probe",
+  eventType: process.argv[9] || "smoke_usage_probe",
   workspaceId: parseId(process.argv[2]),
   userId: parseId(process.argv[3]),
   teamId: parseId(process.argv[4]),
@@ -200,7 +201,8 @@ const { UsageEvents } = require(usageEventsPath);
     "$prompt_tokens" \
     "$completion_tokens" \
     "$total_tokens" \
-    "$duration_ms"
+    "$duration_ms" \
+    "$event_type"
 }
 
 wait_for_api() {
@@ -241,6 +243,9 @@ cleanup() {
   fi
   if [[ -n "${POLICY_ID:-}" ]]; then
     request "DELETE" "/admin/usage-policies/${POLICY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
+  if [[ -n "${TOKEN_POLICY_ID:-}" ]]; then
+    request "DELETE" "/admin/usage-policies/${TOKEN_POLICY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
   if [[ -n "${TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${TEAM_ID}" "" "${ADMIN_TOKEN:-}"
@@ -560,6 +565,33 @@ request "GET" "/v1/admin/teams" "" "${CHAT_KEY}"
 assert_status "403" "workspace:chat key denied admin team listing"
 if ! contains_text "$HTTP_BODY" "admin:read"; then
   log "FAILED: workspace:chat key denial missing admin:read requirement message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+log "Verifying token quota policy blocks chat when daily tokens are exhausted"
+request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-token-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":45,\"rules\":{\"maxTokensPerDay\":5}}" "${ADMIN_TOKEN}"
+assert_status "200" "create token quota usage policy"
+TOKEN_POLICY_ID="$(json_get "$HTTP_BODY" "policy.id")"
+TOKEN_QUOTA_EVENT_ID="$(
+  inject_usage_event \
+    "${WORKSPACE_ID}" \
+    "${USER_ID}" \
+    "${TEAM_ID}" \
+    "2" \
+    "4" \
+    "6" \
+    "120" \
+    "workspace_chat"
+)"
+if [[ -z "${TOKEN_QUOTA_EVENT_ID}" ]]; then
+  log "FAILED: token quota probe event did not return an event id."
+  exit 1
+fi
+request "POST" "/v1/workspace/${WORKSPACE_SLUG}/chat" "{\"message\":\"short\",\"mode\":\"chat\"}" "${CHAT_KEY}"
+assert_status "403" "token quota policy blocks chat"
+if ! contains_text "$HTTP_BODY" "Daily token quota reached"; then
+  log "FAILED: token quota denial missing expected message."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
