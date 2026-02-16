@@ -123,6 +123,26 @@ try {
 ' "$json" "$path" 2>/dev/null || true
 }
 
+json_get_json_value() {
+  local json="$1"
+  local path="$2"
+  node -e '
+try {
+  const obj = JSON.parse(process.argv[1]);
+  const path = process.argv[2].split(".");
+  let curr = obj;
+  for (const segment of path) {
+    if (!segment) continue;
+    curr = curr?.[segment];
+  }
+  if (curr === undefined) process.exit(2);
+  process.stdout.write(JSON.stringify(curr));
+} catch {
+  process.exit(2);
+}
+' "$json" "$path" 2>/dev/null || true
+}
+
 assert_status() {
   local expected="$1"
   local context="$2"
@@ -428,6 +448,16 @@ fi
 request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create team"
 MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
+
+request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${ADMIN_TOKEN}"
+assert_status "200" "load current custom app name for manager preference test"
+CUSTOM_APP_NAME_JSON="$(json_get_json_value "$HTTP_BODY" "settings.custom_app_name")"
+if [[ -z "${CUSTOM_APP_NAME_JSON}" ]]; then
+  CUSTOM_APP_NAME_JSON="null"
+fi
+
+request "POST" "/admin/system-preferences" "{\"custom_app_name\":${CUSTOM_APP_NAME_JSON}}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can update non-enterprise system preference"
 
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${MANAGER_TOKEN}"
 assert_status_any "manager denied system preference writes" "401" "403"

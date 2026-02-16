@@ -128,7 +128,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - default user denied /admin/teams
 # - manager user can list/create teams
-# - manager user is denied system-preference writes (admin-only boundary assertion)
+# - manager user can still update non-enterprise preferences (e.g., `custom_app_name`) while enterprise flag writes are denied (admin-only boundary assertion)
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
