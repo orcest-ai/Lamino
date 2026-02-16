@@ -204,7 +204,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
 - `yarn smoke:enterprise` Run the enterprise smoke test against an already running server.
 - `yarn usage:cleanup-events` Run one-off usage-events retention cleanup (uses `USAGE_EVENTS_RETENTION_DAYS`).
   - Example: `USAGE_EVENTS_RETENTION_DAYS=30 yarn usage:cleanup-events`.
-- `yarn validate:enterprise:bootstrap-local` Validate deployment bootstrap paths (auth-protected + open + missing-token hint).
+- `yarn validate:enterprise:bootstrap-local` Validate deployment bootstrap paths (auth-protected + open + username-collision retry + missing-token hint).
 - `yarn validate:enterprise:local` Run deterministic local enterprise validation (db reset + migrate + smoke).
   - Optional to skip single-user preflight branch while still running full smoke: `LOCAL_SINGLE_USER_TOKEN="" yarn validate:enterprise:local`.
   - Optional to intentionally reuse an already-running API server on the same port: `ALLOW_PORT_REUSE=1 yarn validate:enterprise:local`.

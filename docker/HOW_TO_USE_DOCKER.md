@@ -60,11 +60,14 @@ If your `.env.enterprise` sets `AUTH_TOKEN` + `JWT_SECRET`, include the same sin
   --admin-password "replace-this-password-now"
 ```
 
+Optional: if your chosen admin username already exists from a partial setup, bootstrap automatically retries with safe fallback usernames. You can tune retry count with `--enable-retries <n>` (or `ENABLE_MULTI_USER_RETRIES=<n>`).
+
 What this does:
 
 - boots AnythingLLM in Docker with persistent storage
 - waits for the API to become healthy
 - optionally obtains a single-user session token (when `--single-user-token` is provided)
+- retries username collisions with fallback admin usernames when needed
 - enables multi-user mode
 - creates the initial admin account
 

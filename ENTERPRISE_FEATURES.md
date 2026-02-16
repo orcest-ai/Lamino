@@ -275,7 +275,7 @@ Validation stages:
 
 - install root/server/frontend dependencies
 - run one-command CI-equivalent validator (`yarn validate:enterprise:ci-local`) with CI-specific env (enterprise tests + OpenAPI drift check + frontend build + deterministic smoke reset/migrate/collision-seeding)
-- CI-equivalent validator runs deployment bootstrap validation (`yarn validate:enterprise:bootstrap-local`) across auth-protected + open + missing-token-hint scenarios (unless `SKIP_BOOTSTRAP_CHECK=1`)
+- CI-equivalent validator runs deployment bootstrap validation (`yarn validate:enterprise:bootstrap-local`) across auth-protected + open + username-collision-retry + missing-token-hint scenarios (unless `SKIP_BOOTSTRAP_CHECK=1`)
 - CI-equivalent validator also runs one-off usage cleanup command checks (`yarn usage:cleanup-events`) for:
   - retention-enabled path (`CI_USAGE_RETENTION_DAYS_CHECK`)
   - retention-disabled/no-op path (unless `CI_VALIDATE_USAGE_CLEANUP_NOOP=0`)

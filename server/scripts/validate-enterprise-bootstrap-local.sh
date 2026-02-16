@@ -15,10 +15,13 @@ BOOTSTRAP_VALIDATION_BASE_PORT="${BOOTSTRAP_VALIDATION_BASE_PORT:-$((4200 + RAND
 AUTH_SCENARIO_PORT="${AUTH_SCENARIO_PORT:-${BOOTSTRAP_VALIDATION_BASE_PORT}}"
 OPEN_SCENARIO_PORT="${OPEN_SCENARIO_PORT:-$((BOOTSTRAP_VALIDATION_BASE_PORT + 1))}"
 NEGATIVE_SCENARIO_PORT="${NEGATIVE_SCENARIO_PORT:-$((BOOTSTRAP_VALIDATION_BASE_PORT + 2))}"
+COLLISION_SCENARIO_PORT="${COLLISION_SCENARIO_PORT:-$((BOOTSTRAP_VALIDATION_BASE_PORT + 3))}"
 AUTH_SERVER_LOG="${AUTH_SERVER_LOG:-/tmp/anythingllm-bootstrap-auth-server.log}"
 OPEN_SERVER_LOG="${OPEN_SERVER_LOG:-/tmp/anythingllm-bootstrap-open-server.log}"
 NEGATIVE_SERVER_LOG="${NEGATIVE_SERVER_LOG:-/tmp/anythingllm-bootstrap-negative-server.log}"
 NEGATIVE_BOOTSTRAP_LOG="${NEGATIVE_BOOTSTRAP_LOG:-/tmp/anythingllm-bootstrap-negative-run.log}"
+COLLISION_SERVER_LOG="${COLLISION_SERVER_LOG:-/tmp/anythingllm-bootstrap-collision-server.log}"
+COLLISION_BOOTSTRAP_LOG="${COLLISION_BOOTSTRAP_LOG:-/tmp/anythingllm-bootstrap-collision-run.log}"
 
 SERVER_PID=""
 
@@ -98,13 +101,40 @@ assert_multi_user_enabled() {
   fi
 }
 
+seed_username_collision() {
+  local username="$1"
+  local previous_dir="${PWD}"
+  cd "${SERVER_DIR}"
+  PRESEED_USERNAME="${username}" node -e '
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
+(async () => {
+  await prisma.users.upsert({
+    where: { username: process.env.PRESEED_USERNAME },
+    update: {},
+    create: {
+      username: process.env.PRESEED_USERNAME,
+      password: "preseeded-collision-password",
+      role: "admin",
+    },
+  });
+  await prisma.$disconnect();
+})().catch(async (error) => {
+  console.error(error);
+  await prisma.$disconnect();
+  process.exit(1);
+});
+'
+  cd "${previous_dir}"
+}
+
 run_auth_protected_scenario() {
   local port="${AUTH_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
   local auth_token="BootstrapPass!123"
   local jwt_secret="bootstrap-secret-123"
 
-  log "Scenario 1/3: auth-protected bootstrap with --single-user-token."
+  log "Scenario 1/4: auth-protected bootstrap with --single-user-token."
   reset_and_migrate
   start_server "${port}" "${auth_token}" "${jwt_secret}" "${AUTH_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
@@ -128,7 +158,7 @@ run_open_scenario() {
   local port="${OPEN_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
 
-  log "Scenario 2/3: open single-user bootstrap without token."
+  log "Scenario 2/4: open single-user bootstrap without token."
   reset_and_migrate
   start_server "${port}" "" "" "${OPEN_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
@@ -151,7 +181,7 @@ run_missing_token_negative_scenario() {
   local port="${NEGATIVE_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
 
-  log "Scenario 3/3: auth-protected bootstrap without token should fail with hint."
+  log "Scenario 3/4: auth-protected bootstrap without token should fail with hint."
   reset_and_migrate
   start_server "${port}" "BootstrapPass!123" "bootstrap-secret-123" "${NEGATIVE_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
@@ -182,6 +212,54 @@ run_missing_token_negative_scenario() {
   cleanup_server
 }
 
+run_collision_retry_scenario() {
+  local port="${COLLISION_SCENARIO_PORT}"
+  local base_url="http://localhost:${port}"
+  local colliding_username="collisionadmin"
+  local retry_username
+  local login_response
+
+  log "Scenario 4/4: username collision retries should converge on fallback admin username."
+  reset_and_migrate
+  seed_username_collision "${colliding_username}"
+  start_server "${port}" "" "" "${COLLISION_SERVER_LOG}"
+  if ! wait_for_api "${base_url}"; then
+    log "Collision scenario API did not become ready. Server log: ${COLLISION_SERVER_LOG}"
+    return 1
+  fi
+
+  (
+    cd "${REPO_ROOT}/docker"
+    ./bootstrap-enterprise.sh \
+      --base-url "${base_url}" \
+      --admin-username "${colliding_username}" \
+      --admin-password "AdminPass!1234" >"${COLLISION_BOOTSTRAP_LOG}"
+  )
+
+  assert_multi_user_enabled "${base_url}"
+  if ! rg "retrying as" "${COLLISION_BOOTSTRAP_LOG}" >/dev/null; then
+    log "Expected collision retry logs in ${COLLISION_BOOTSTRAP_LOG} but none were found."
+    return 1
+  fi
+
+  retry_username="$(sed -n 's/.*retrying as \([^ ]*\).*/\1/p' "${COLLISION_BOOTSTRAP_LOG}" | sed -n '1p')"
+  if [[ -z "${retry_username}" ]]; then
+    log "Unable to parse retry username from ${COLLISION_BOOTSTRAP_LOG}."
+    return 1
+  fi
+
+  login_response="$(
+    curl -sS -X POST "${base_url}/api/request-token" \
+      -H "Content-Type: application/json" \
+      -d "{\"username\":\"${retry_username}\",\"password\":\"AdminPass!1234\"}" || true
+  )"
+  if [[ "${login_response}" != *'"valid":true'* ]]; then
+    log "Expected successful login for fallback username ${retry_username}, got: ${login_response}"
+    return 1
+  fi
+  cleanup_server
+}
+
 main() {
   if [[ ! -x "${BOOTSTRAP_SCRIPT}" ]]; then
     log "Bootstrap script not found or not executable: ${BOOTSTRAP_SCRIPT}"
@@ -191,6 +269,7 @@ main() {
   run_auth_protected_scenario
   run_open_scenario
   run_missing_token_negative_scenario
+  run_collision_retry_scenario
   log "All enterprise bootstrap validation scenarios passed."
 }
 

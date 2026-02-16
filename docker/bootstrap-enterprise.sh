@@ -7,9 +7,11 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-change-me-now-1234}"
 SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-}"
 MAX_RETRIES="${MAX_RETRIES:-60}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
+ENABLE_MULTI_USER_RETRIES="${ENABLE_MULTI_USER_RETRIES:-6}"
 AUTH_HEADER_ARGS=()
 HTTP_RESPONSE_STATUS=""
 HTTP_RESPONSE_BODY=""
+EFFECTIVE_ADMIN_USERNAME="${ADMIN_USERNAME}"
 
 log() {
   printf '[bootstrap-enterprise] %s\n' "$*"
@@ -26,11 +28,12 @@ Options:
   --admin-password <pass>    Initial multi-user admin password
   --single-user-token <pass> Single-user AUTH_TOKEN password (required when AUTH_TOKEN/JWT_SECRET are set)
   --max-retries <n>          Max readiness retries (default: 60)
+  --enable-retries <n>       Max username-collision retries for /enable-multi-user (default: 6)
   --sleep-seconds <n>        Seconds between retries (default: 2)
   -h, --help                 Show this help text
 
 Environment variables:
-  BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, SINGLE_USER_AUTH_TOKEN, MAX_RETRIES, SLEEP_SECONDS
+  BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, SINGLE_USER_AUTH_TOKEN, MAX_RETRIES, ENABLE_MULTI_USER_RETRIES, SLEEP_SECONDS
 EOF
 }
 
@@ -54,6 +57,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --max-retries)
       MAX_RETRIES="$2"
+      shift 2
+      ;;
+    --enable-retries)
+      ENABLE_MULTI_USER_RETRIES="$2"
       shift 2
       ;;
     --sleep-seconds)
@@ -80,6 +87,56 @@ json_escape() {
   value="${value//$'\r'/\\r}"
   value="${value//$'\t'/\\t}"
   printf '%s' "$value"
+}
+
+normalize_username_seed() {
+  local raw="$1"
+  local max_len="${2:-24}"
+  local sanitized
+  sanitized="$(printf '%s' "$raw" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9._-' | cut -c1-"$max_len")"
+  if [[ -z "$sanitized" || ! "$sanitized" =~ ^[a-z] ]]; then
+    sanitized="admin"
+  fi
+  printf '%s' "$sanitized"
+}
+
+compose_name() {
+  local prefix="$1"
+  local max_len="$2"
+  local suffix="$3"
+  if [[ "${#prefix}" -ge "$max_len" ]]; then
+    printf '%s' "${prefix:0:${max_len}}"
+    return 0
+  fi
+
+  local available=$((max_len - ${#prefix}))
+  printf '%s%s' "$prefix" "${suffix:0:${available}}"
+}
+
+retry_username_for_attempt() {
+  local base_username="$1"
+  local attempt="$2"
+  local seed suffix
+
+  seed="$(normalize_username_seed "${base_username}" 24)"
+  if [[ "${attempt}" -eq 1 ]]; then
+    suffix="retry"
+  else
+    suffix="retry${attempt}${RANDOM}"
+  fi
+  compose_name "${seed}-" 32 "${suffix}"
+}
+
+is_username_collision_error() {
+  local body_lower
+  body_lower="$(printf '%s' "${HTTP_RESPONSE_BODY}" | tr '[:upper:]' '[:lower:]')"
+  [[ "${HTTP_RESPONSE_STATUS}" =~ ^4 ]] &&
+    [[ "${body_lower}" == *"username"* ]] &&
+    (
+      [[ "${body_lower}" == *"exist"* ]] ||
+      [[ "${body_lower}" == *"taken"* ]] ||
+      [[ "${body_lower}" == *"already"* ]]
+    )
 }
 
 post_json() {
@@ -131,9 +188,10 @@ is_multi_user_enabled() {
 }
 
 enable_multi_user() {
+  local username="$1"
   local payload
   payload="$(printf '{"username":"%s","password":"%s"}' \
-    "$(json_escape "$ADMIN_USERNAME")" \
+    "$(json_escape "$username")" \
     "$(json_escape "$ADMIN_PASSWORD")")"
   post_json "${BASE_URL}/api/system/enable-multi-user" "${payload}" "${AUTH_HEADER_ARGS[@]}"
 
@@ -144,6 +202,7 @@ enable_multi_user() {
 
   if [[ "$HTTP_RESPONSE_BODY" == *'"success":true'* ]]; then
     log "Multi-user mode enabled and admin account created."
+    EFFECTIVE_ADMIN_USERNAME="${username}"
     return 0
   fi
 
@@ -157,6 +216,30 @@ enable_multi_user() {
     log "Hint: pass --single-user-token or set SINGLE_USER_AUTH_TOKEN when AUTH_TOKEN is configured."
   fi
   return 1
+}
+
+enable_multi_user_with_retries() {
+  local username="${ADMIN_USERNAME}"
+  local retry_attempt=0
+
+  while true; do
+    if enable_multi_user "${username}"; then
+      return 0
+    fi
+
+    if ! is_username_collision_error; then
+      return 1
+    fi
+
+    if [[ "${retry_attempt}" -ge "${ENABLE_MULTI_USER_RETRIES}" ]]; then
+      log "Username-collision retries exhausted (${ENABLE_MULTI_USER_RETRIES})."
+      return 1
+    fi
+
+    retry_attempt=$((retry_attempt + 1))
+    username="$(retry_username_for_attempt "${ADMIN_USERNAME}" "${retry_attempt}")"
+    log "Bootstrap username already exists; retrying as ${username} (${retry_attempt}/${ENABLE_MULTI_USER_RETRIES})"
+  done
 }
 
 request_single_user_session() {
@@ -205,8 +288,8 @@ main() {
   fi
 
   request_single_user_session
-  enable_multi_user
-  log "Bootstrap complete."
+  enable_multi_user_with_retries
+  log "Bootstrap complete. Admin username: ${EFFECTIVE_ADMIN_USERNAME}"
 }
 
 main "$@"
