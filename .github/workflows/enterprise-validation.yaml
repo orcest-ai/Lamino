@@ -41,6 +41,12 @@ jobs:
       - name: Run enterprise backend test suite
         run: yarn test:enterprise
 
+      - name: Verify OpenAPI artifact is up to date
+        run: |
+          cd server
+          yarn swagger
+          git diff --exit-code -- swagger/openapi.json
+
       - name: Build frontend
         run: cd frontend && yarn build
 

@@ -214,6 +214,7 @@ Validation stages:
 
 - install root/server/frontend dependencies
 - run `yarn test:enterprise`
+- regenerate OpenAPI spec and fail if `server/swagger/openapi.json` is stale
 - build frontend bundle
 - reset `server/storage/anythingllm.db` for deterministic validation state
 - run `npx prisma migrate deploy` in `server`
