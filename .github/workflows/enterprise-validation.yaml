@@ -70,6 +70,7 @@ jobs:
           BASE_URL="http://localhost:3001/api" \
           ADMIN_USERNAME="admin" \
           ADMIN_PASSWORD="EnterprisePass123!" \
+          SINGLE_USER_AUTH_TOKEN="ci-single-user-token" \
           ./scripts/enterprise-smoke-test.sh || {
             echo "Enterprise smoke test failed; dumping server log."
             cat /tmp/anythingllm-server.log || true

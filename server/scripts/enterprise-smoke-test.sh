@@ -5,7 +5,7 @@ BASE_URL="${BASE_URL:-http://localhost:3001/api}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
 SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-${AUTH_TOKEN:-}}"
-RUN_ID="${RUN_ID:-$(date +%s)}"
+RUN_ID="${RUN_ID:-$(date +%s)-$RANDOM}"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
@@ -26,7 +26,8 @@ Options:
   --base-url <url>         API base URL (default: http://localhost:3001/api)
   --admin-username <name>  Admin username for login (default: admin)
   --admin-password <pass>  Admin password for login (default: EnterprisePass123!)
-  --run-id <value>         Unique suffix to avoid collisions (default: unix timestamp)
+  --single-user-token <t>  AUTH token for single-user login verification
+  --run-id <value>         Unique suffix to avoid collisions (default: timestamp-random)
   -h, --help               Show help
 EOF
 }
@@ -43,6 +44,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --admin-password)
       ADMIN_PASSWORD="$2"
+      shift 2
+      ;;
+    --single-user-token)
+      SINGLE_USER_AUTH_TOKEN="$2"
       shift 2
       ;;
     --run-id)
