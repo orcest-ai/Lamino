@@ -109,6 +109,17 @@ describe("UsagePolicies precedence resolution", () => {
     });
   });
 
+  it("falls back to safe boolean default for unrecognized enabled strings", () => {
+    expect(UsagePolicies.validateFields({ enabled: "true" })).toEqual({
+      enabled: true,
+    });
+
+    const validated = UsagePolicies.validateFields({
+      enabled: "not-a-boolean",
+    });
+    expect(validated).toEqual({ enabled: false });
+  });
+
   it("builds effective policy clause with descending priority ordering", async () => {
     prisma.usage_policies.findMany.mockResolvedValueOnce([
       { id: 3, priority: 100, scope: "system" },
