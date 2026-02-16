@@ -256,6 +256,9 @@ cleanup() {
   if [[ -n "${WORKSPACE_ID:-}" ]]; then
     request "DELETE" "/admin/workspaces/${WORKSPACE_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${ISOLATED_WORKSPACE_ID:-}" ]]; then
+    request "DELETE" "/admin/workspaces/${ISOLATED_WORKSPACE_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${USER_ID:-}" ]]; then
     request "DELETE" "/admin/user/${USER_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -270,6 +273,7 @@ trap cleanup EXIT
 TEAM_NAME="qa-team-${RUN_ID}"
 MANAGER_TEAM_NAME="qa-manager-team-${RUN_ID}"
 WORKSPACE_NAME="qa-workspace-${RUN_ID}"
+ISOLATED_WORKSPACE_NAME="qa-isolated-workspace-${RUN_ID}"
 USER_NAME="qa-user-${RUN_ID}"
 MANAGER_USER_NAME="qa-manager-${RUN_ID}"
 TEMPLATE_PROMPT="You are qa-template-${RUN_ID}."
@@ -338,6 +342,12 @@ assert_status "200" "create workspace"
 WORKSPACE_ID="$(json_get "$HTTP_BODY" "workspace.id")"
 WORKSPACE_SLUG="$(json_get "$HTTP_BODY" "workspace.slug")"
 
+log "Creating isolated workspace to verify access boundaries"
+request "POST" "/admin/workspaces/new" "{\"name\":\"${ISOLATED_WORKSPACE_NAME}\"}" "${ADMIN_TOKEN}"
+assert_status "200" "create isolated workspace"
+ISOLATED_WORKSPACE_ID="$(json_get "$HTTP_BODY" "workspace.id")"
+ISOLATED_WORKSPACE_SLUG="$(json_get "$HTTP_BODY" "workspace.slug")"
+
 log "Creating team with mapped user and workspace"
 request "POST" "/admin/teams/new" "{\"name\":\"${TEAM_NAME}\",\"members\":[{\"userId\":${USER_ID},\"role\":\"member\"}],\"workspaceIds\":[${WORKSPACE_ID}]}" "${ADMIN_TOKEN}"
 assert_status "200" "create team"
@@ -351,6 +361,11 @@ request "GET" "/workspaces" "" "${TEAM_USER_TOKEN}"
 assert_status "200" "team user workspace listing"
 if ! contains_text "$HTTP_BODY" "$WORKSPACE_SLUG"; then
   log "FAILED: team user does not see team-mapped workspace."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+if contains_text "$HTTP_BODY" "$ISOLATED_WORKSPACE_SLUG"; then
+  log "FAILED: team user can see workspace not assigned through team/direct mapping."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
