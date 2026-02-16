@@ -311,6 +311,56 @@ console.log(JSON.stringify(payload, null, 2));
   exit 1
 fi
 
+SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const required = Array.isArray(payload.verificationMatrix?.required)
+  ? payload.verificationMatrix.required
+  : [];
+process.stdout.write(String(required.length));
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+SMOKE_SUMMARY_MATRIX_PASSED_COUNT="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const passed = Array.isArray(payload.verificationMatrix?.passed)
+  ? payload.verificationMatrix.passed
+  : [];
+process.stdout.write(String(passed.length));
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+SMOKE_SUMMARY_MATRIX_MISSING_COUNT="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const missing = Array.isArray(payload.verificationMatrix?.missing)
+  ? payload.verificationMatrix.missing
+  : [];
+process.stdout.write(String(missing.length));
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+EXPECTED_MATRIX_COUNT="${#EXPECTED_MATRIX_CHECKS[@]}"
+if [[ ! "${SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT}" =~ ^[0-9]+$ ]] || [[ ! "${SMOKE_SUMMARY_MATRIX_PASSED_COUNT}" =~ ^[0-9]+$ ]] || [[ ! "${SMOKE_SUMMARY_MATRIX_MISSING_COUNT}" =~ ^[0-9]+$ ]]; then
+  echo "[enterprise-local-validation] Smoke summary verificationMatrix counts are invalid."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+if (( SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT < EXPECTED_MATRIX_COUNT )) || (( SMOKE_SUMMARY_MATRIX_PASSED_COUNT < EXPECTED_MATRIX_COUNT )) || (( SMOKE_SUMMARY_MATRIX_MISSING_COUNT != 0 )); then
+  echo "[enterprise-local-validation] Smoke summary verificationMatrix counts are inconsistent (expectedAtLeast=${EXPECTED_MATRIX_COUNT}, required=${SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT}, passed=${SMOKE_SUMMARY_MATRIX_PASSED_COUNT}, missing=${SMOKE_SUMMARY_MATRIX_MISSING_COUNT})."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
 SMOKE_SUMMARY_MATRIX_STATUS="$(
   node -e '
 const fs = require("fs");
@@ -328,6 +378,6 @@ console.log(JSON.stringify(payload, null, 2));
   exit 1
 fi
 
-echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok, matrixChecks=ok)."
+echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok, matrixChecks=ok, matrixCounts=${SMOKE_SUMMARY_MATRIX_PASSED_COUNT}/${SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT})."
 
 echo "[enterprise-local-validation] Enterprise local validation succeeded."
