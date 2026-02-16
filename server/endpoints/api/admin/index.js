@@ -1,4 +1,5 @@
 const { EventLogs } = require("../../../models/eventLogs");
+const { ApiKey } = require("../../../models/apiKeys");
 const { Invite } = require("../../../models/invite");
 const { SystemSettings } = require("../../../models/systemSettings");
 const { User } = require("../../../models/user");
@@ -1690,7 +1691,6 @@ function apiAdminEndpoints(app) {
         response.sendStatus(401).end();
         return;
       }
-      const { ApiKey } = require("../../../models/apiKeys");
       const apiKeys = await ApiKey.whereWithUser({});
       response.status(200).json({ apiKeys, error: null });
     } catch (error) {
@@ -1711,7 +1711,6 @@ function apiAdminEndpoints(app) {
           response.sendStatus(401).end();
           return;
         }
-        const { ApiKey } = require("../../../models/apiKeys");
         const body = reqBody(request);
         const createdBy = response.locals?.apiKey?.createdBy || null;
         const { apiKey, error } = await ApiKey.create({
@@ -1753,7 +1752,6 @@ function apiAdminEndpoints(app) {
             apiKey: null,
             error: "Invalid API key id.",
           });
-        const { ApiKey } = require("../../../models/apiKeys");
         const { apiKey, error } = await ApiKey.update(Number(id), reqBody(request));
         response.status(200).json({ success: !!apiKey, apiKey, error });
       } catch (error) {
@@ -1782,7 +1780,6 @@ function apiAdminEndpoints(app) {
             success: false,
             error: "Invalid API key id.",
           });
-        const { ApiKey } = require("../../../models/apiKeys");
         await ApiKey.delete({ id: Number(id) });
         await EventLogs.logEvent("api_key_deleted", {
           deletedBy: response.locals?.apiKey?.createdBy || "api",
