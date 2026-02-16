@@ -16,6 +16,7 @@ SEED_BOOTSTRAP_COLLISION="${SEED_BOOTSTRAP_COLLISION:-0}"
 EXTRA_SMOKE_ARGS="${EXTRA_SMOKE_ARGS:-}"
 ALLOW_PORT_REUSE="${ALLOW_PORT_REUSE:-0}"
 SMOKE_SUMMARY_PATH="${SMOKE_SUMMARY_PATH:-/tmp/anythingllm-enterprise-smoke-summary-${PORT}.json}"
+EXPECT_SINGLE_USER_PRECHECK=0
 if [[ "${LOCAL_SINGLE_USER_TOKEN+x}" != "x" ]]; then
   LOCAL_SINGLE_USER_TOKEN="${AUTH_TOKEN}"
 fi
@@ -137,6 +138,21 @@ if ! curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+  PRE_SMOKE_MULTI_USER_MODE="$(
+    curl -fsS "${BASE_URL}/system/multi-user-mode" 2>/dev/null | node -e '
+const fs = require("fs");
+const body = fs.readFileSync(0, "utf8");
+const payload = JSON.parse(body);
+process.stdout.write(String(payload.multiUserMode ?? ""));
+' 2>/dev/null || true
+  )"
+  if [[ "${PRE_SMOKE_MULTI_USER_MODE}" == "false" ]]; then
+    EXPECT_SINGLE_USER_PRECHECK=1
+  fi
+  echo "[enterprise-local-validation] multi-user mode before smoke: ${PRE_SMOKE_MULTI_USER_MODE:-<unknown>} (expect single-user preflight=$([[ "${EXPECT_SINGLE_USER_PRECHECK}" == "1" ]] && echo "yes" || echo "no"))"
+fi
+
 echo "[enterprise-local-validation] Running enterprise smoke test."
 rm -f "${SMOKE_SUMMARY_PATH}"
 SMOKE_ARGS=()
@@ -238,7 +254,7 @@ EXPECTED_PHASES=(
   "completed"
 )
 
-if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+if [[ "${EXPECT_SINGLE_USER_PRECHECK}" == "1" ]]; then
   EXPECTED_PHASES=("single-user-preflight" "${EXPECTED_PHASES[@]}")
 fi
 
@@ -269,7 +285,7 @@ EXPECTED_MATRIX_CHECKS=(
   "scoped-api-key-failures-successes"
   "usage-dashboard-data-freshness"
 )
-if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+if [[ "${EXPECT_SINGLE_USER_PRECHECK}" == "1" ]]; then
   EXPECTED_MATRIX_CHECKS=("single-user-mode" "${EXPECTED_MATRIX_CHECKS[@]}")
 fi
 
