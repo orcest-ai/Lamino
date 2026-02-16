@@ -87,6 +87,30 @@ describe("Enterprise API key helpers", () => {
     });
     expect(mockUpdate).not.toHaveBeenCalled();
   });
+
+  it("defaults missing or empty scopes to wildcard on writes", async () => {
+    mockCreate.mockResolvedValueOnce({ id: 1, secret: "abc", scopes: "*" });
+    const created = await ApiKey.create({ createdBy: 1 });
+    expect(created.error).toBeNull();
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scopes: "*",
+        }),
+      })
+    );
+
+    mockUpdate.mockResolvedValueOnce({ id: 1, secret: "abc", scopes: "*" });
+    const updated = await ApiKey.update(1, { scopes: [] });
+    expect(updated.error).toBeNull();
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          scopes: "*",
+        }),
+      })
+    );
+  });
 });
 
 describe("API scope resolution from request path", () => {
