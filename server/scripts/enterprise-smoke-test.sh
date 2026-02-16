@@ -545,6 +545,14 @@ if ! contains_text "$HTTP_BODY" "Managers cannot update enterprise_teams"; then
   exit 1
 fi
 
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_monitoring\":\"disabled\"}" "${MANAGER_TOKEN}"
+assert_status "403" "manager denied usage monitoring enterprise key writes"
+if ! contains_text "$HTTP_BODY" "Managers cannot update enterprise_usage_monitoring"; then
+  log "FAILED: manager usage monitoring denial missing expected error message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 request "POST" "/admin/system-preferences" "{\"feature_flags\":{\"enterprise_teams\":\"disabled\"}}" "${MANAGER_TOKEN}"
 assert_status "403" "manager denied feature_flags preference writes"
 if ! contains_text "$HTTP_BODY" "Managers cannot update feature_flags"; then
