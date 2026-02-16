@@ -246,6 +246,7 @@ CI-local runner environment controls:
 
 - `RUN_INSTALL=1` → install root/server/frontend dependencies before validation.
 - `CI_PORT=<port>` → override CI-local smoke server port (defaults to `3101` locally).
+- `CI_VALIDATION_SUMMARY_PATH=<path>` → override CI-local aggregate validation summary JSON output path (defaults to `/tmp/anythingllm-enterprise-ci-validation-summary.json`).
 - `CI_SMOKE_SUMMARY_PATH=<path>` → override smoke summary JSON output path for nested local validator (defaults to `/tmp/anythingllm-enterprise-ci-smoke-summary.json`).
 - `CI_BOOTSTRAP_VALIDATION_BASE_PORT=<port>` → set deterministic base port for bootstrap validator scenarios (defaults to `4201`; uses `base`, `base+1`, `base+2`, `base+3`).
 - `CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH=<path>` → override aggregate bootstrap-validation summary JSON output path (defaults to `/tmp/anythingllm-bootstrap-validation-summary.json`).
@@ -294,7 +295,7 @@ Workflow reliability safeguards:
 - smoke summary includes phase telemetry (`currentPhase`, `phaseHistory`) and `requestCount` to pinpoint where failures occurred
 - local validator enforces smoke summary invariants (`status=success`, `currentPhase=completed`, `requestCount>0`) before reporting success
 - local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
-- GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, smoke summary, bootstrap validation summary, bootstrap scenario summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
+- GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, CI aggregate validation summary, smoke summary, bootstrap validation summary, bootstrap scenario summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic

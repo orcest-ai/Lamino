@@ -217,13 +217,14 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
   - Optional smoke summary output path override (default `/tmp/anythingllm-enterprise-ci-smoke-summary.json`): `CI_SMOKE_SUMMARY_PATH="/tmp/ci-smoke-summary.json" yarn validate:enterprise:ci-local`.
   - Optional bootstrap-validation base port override (defaults to deterministic `4201`): `CI_BOOTSTRAP_VALIDATION_BASE_PORT=4301 yarn validate:enterprise:ci-local`.
   - Optional bootstrap-validation aggregate summary output path override: `CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH="/tmp/bootstrap-validation-summary.json" yarn validate:enterprise:ci-local`.
+  - Optional CI-local aggregate stage-summary output path override: `CI_VALIDATION_SUMMARY_PATH="/tmp/ci-validation-summary.json" yarn validate:enterprise:ci-local`.
   - Optional to mirror fresh CI dependency installation: `RUN_INSTALL=1 yarn validate:enterprise:ci-local`.
   - Optional cleanup-check retention override: `CI_USAGE_RETENTION_DAYS_CHECK=30 yarn validate:enterprise:ci-local`.
   - Optional to skip retention-disabled cleanup no-op validation: `CI_VALIDATE_USAGE_CLEANUP_NOOP=0 yarn validate:enterprise:ci-local`.
   - Optional to skip deployment bootstrap validation: `SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local`.
   - Optional explicit single-user token override for nested smoke runner: `CI_SINGLE_USER_TOKEN="custom-token" yarn validate:enterprise:ci-local`.
   - Optional extra smoke flags passthrough: `CI_EXTRA_SMOKE_ARGS="--run-id ci-local-extra-001" yarn validate:enterprise:ci-local`.
-  - CI workflow uploads server log + smoke/bootstrap summaries as artifacts for debugging failed runs.
+  - CI workflow uploads server log + CI/stage + smoke/bootstrap summaries as artifacts for debugging failed runs.
 
 See [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md) for full validation matrix details.
 
