@@ -21,7 +21,7 @@ CI_USAGE_RETENTION_DAYS_CHECK="${CI_USAGE_RETENTION_DAYS_CHECK:-1}"
 cd "${REPO_ROOT}"
 
 echo "[enterprise-ci-local] Starting CI-equivalent enterprise validation pipeline."
-echo "[enterprise-ci-local] Settings: RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK}"
+echo "[enterprise-ci-local] Settings: RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK}"
 
 if [[ "${RUN_INSTALL}" == "1" ]]; then
   echo "[enterprise-ci-local] Installing root/server/frontend dependencies."
