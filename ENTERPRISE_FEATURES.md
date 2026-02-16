@@ -291,6 +291,7 @@ Workflow reliability safeguards:
 - automatic server log dump when smoke validation fails
 - smoke run emits structured JSON summary (`SMOKE_SUMMARY_PATH` / `CI_SMOKE_SUMMARY_PATH`) and failure paths print it for fast triage
 - local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
+- GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, smoke summary, bootstrap summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic

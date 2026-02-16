@@ -221,6 +221,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
   - Optional to skip deployment bootstrap validation: `SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local`.
   - Optional explicit single-user token override for nested smoke runner: `CI_SINGLE_USER_TOKEN="custom-token" yarn validate:enterprise:ci-local`.
   - Optional extra smoke flags passthrough: `CI_EXTRA_SMOKE_ARGS="--run-id ci-local-extra-001" yarn validate:enterprise:ci-local`.
+  - CI workflow uploads server log + smoke/bootstrap summaries as artifacts for debugging failed runs.
 
 See [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md) for full validation matrix details.
 

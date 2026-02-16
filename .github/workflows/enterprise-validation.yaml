@@ -58,3 +58,15 @@ jobs:
             cat /tmp/anythingllm-server.log || true
             exit 1
           }
+
+      - name: Upload enterprise validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-validation-artifacts
+          if-no-files-found: ignore
+          path: |
+            /tmp/anythingllm-server.log
+            /tmp/anythingllm-enterprise-ci-smoke-summary.json
+            /tmp/anythingllm-bootstrap-*-summary.json
+            /tmp/anythingllm-bootstrap-*.log

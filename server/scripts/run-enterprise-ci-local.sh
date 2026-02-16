@@ -29,6 +29,42 @@ fi
 
 cd "${REPO_ROOT}"
 
+dump_json_file() {
+  local json_path="$1"
+  local label="$2"
+  if [[ ! -f "${json_path}" ]]; then
+    return 0
+  fi
+
+  echo "[enterprise-ci-local] ${label}: ${json_path}"
+  node -e '
+const fs = require("fs");
+const filePath = process.argv[1];
+try {
+  const content = fs.readFileSync(filePath, "utf8");
+  const parsed = JSON.parse(content);
+  console.log(JSON.stringify(parsed, null, 2));
+} catch {
+  console.log("[enterprise-ci-local] (non-json content)");
+  console.log(fs.readFileSync(filePath, "utf8"));
+}
+' "${json_path}" || true
+}
+
+dump_bootstrap_summaries() {
+  local found=0
+  for summary_path in /tmp/anythingllm-bootstrap-*-summary.json; do
+    if [[ -f "${summary_path}" ]]; then
+      found=1
+      dump_json_file "${summary_path}" "Bootstrap summary"
+    fi
+  done
+
+  if [[ "${found}" == "0" ]]; then
+    echo "[enterprise-ci-local] No bootstrap summary artifacts found in /tmp."
+  fi
+}
+
 echo "[enterprise-ci-local] Starting CI-equivalent enterprise validation pipeline."
 echo "[enterprise-ci-local] Settings: CI_PORT=${CI_PORT} CI_SMOKE_SUMMARY_PATH=${CI_SMOKE_SUMMARY_PATH} CI_BOOTSTRAP_VALIDATION_BASE_PORT=${CI_BOOTSTRAP_VALIDATION_BASE_PORT} RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} SKIP_BOOTSTRAP_CHECK=${SKIP_BOOTSTRAP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK} CI_VALIDATE_USAGE_CLEANUP_NOOP=${CI_VALIDATE_USAGE_CLEANUP_NOOP}"
 echo "[enterprise-ci-local] Auth settings: CI_AUTH_TOKEN set=$([[ -n "${CI_AUTH_TOKEN}" ]] && echo "yes" || echo "no"), CI_SINGLE_USER_TOKEN set=$([[ -n "${CI_SINGLE_USER_TOKEN}" ]] && echo "yes" || echo "no")"
@@ -75,14 +111,7 @@ if ! RESET_DB=1 \
   LOG_PATH="${CI_LOG_PATH}" \
   yarn validate:enterprise:local; then
   echo "[enterprise-ci-local] Smoke run failed. Dumping server log from ${CI_LOG_PATH}."
-  if [[ -f "${CI_SMOKE_SUMMARY_PATH}" ]]; then
-    echo "[enterprise-ci-local] Smoke summary:"
-    node -e '
-const fs = require("fs");
-const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-console.log(JSON.stringify(payload, null, 2));
-' "${CI_SMOKE_SUMMARY_PATH}" || true
-  fi
+  dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
   cat "${CI_LOG_PATH}" || true
   exit 1
 fi
@@ -91,7 +120,11 @@ if [[ "${SKIP_BOOTSTRAP_CHECK}" == "1" ]]; then
   echo "[enterprise-ci-local] Skipping deployment bootstrap validation (SKIP_BOOTSTRAP_CHECK=1)."
 else
   echo "[enterprise-ci-local] Running deployment bootstrap validation scenarios."
-  BOOTSTRAP_VALIDATION_BASE_PORT="${CI_BOOTSTRAP_VALIDATION_BASE_PORT}" yarn validate:enterprise:bootstrap-local
+  if ! BOOTSTRAP_VALIDATION_BASE_PORT="${CI_BOOTSTRAP_VALIDATION_BASE_PORT}" yarn validate:enterprise:bootstrap-local; then
+    echo "[enterprise-ci-local] Bootstrap validation failed. Dumping bootstrap summaries."
+    dump_bootstrap_summaries
+    exit 1
+  fi
 fi
 
 if [[ "${SKIP_USAGE_CLEANUP_CHECK}" == "1" ]]; then
