@@ -222,6 +222,46 @@ console.log(JSON.stringify(payload, null, 2));
   exit 1
 fi
 
-echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT})."
+EXPECTED_PHASES=(
+  "readiness"
+  "admin-auth"
+  "fixture-provisioning"
+  "default-role-matrix"
+  "manager-role-matrix"
+  "feature-gates"
+  "usage-monitoring"
+  "prompt-library"
+  "usage-policies"
+  "policy-enforcement"
+  "api-key-scopes"
+  "api-key-lifecycle"
+  "completed"
+)
+
+if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+  EXPECTED_PHASES=("single-user-preflight" "${EXPECTED_PHASES[@]}")
+fi
+
+SMOKE_SUMMARY_MISSING_PHASES="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const expected = process.argv.slice(2).filter(Boolean);
+const history = Array.isArray(payload.phaseHistory) ? payload.phaseHistory : [];
+const missing = expected.filter((phase) => !history.includes(phase));
+process.stdout.write(missing.join(","));
+' "${SMOKE_SUMMARY_PATH}" "${EXPECTED_PHASES[@]}" 2>/dev/null || true
+)"
+if [[ -n "${SMOKE_SUMMARY_MISSING_PHASES}" ]]; then
+  echo "[enterprise-local-validation] Smoke summary phaseHistory is missing required phases: ${SMOKE_SUMMARY_MISSING_PHASES}"
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok)."
 
 echo "[enterprise-local-validation] Enterprise local validation succeeded."
