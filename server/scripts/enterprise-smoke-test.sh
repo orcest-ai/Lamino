@@ -460,10 +460,20 @@ request "POST" "/admin/system-preferences" "{\"custom_app_name\":${CUSTOM_APP_NA
 assert_status "200" "manager can update non-enterprise system preference"
 
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${MANAGER_TOKEN}"
-assert_status_any "manager denied system preference writes" "401" "403"
+assert_status "403" "manager denied enterprise key system preference writes"
+if ! contains_text "$HTTP_BODY" "Managers cannot update enterprise_teams"; then
+  log "FAILED: manager enterprise key denial missing expected error message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "POST" "/admin/system-preferences" "{\"feature_flags\":{\"enterprise_teams\":\"disabled\"}}" "${MANAGER_TOKEN}"
-assert_status_any "manager denied feature_flags preference writes" "401" "403"
+assert_status "403" "manager denied feature_flags preference writes"
+if ! contains_text "$HTTP_BODY" "Managers cannot update feature_flags"; then
+  log "FAILED: manager feature_flags denial missing expected error message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 log "Verifying team feature gate denies team routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${ADMIN_TOKEN}"
