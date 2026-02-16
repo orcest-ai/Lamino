@@ -145,9 +145,9 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - bootstrap `enable-multi-user` 400 payload rejections now fail immediately with explicit diagnostics unless the error is a handled username-collision retry
 # - default user denied /admin/teams list/detail/create/update/delete, member/workspace/access-map reads, and member/workspace update writes
 # - default user denied `/admin/system-preferences` reads/writes
-# - default user denied usage monitoring and usage policy admin reads (`/admin/usage/overview`, `/admin/usage-policies`)
+# - default user denied usage monitoring and usage policy admin reads/writes (`/admin/usage/overview`, `/admin/usage-policies`, `/admin/usage-policies/new`)
 # - default user denied admin API-key routes with strict role-auth status checks (`401`) (e.g., `/admin/api-keys`, `/admin/generate-api-key`, `/admin/api-keys/:id` update, and `/admin/delete-api-key/:id` delete)
-# - manager user can list/create/update/delete teams, update team member/workspace assignments, read team detail/member/workspace/access-map surfaces, read usage overview/policies, and read system preferences
+# - manager user can list/create/update/delete teams, update team member/workspace assignments, read team detail/member/workspace/access-map surfaces, read usage overview/policies, create/delete usage policies, and read system preferences
 # - manager user is denied admin-only api key management routes with strict role-auth status checks (`401`) (e.g., `/admin/api-keys`, `/admin/generate-api-key`, `/admin/api-keys/:id` update, and `/admin/delete-api-key/:id` delete)
 # - manager user can still update non-enterprise preferences (e.g., `custom_app_name`), persistence is verified, and restoration to the original value is explicitly confirmed; enterprise flag writes are denied with explicit key-level error messages across all direct enterprise keys (`enterprise_teams`, `enterprise_prompt_library`, `enterprise_usage_monitoring`, `enterprise_usage_policies`) and `feature_flags` payload updates, and admin checks confirm enterprise feature-flag values remain unchanged after denied manager attempts
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden

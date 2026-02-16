@@ -319,6 +319,12 @@ cleanup() {
   if [[ -n "${CHAT_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${CHAT_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${MANAGER_POLICY_ID:-}" ]]; then
+    request "DELETE" "/admin/usage-policies/${MANAGER_POLICY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
+  if [[ -n "${UNEXPECTED_DEFAULT_POLICY_ID:-}" ]]; then
+    request "DELETE" "/admin/usage-policies/${UNEXPECTED_DEFAULT_POLICY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${POLICY_ID:-}" ]]; then
     request "DELETE" "/admin/usage-policies/${POLICY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -568,6 +574,11 @@ request "GET" "/admin/usage/overview" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage overview reads"
 request "GET" "/admin/usage-policies" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage policy reads"
+request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-default-denied-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${TEAM_USER_TOKEN}"
+if [[ "$HTTP_STATUS" == "200" ]]; then
+  UNEXPECTED_DEFAULT_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
+fi
+assert_status "401" "default user denied usage policy writes"
 request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied api key listing"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-default-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${TEAM_USER_TOKEN}"
@@ -655,6 +666,12 @@ if ! contains_text "$HTTP_BODY" "policies"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-manager-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can create usage policy"
+MANAGER_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
+request "DELETE" "/admin/usage-policies/${MANAGER_POLICY_ID}" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can delete usage policy"
+MANAGER_POLICY_ID=""
 
 request "GET" "/admin/api-keys" "" "${MANAGER_TOKEN}"
 assert_status "401" "manager denied admin api key listing"
