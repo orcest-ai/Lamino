@@ -268,4 +268,5 @@ Workflow reliability safeguards:
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic
 - CI validator runs with `SEED_BOOTSTRAP_COLLISION=1`, which seeds collision fixture usernames (`seed` + first retry candidate) before smoke execution so bootstrap collision retries are exercised every run
+- CI validator explicitly sets `CI_USAGE_RETENTION_DAYS_CHECK=1` so one-off usage cleanup command validation is deterministic across runs
 - smoke bootstrap fallback retries `enable-multi-user` with progressively unique normalized usernames (run-id based, then timestamp/random fallback) when username-collision errors are returned
