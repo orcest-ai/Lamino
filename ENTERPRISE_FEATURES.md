@@ -248,6 +248,7 @@ CI-local runner environment controls:
 - `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
 - `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
 - `CI_USAGE_RETENTION_DAYS_CHECK=<days>` → override retention days used for cleanup-command check (defaults to `1`).
+- `CI_EXTRA_SMOKE_ARGS="..."` → append extra smoke-test CLI flags for the nested local validator invocation.
 
 Local validator runner controls:
 
