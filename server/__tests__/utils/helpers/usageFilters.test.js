@@ -1,4 +1,5 @@
 const {
+  parseDateLike,
   parseIdFilter,
   parseIdList,
   parseStringFilter,
@@ -13,6 +14,10 @@ describe("usageFilters helper", () => {
     expect(parseIdFilter("7.2")).toBeNull();
     expect(parseIdFilter("-8")).toBeNull();
     expect(parseStringFilter("  openai  ")).toBe("openai");
+    expect(parseStringFilter(["", " anthropic "])).toBe("anthropic");
+    expect(parseStringFilter(["   ", " cohere "])).toBe("cohere");
+    expect(parseStringFilter({ provider: "openai" })).toBeNull();
+    expect(parseStringFilter(42)).toBeNull();
     expect(parseStringFilter("   ")).toBeNull();
   });
 
@@ -20,6 +25,14 @@ describe("usageFilters helper", () => {
     expect(parseIdList("1,2,2,foo,0,4.2,-9,3")).toEqual([1, 2, 3]);
     expect(parseIdList(["5", "5", "7", "bad", 8])).toEqual([5, 7, 8]);
     expect(parseIdList(null)).toEqual([]);
+  });
+
+  it("parses date-like values from safe primitives", () => {
+    expect(parseDateLike(0)?.toISOString()).toBe("1970-01-01T00:00:00.000Z");
+    expect(parseDateLike("2026-01-02T00:00:00.000Z")?.toISOString()).toBe(
+      "2026-01-02T00:00:00.000Z"
+    );
+    expect(parseDateLike("not-a-date")).toBeNull();
   });
 
   it("falls back to a sane time window when inputs are invalid", () => {

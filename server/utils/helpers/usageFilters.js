@@ -1,7 +1,23 @@
 function parseDateLike(value = null) {
-  if (!value) return null;
-  const parsed = new Date(value);
+  if (value === null || value === undefined || value === "") return null;
+  const candidate = value instanceof Date ? value.getTime() : value;
+  const parsed = new Date(candidate);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function parseStringFilter(value = null) {
+  if (value === null || value === undefined) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (typeof item !== "string") continue;
+      const parsed = item.trim();
+      if (parsed.length > 0) return parsed;
+    }
+    return null;
+  }
+  if (typeof value !== "string") return null;
+  const parsed = value.trim();
+  return parsed.length > 0 ? parsed : null;
 }
 
 function parseIdFilter(value = null) {
@@ -25,12 +41,6 @@ function parseIdList(value = null) {
     if (!normalized.includes(parsed)) normalized.push(parsed);
   }
   return normalized;
-}
-
-function parseStringFilter(value = null) {
-  if (value === null || value === undefined) return null;
-  const parsed = String(value).trim();
-  return parsed.length > 0 ? parsed : null;
 }
 
 function usageTimeRange(query = {}) {
@@ -81,6 +91,7 @@ function timeSeriesBucket(date = new Date(), interval = "day") {
 }
 
 module.exports = {
+  parseDateLike,
   parseIdFilter,
   parseIdList,
   parseStringFilter,
