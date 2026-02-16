@@ -223,6 +223,60 @@ describe("UsageEvents model", () => {
     expect(deleted).toBe(true);
   });
 
+  it("prunes usage events older than retention window", async () => {
+    mockDeleteMany.mockResolvedValueOnce({ count: 7 });
+    const before = Date.now();
+    const result = await UsageEvents.pruneOlderThanDays(30);
+    const after = Date.now();
+
+    expect(result.error).toBeNull();
+    expect(result.deletedCount).toBe(7);
+    expect(result.cutoff).toBeInstanceOf(Date);
+    expect(result.cutoff.getTime()).toBeGreaterThanOrEqual(
+      before - 30 * 24 * 60 * 60 * 1000 - 2000
+    );
+    expect(result.cutoff.getTime()).toBeLessThanOrEqual(
+      after - 30 * 24 * 60 * 60 * 1000 + 2000
+    );
+    expect(mockDeleteMany).toHaveBeenCalledWith({
+      where: {
+        occurredAt: {
+          lt: expect.any(Date),
+        },
+      },
+    });
+  });
+
+  it("treats invalid retention windows as no-op cleanup", async () => {
+    const invalidResults = await Promise.all([
+      UsageEvents.pruneOlderThanDays("bad"),
+      UsageEvents.pruneOlderThanDays(0),
+      UsageEvents.pruneOlderThanDays(-5),
+      UsageEvents.pruneOlderThanDays("7.5"),
+    ]);
+
+    for (const result of invalidResults) {
+      expect(result).toEqual({
+        deletedCount: 0,
+        cutoff: null,
+        error: null,
+      });
+    }
+    expect(mockDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it("returns cleanup error details when prune delete fails", async () => {
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+    mockDeleteMany.mockRejectedValueOnce(new Error("prune-delete-failed"));
+
+    const result = await UsageEvents.pruneOlderThanDays(14);
+
+    expect(result.deletedCount).toBe(0);
+    expect(result.cutoff).toBeInstanceOf(Date);
+    expect(result.error).toBe("prune-delete-failed");
+    consoleSpy.mockRestore();
+  });
+
   it("returns safe defaults for list and delete operations on errors", async () => {
     const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
     mockFindMany.mockRejectedValueOnce(new Error("find-failed"));

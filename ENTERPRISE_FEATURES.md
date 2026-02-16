@@ -79,6 +79,11 @@ When disabled:
   - `server/prisma/migrations/20260215174500_enterprise_foundations/migration.sql`
 - Existing workspace direct membership access remains intact.
 - Team membership is an additional access path for default users.
+- Usage policy defaults remain non-blocking unless explicitly configured:
+  - if no matching policy defines a limit, requests are allowed.
+- Usage-event growth can be managed with optional retention:
+  - set `USAGE_EVENTS_RETENTION_DAYS=<positive-integer>` to enable daily background pruning of older `usage_events` rows.
+  - unset/invalid values disable retention cleanup safely.
 
 ## Validation checklist
 

@@ -20,6 +20,14 @@ const UsageEvents = {
     return Number.isFinite(parsed.getTime()) ? parsed : new Date();
   },
 
+  parseRetentionDays: function (value) {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return null;
+    if (!Number.isInteger(parsed)) return null;
+    return parsed > 0 ? parsed : null;
+  },
+
   sanitizePayload: function (data = {}) {
     const promptTokens = Math.max(
       0,
@@ -196,6 +204,42 @@ const UsageEvents = {
     } catch (error) {
       console.error(error.message);
       return false;
+    }
+  },
+
+  pruneOlderThanDays: async function (days) {
+    const retentionDays = this.parseRetentionDays(days);
+    if (!retentionDays) {
+      return {
+        deletedCount: 0,
+        cutoff: null,
+        error: null,
+      };
+    }
+
+    const cutoff = new Date(
+      Date.now() - retentionDays * 24 * 60 * 60 * 1000
+    );
+    try {
+      const result = await prisma.usage_events.deleteMany({
+        where: {
+          occurredAt: {
+            lt: cutoff,
+          },
+        },
+      });
+      return {
+        deletedCount: Number(result?.count || 0),
+        cutoff,
+        error: null,
+      };
+    } catch (error) {
+      console.error(error.message);
+      return {
+        deletedCount: 0,
+        cutoff,
+        error: error.message,
+      };
     }
   },
 };
