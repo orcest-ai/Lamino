@@ -571,7 +571,7 @@ request "GET" "/admin/api-keys" "" "${MANAGER_TOKEN}"
 assert_status "401" "manager denied admin api key listing"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-manager-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${MANAGER_TOKEN}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
-  UNEXPECTED_MANAGER_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "id")"
+  UNEXPECTED_MANAGER_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
   if [[ -n "$UNEXPECTED_MANAGER_KEY_ID" ]]; then
     API_KEY_IDS+=("$UNEXPECTED_MANAGER_KEY_ID")
   fi
