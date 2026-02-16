@@ -139,6 +139,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - default user denied /admin/teams
 # - default user denied `/admin/system-preferences` writes
 # - manager user can list/create teams
+# - manager user is denied admin-only api key management routes (e.g., `/admin/api-keys`)
 # - manager user can still update non-enterprise preferences (e.g., `custom_app_name`), persistence is verified, and restoration to the original value is explicitly confirmed; enterprise flag writes are denied with explicit key-level error messages across all direct enterprise keys (`enterprise_teams`, `enterprise_prompt_library`, `enterprise_usage_monitoring`, `enterprise_usage_policies`) and `feature_flags` payload updates, and admin checks confirm enterprise feature-flag values remain unchanged after denied manager attempts
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden
 # - enterprise_teams feature gate disable => /admin/teams denied

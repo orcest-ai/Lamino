@@ -541,6 +541,10 @@ if ! contains_text "$HTTP_BODY" "$TEAM_NAME"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+
+request "GET" "/admin/api-keys" "" "${MANAGER_TOKEN}"
+assert_status_any "manager denied admin api key listing" "401" "403"
+
 request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create team"
 MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
