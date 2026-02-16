@@ -133,6 +133,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - prompt apply checks include post-apply workspace prompt verification and admin:read denial on v1 api-key update
 # - workspace:chat key denial checks include access attempts to admin-read routes (scope boundary validation)
 # - API key lifecycle checks include explicit expired-key and revoked-key denial assertions
+# - API key lifecycle checks include malformed `expiresAt`/`revokedAt` payload rejection assertions with explicit validation messages
 
 # convenience script aliases from repo root
 yarn test:enterprise
