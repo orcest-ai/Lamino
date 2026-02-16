@@ -176,4 +176,5 @@ Workflow reliability safeguards:
 - setup-node yarn dependency caching for faster repeated validation runs
 - `/api/ping` readiness polling before smoke execution
 - automatic server log dump when smoke validation fails
+- CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - smoke bootstrap fallback that retries with a unique admin username if `enable-multi-user` reports username collisions
