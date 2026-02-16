@@ -539,11 +539,11 @@ fi
 
 log "Asserting default users cannot access team admin routes"
 request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
-assert_status_any "default user denied team admin list" "401" "403"
+assert_status "401" "default user denied team admin list"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
-assert_status_any "default user denied system preference updates" "401" "403"
+assert_status "401" "default user denied system preference updates"
 request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
-assert_status_any "default user denied api key listing" "401" "403"
+assert_status "401" "default user denied api key listing"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-default-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${TEAM_USER_TOKEN}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_DEFAULT_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
@@ -551,7 +551,7 @@ if [[ "$HTTP_STATUS" == "200" ]]; then
     API_KEY_IDS+=("$UNEXPECTED_DEFAULT_KEY_ID")
   fi
 fi
-assert_status_any "default user denied api key creation" "401" "403"
+assert_status "401" "default user denied api key creation"
 
 log "Logging in as manager and validating team admin access"
 request "POST" "/request-token" "{\"username\":\"${MANAGER_USER_NAME}\",\"password\":\"ManagerUser123!\"}"
@@ -566,7 +566,7 @@ if ! contains_text "$HTTP_BODY" "$TEAM_NAME"; then
 fi
 
 request "GET" "/admin/api-keys" "" "${MANAGER_TOKEN}"
-assert_status_any "manager denied admin api key listing" "401" "403"
+assert_status "401" "manager denied admin api key listing"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-manager-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${MANAGER_TOKEN}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_MANAGER_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "id")"
@@ -574,7 +574,7 @@ if [[ "$HTTP_STATUS" == "200" ]]; then
     API_KEY_IDS+=("$UNEXPECTED_MANAGER_KEY_ID")
   fi
 fi
-assert_status_any "manager denied admin api key creation" "401" "403"
+assert_status "401" "manager denied admin api key creation"
 
 request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create team"
@@ -1141,8 +1141,8 @@ fi
 
 log "Verifying manager cannot mutate admin API key records"
 request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-manager-denied-update-${RUN_ID}\"}" "${MANAGER_TOKEN}"
-assert_status_any "manager denied admin api key update" "401" "403"
+assert_status "401" "manager denied admin api key update"
 request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${MANAGER_TOKEN}"
-assert_status_any "manager denied admin api key deletion" "401" "403"
+assert_status "401" "manager denied admin api key deletion"
 
 log "Smoke test completed successfully."
