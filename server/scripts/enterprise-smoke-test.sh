@@ -582,6 +582,9 @@ request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAG
 assert_status "200" "manager can create team"
 MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
 
+request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read system preferences"
+
 request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${ADMIN_TOKEN}"
 assert_status "200" "load current custom app name for manager preference test"
 ORIGINAL_CUSTOM_APP_NAME_JSON="$(json_get_json_value "$HTTP_BODY" "settings.custom_app_name")"
