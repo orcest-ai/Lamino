@@ -248,6 +248,7 @@ CI-local runner environment controls:
 - `CI_PORT=<port>` → override CI-local smoke server port (defaults to `3101` locally).
 - `CI_SMOKE_SUMMARY_PATH=<path>` → override smoke summary JSON output path for nested local validator (defaults to `/tmp/anythingllm-enterprise-ci-smoke-summary.json`).
 - `CI_BOOTSTRAP_VALIDATION_BASE_PORT=<port>` → set deterministic base port for bootstrap validator scenarios (defaults to `4201`; uses `base`, `base+1`, `base+2`, `base+3`).
+- `CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH=<path>` → override aggregate bootstrap-validation summary JSON output path (defaults to `/tmp/anythingllm-bootstrap-validation-summary.json`).
 - `SKIP_OPENAPI_CHECK=1` → skip OpenAPI regeneration drift gate.
 - `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
 - `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
@@ -292,7 +293,7 @@ Workflow reliability safeguards:
 - smoke run emits structured JSON summary (`SMOKE_SUMMARY_PATH` / `CI_SMOKE_SUMMARY_PATH`) and failure paths print it for fast triage
 - smoke summary includes phase telemetry (`currentPhase`, `phaseHistory`) and `requestCount` to pinpoint where failures occurred
 - local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
-- GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, smoke summary, bootstrap summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
+- GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, smoke summary, bootstrap validation summary, bootstrap scenario summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic

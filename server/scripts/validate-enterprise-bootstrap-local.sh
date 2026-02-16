@@ -26,11 +26,19 @@ AUTH_BOOTSTRAP_SUMMARY="${AUTH_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-aut
 OPEN_BOOTSTRAP_SUMMARY="${OPEN_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-open-summary.json}"
 NEGATIVE_BOOTSTRAP_SUMMARY="${NEGATIVE_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-negative-summary.json}"
 COLLISION_BOOTSTRAP_SUMMARY="${COLLISION_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-collision-summary.json}"
+BOOTSTRAP_VALIDATION_SUMMARY_PATH="${BOOTSTRAP_VALIDATION_SUMMARY_PATH:-/tmp/anythingllm-bootstrap-validation-summary.json}"
+SCENARIO_RESULTS_FILE="$(mktemp)"
+STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+CURRENT_SCENARIO="initialization"
+LAST_LOG_MESSAGE=""
+VALIDATION_STATUS="failed"
+VALIDATION_MESSAGE="Bootstrap validation did not complete."
 
 SERVER_PID=""
 
 log() {
-  printf '[enterprise-bootstrap-validation] %s\n' "$*"
+  LAST_LOG_MESSAGE="$*"
+  printf '[enterprise-bootstrap-validation] %s\n' "$LAST_LOG_MESSAGE"
 }
 
 cleanup_server() {
@@ -41,7 +49,68 @@ cleanup_server() {
   SERVER_PID=""
 }
 
-trap cleanup_server EXIT
+record_scenario_result() {
+  local name="$1"
+  local status="$2"
+  local port="$3"
+  local message="$4"
+  node -e '
+const fs = require("fs");
+const filePath = process.argv[1];
+const record = {
+  name: process.argv[2],
+  status: process.argv[3],
+  port: Number(process.argv[4]),
+  message: process.argv[5],
+};
+fs.appendFileSync(filePath, JSON.stringify(record) + "\n");
+' "${SCENARIO_RESULTS_FILE}" "${name}" "${status}" "${port}" "${message}" >/dev/null 2>&1 || true
+}
+
+write_validation_summary() {
+  local summary_dir
+  summary_dir="$(dirname "${BOOTSTRAP_VALIDATION_SUMMARY_PATH}")"
+  mkdir -p "${summary_dir}"
+
+  node -e '
+const fs = require("fs");
+const resultsFile = process.argv[1];
+const summaryPath = process.argv[2];
+const payload = {
+  status: process.argv[3],
+  message: process.argv[4],
+  currentScenario: process.argv[5],
+  startedAt: process.argv[6],
+  finishedAt: process.argv[7],
+  scenarios: [],
+};
+
+if (fs.existsSync(resultsFile)) {
+  const lines = fs
+    .readFileSync(resultsFile, "utf8")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  payload.scenarios = lines.map((line) => JSON.parse(line));
+}
+
+fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
+' "${SCENARIO_RESULTS_FILE}" \
+    "${BOOTSTRAP_VALIDATION_SUMMARY_PATH}" \
+    "${VALIDATION_STATUS}" \
+    "${VALIDATION_MESSAGE}" \
+    "${CURRENT_SCENARIO}" \
+    "${STARTED_AT}" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
+}
+
+on_exit() {
+  cleanup_server
+  write_validation_summary
+  rm -f "${SCENARIO_RESULTS_FILE}" >/dev/null 2>&1 || true
+}
+
+trap on_exit EXIT
 
 reset_and_migrate() {
   log "Resetting database."
@@ -162,6 +231,7 @@ assert_summary_status() {
 }
 
 run_auth_protected_scenario() {
+  CURRENT_SCENARIO="auth-protected"
   local port="${AUTH_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
   local auth_token="BootstrapPass!123"
@@ -191,6 +261,7 @@ run_auth_protected_scenario() {
 }
 
 run_open_scenario() {
+  CURRENT_SCENARIO="open-no-token"
   local port="${OPEN_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
   local bootstrap_base_url="${base_url}/api"
@@ -218,6 +289,7 @@ run_open_scenario() {
 }
 
 run_missing_token_negative_scenario() {
+  CURRENT_SCENARIO="auth-missing-token-negative"
   local port="${NEGATIVE_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
 
@@ -266,6 +338,7 @@ run_missing_token_negative_scenario() {
 }
 
 run_collision_retry_scenario() {
+  CURRENT_SCENARIO="collision-retry"
   local port="${COLLISION_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
   local colliding_username="collisionadmin"
@@ -331,10 +404,36 @@ main() {
     exit 1
   fi
 
-  run_auth_protected_scenario
-  run_open_scenario
-  run_missing_token_negative_scenario
-  run_collision_retry_scenario
+  if ! run_auth_protected_scenario; then
+    VALIDATION_MESSAGE="${LAST_LOG_MESSAGE:-auth-protected scenario failed}"
+    record_scenario_result "auth-protected" "failed" "${AUTH_SCENARIO_PORT}" "${VALIDATION_MESSAGE}"
+    exit 1
+  fi
+  record_scenario_result "auth-protected" "success" "${AUTH_SCENARIO_PORT}" "Scenario passed"
+
+  if ! run_open_scenario; then
+    VALIDATION_MESSAGE="${LAST_LOG_MESSAGE:-open scenario failed}"
+    record_scenario_result "open-no-token" "failed" "${OPEN_SCENARIO_PORT}" "${VALIDATION_MESSAGE}"
+    exit 1
+  fi
+  record_scenario_result "open-no-token" "success" "${OPEN_SCENARIO_PORT}" "Scenario passed"
+
+  if ! run_missing_token_negative_scenario; then
+    VALIDATION_MESSAGE="${LAST_LOG_MESSAGE:-negative scenario failed}"
+    record_scenario_result "auth-missing-token-negative" "failed" "${NEGATIVE_SCENARIO_PORT}" "${VALIDATION_MESSAGE}"
+    exit 1
+  fi
+  record_scenario_result "auth-missing-token-negative" "success" "${NEGATIVE_SCENARIO_PORT}" "Scenario passed"
+
+  if ! run_collision_retry_scenario; then
+    VALIDATION_MESSAGE="${LAST_LOG_MESSAGE:-collision scenario failed}"
+    record_scenario_result "collision-retry" "failed" "${COLLISION_SCENARIO_PORT}" "${VALIDATION_MESSAGE}"
+    exit 1
+  fi
+  record_scenario_result "collision-retry" "success" "${COLLISION_SCENARIO_PORT}" "Scenario passed"
+
+  VALIDATION_STATUS="success"
+  VALIDATION_MESSAGE="All enterprise bootstrap validation scenarios passed."
   log "All enterprise bootstrap validation scenarios passed."
 }
 

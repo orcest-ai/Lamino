@@ -42,6 +42,7 @@ jobs:
         run: |
           CI_PORT=3101 \
           CI_BOOTSTRAP_VALIDATION_BASE_PORT=4201 \
+          CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH="/tmp/anythingllm-bootstrap-validation-summary.json" \
           CI_AUTH_TOKEN="ci-single-user-token" \
           CI_SINGLE_USER_TOKEN="ci-single-user-token" \
           CI_JWT_SECRET="ci-enterprise-secret" \
@@ -68,5 +69,6 @@ jobs:
           path: |
             /tmp/anythingllm-server.log
             /tmp/anythingllm-enterprise-ci-smoke-summary.json
+            /tmp/anythingllm-bootstrap-validation-summary.json
             /tmp/anythingllm-bootstrap-*-summary.json
             /tmp/anythingllm-bootstrap-*.log
