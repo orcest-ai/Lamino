@@ -39,6 +39,8 @@ compose_name() {
 
 cd "${SERVER_DIR}"
 
+mkdir -p "$(dirname "${LOG_PATH}")"
+
 echo "[enterprise-local-validation] Using BASE_URL=${BASE_URL}"
 echo "[enterprise-local-validation] Log file: ${LOG_PATH}"
 
