@@ -34,6 +34,7 @@ This repository includes an additive enterprise layer for team and commercial op
 
 4. **Usage Policy Engine**
    - Scoped policy CRUD (`system`, `team`, `workspace`, `user`)
+   - Policy payload normalization sanitizes malformed ids/priority/boolean fields to stable safe defaults
    - Effective policy resolution and chat preflight enforcement
    - Endpoints:
      - Session API: `/api/admin/usage-policies*`
