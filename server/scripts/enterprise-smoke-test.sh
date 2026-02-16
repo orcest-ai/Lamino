@@ -550,6 +550,10 @@ request "GET" "/admin/teams/${TEAM_ID}/members" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team member listing reads"
 request "GET" "/admin/teams/${TEAM_ID}/workspaces" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team workspace listing reads"
+request "POST" "/admin/teams/${TEAM_ID}/update-members" "{\"members\":[{\"userId\":${USER_ID},\"role\":\"member\"}]}" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied team member update writes"
+request "POST" "/admin/teams/${TEAM_ID}/update-workspaces" "{\"workspaceIds\":[${WORKSPACE_ID}]}" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied team workspace update writes"
 request "POST" "/admin/teams/${TEAM_ID}" "{\"name\":\"qa-default-denied-team-update-${RUN_ID}\"}" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team admin update"
 request "DELETE" "/admin/teams/${TEAM_ID}" "" "${TEAM_USER_TOKEN}"
@@ -602,6 +606,26 @@ request "GET" "/admin/teams/${TEAM_ID}/workspaces" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read team workspaces"
 if ! contains_text "$HTTP_BODY" "\"workspaceId\":${WORKSPACE_ID}"; then
   log "FAILED: manager team workspaces response missing expected workspace assignment."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/teams/${TEAM_ID}/update-members" "{\"members\":[{\"userId\":${USER_ID},\"role\":\"member\"}]}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can update team members"
+request "GET" "/admin/teams/${TEAM_ID}/members" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager member updates persisted"
+if ! contains_text "$HTTP_BODY" "\"userId\":${USER_ID}"; then
+  log "FAILED: manager team member update did not persist expected default user assignment."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/teams/${TEAM_ID}/update-workspaces" "{\"workspaceIds\":[${WORKSPACE_ID}]}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can update team workspaces"
+request "GET" "/admin/teams/${TEAM_ID}/workspaces" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager workspace updates persisted"
+if ! contains_text "$HTTP_BODY" "\"workspaceId\":${WORKSPACE_ID}"; then
+  log "FAILED: manager team workspace update did not persist expected workspace assignment."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
