@@ -290,6 +290,7 @@ Workflow reliability safeguards:
 - `/api/ping` readiness polling before smoke execution
 - automatic server log dump when smoke validation fails
 - smoke run emits structured JSON summary (`SMOKE_SUMMARY_PATH` / `CI_SMOKE_SUMMARY_PATH`) and failure paths print it for fast triage
+- smoke summary includes phase telemetry (`currentPhase`, `phaseHistory`) and `requestCount` to pinpoint where failures occurred
 - local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
 - GitHub workflow uploads validation diagnostics (`/tmp/anythingllm-server.log`, smoke summary, bootstrap summaries/logs) as run artifacts (`enterprise-validation-artifacts`)
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation

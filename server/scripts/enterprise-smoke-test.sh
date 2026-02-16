@@ -13,9 +13,12 @@ SERVER_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 HTTP_STATUS=""
 HTTP_BODY=""
 ADMIN_TOKEN=""
+REQUEST_COUNT=0
 RESULT_STATUS="failed"
 RESULT_MESSAGE="Smoke test did not complete."
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+CURRENT_PHASE="init"
+PHASE_HISTORY=()
 
 log() {
   local message="$*"
@@ -100,6 +103,9 @@ const payload = {
   singleUserPreflight: process.argv[7] === "true",
   startedAt: process.argv[8],
   finishedAt: process.argv[9],
+  requestCount: Number(process.argv[10] || 0),
+  currentPhase: process.argv[11] || "unknown",
+  phaseHistory: (process.argv[12] || "").split("|").filter(Boolean),
 };
 fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
 ' "${SMOKE_SUMMARY_FILE}" \
@@ -110,7 +116,16 @@ fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
     "${ADMIN_USERNAME}" \
     "$([[ -n "${SINGLE_USER_AUTH_TOKEN}" ]] && echo "true" || echo "false")" \
     "${STARTED_AT}" \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "${REQUEST_COUNT}" \
+    "${CURRENT_PHASE}" \
+    "$(IFS='|'; echo "${PHASE_HISTORY[*]}")"
+}
+
+set_phase() {
+  local phase="$1"
+  CURRENT_PHASE="${phase}"
+  PHASE_HISTORY+=("${phase}")
 }
 
 request() {
@@ -120,6 +135,7 @@ request() {
   local token="${4:-}"
   local tmp
   tmp="$(mktemp)"
+  REQUEST_COUNT=$((REQUEST_COUNT + 1))
 
   local args=(-sS -o "$tmp" -w "%{http_code}" -X "$method" "${BASE_URL}${path}")
   if [[ -n "$token" ]]; then
@@ -453,6 +469,7 @@ assert_max_length "MANAGER_USER_NAME" "${MANAGER_USER_NAME}" 32
 assert_username_shape "USER_NAME" "${USER_NAME}"
 assert_username_shape "MANAGER_USER_NAME" "${MANAGER_USER_NAME}"
 
+set_phase "readiness"
 log "Checking API reachability at ${BASE_URL}"
 if ! wait_for_api 60 1; then
   log "FAILED: API did not become ready at ${BASE_URL}/ping"
@@ -464,6 +481,7 @@ request "GET" "/system/multi-user-mode"
 assert_status "200" "read multi-user mode setting"
 CURRENT_MULTI_USER_MODE="$(json_get_or_empty "$HTTP_BODY" "multiUserMode")"
 if [[ "${CURRENT_MULTI_USER_MODE}" == "false" && -n "${SINGLE_USER_AUTH_TOKEN}" ]]; then
+  set_phase "single-user-preflight"
   log "Verifying single-user authentication path before bootstrap"
   request "POST" "/request-token" "{\"password\":$(json_quote "invalid-${RUN_ID}")}"
   assert_status "401" "single-user login rejects invalid auth token"
@@ -485,6 +503,7 @@ elif [[ "${CURRENT_MULTI_USER_MODE}" == "false" ]]; then
   log "Single-user auth check skipped (SINGLE_USER_AUTH_TOKEN/AUTH_TOKEN not provided)."
 fi
 
+set_phase "admin-auth"
 log "Logging in as admin user"
 request "POST" "/request-token" "{\"username\":$(json_quote "${ADMIN_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 if [[ "$HTTP_STATUS" == "200" ]]; then
@@ -576,6 +595,7 @@ if [[ -z "$ADMIN_TOKEN" || -z "${ADMIN_USER_ID:-}" ]]; then
   exit 1
 fi
 
+set_phase "fixture-provisioning"
 log "Creating smoke-test default user"
 request "POST" "/admin/users/new" "{\"username\":\"${USER_NAME}\",\"password\":\"TeamUser123!\",\"role\":\"default\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create default user"
@@ -620,6 +640,7 @@ if contains_text "$HTTP_BODY" "$ISOLATED_WORKSPACE_SLUG"; then
   exit 1
 fi
 
+set_phase "default-role-matrix"
 log "Asserting default users cannot access team admin routes"
 request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team admin list"
@@ -696,6 +717,7 @@ if [[ "$HTTP_STATUS" == "200" ]]; then
 fi
 assert_status "401" "default user denied api key creation"
 
+set_phase "manager-role-matrix"
 log "Logging in as manager and validating team admin access"
 request "POST" "/request-token" "{\"username\":\"${MANAGER_USER_NAME}\",\"password\":\"ManagerUser123!\"}"
 assert_status "200" "manager login"
@@ -1003,6 +1025,7 @@ if [[ "${POST_MANAGER_ENTERPRISE_TEAMS_FLAG}" != "${BASELINE_ENTERPRISE_TEAMS_FL
   exit 1
 fi
 
+set_phase "feature-gates"
 log "Verifying team feature gate denies team routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_teams flag"
@@ -1065,6 +1088,7 @@ if ! contains_text "$HTTP_BODY" "id,occurredAt,eventType"; then
   exit 1
 fi
 
+set_phase "usage-monitoring"
 log "Verifying usage monitoring reflects fresh usage events"
 request "GET" "/admin/usage/overview?workspaceId=${WORKSPACE_ID}" "" "${ADMIN_TOKEN}"
 assert_status "200" "usage overview before probe event"
@@ -1103,6 +1127,7 @@ if (( UPDATED_USAGE_TOTAL_TOKENS < BASE_USAGE_TOTAL_TOKENS + PROBE_TOTAL_TOKENS 
   exit 1
 fi
 
+set_phase "prompt-library"
 log "Verifying prompt library feature gate denies template routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_prompt_library flag"
@@ -1140,6 +1165,7 @@ if ! contains_text "$HTTP_BODY" "${TEMPLATE_PROMPT}"; then
   exit 1
 fi
 
+set_phase "usage-policies"
 log "Verifying usage policy feature gate denies policy routes when disabled"
 request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "disable enterprise_usage_policies flag"
@@ -1185,6 +1211,7 @@ if [[ "${DIRTY_EFFECTIVE_MAX_PROMPT}" != "${CLEAN_EFFECTIVE_MAX_PROMPT}" ]]; the
   exit 1
 fi
 
+set_phase "policy-enforcement"
 log "Creating workspace:chat scoped API key"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-chat-key-${RUN_ID}\",\"scopes\":[\"workspace:chat\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create scoped chat key"
@@ -1247,6 +1274,7 @@ if ! contains_text "$HTTP_BODY" "Daily chat quota reached"; then
   exit 1
 fi
 
+set_phase "api-key-scopes"
 log "Verifying malformed API key datetime payloads are rejected"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-invalid-expiry-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"not-a-date\"}" "${ADMIN_TOKEN}"
 assert_status "200" "invalid api key expiry payload rejected"
@@ -1498,6 +1526,7 @@ if ! contains_text "$HTTP_BODY" "admin:write"; then
   exit 1
 fi
 
+set_phase "api-key-lifecycle"
 log "Verifying expired API key is rejected"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-expired-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"2000-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create expired admin key"
@@ -1566,6 +1595,7 @@ assert_status "401" "default user denied admin api key update"
 request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied admin api key deletion"
 
+set_phase "completed"
 RESULT_STATUS="success"
 RESULT_MESSAGE="Smoke test completed successfully."
 log "Smoke test completed successfully."
