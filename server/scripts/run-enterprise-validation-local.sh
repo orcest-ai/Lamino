@@ -13,6 +13,7 @@ ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
 RUN_ID="${RUN_ID:-$(date +%s)-$RANDOM}"
 SEED_BOOTSTRAP_COLLISION="${SEED_BOOTSTRAP_COLLISION:-0}"
+EXTRA_SMOKE_ARGS="${EXTRA_SMOKE_ARGS:-}"
 
 normalize_username_seed() {
   local raw="$1"
@@ -105,9 +106,16 @@ if ! curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
 fi
 
 echo "[enterprise-local-validation] Running enterprise smoke test."
+SMOKE_ARGS=(--single-user-token "${AUTH_TOKEN}")
+if [[ -n "${EXTRA_SMOKE_ARGS}" ]]; then
+  # shellcheck disable=SC2206
+  EXTRA_ARGS_ARRAY=(${EXTRA_SMOKE_ARGS})
+  SMOKE_ARGS+=("${EXTRA_ARGS_ARRAY[@]}")
+fi
+
 if ! BASE_URL="${BASE_URL}" AUTH_TOKEN="${AUTH_TOKEN}" JWT_SECRET="${JWT_SECRET}" \
   ADMIN_USERNAME="${ADMIN_USERNAME}" ADMIN_PASSWORD="${ADMIN_PASSWORD}" RUN_ID="${RUN_ID}" \
-  ./scripts/enterprise-smoke-test.sh --single-user-token "${AUTH_TOKEN}"; then
+  ./scripts/enterprise-smoke-test.sh "${SMOKE_ARGS[@]}"; then
   echo "[enterprise-local-validation] Enterprise smoke failed. Dumping server log from ${LOG_PATH}."
   cat "${LOG_PATH}" || true
   exit 1

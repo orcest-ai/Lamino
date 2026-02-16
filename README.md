@@ -205,6 +205,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
 - `yarn usage:cleanup-events` Run one-off usage-events retention cleanup (uses `USAGE_EVENTS_RETENTION_DAYS`).
   - Example: `USAGE_EVENTS_RETENTION_DAYS=30 yarn usage:cleanup-events`.
 - `yarn validate:enterprise:local` Run deterministic local enterprise validation (db reset + migrate + smoke).
+  - Optional extra smoke flags: `EXTRA_SMOKE_ARGS="--run-id my-debug-run" yarn validate:enterprise:local`.
 - `yarn validate:enterprise:ci-local` Run the CI-equivalent enterprise pipeline locally (tests + OpenAPI drift check + frontend build + deterministic smoke).
   - Optional for quicker local debugging: `SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 yarn validate:enterprise:ci-local`.
   - Optional to mirror fresh CI dependency installation: `RUN_INSTALL=1 yarn validate:enterprise:ci-local`.
