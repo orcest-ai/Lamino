@@ -1116,4 +1116,10 @@ if ! contains_text "$HTTP_BODY" "revoked"; then
   exit 1
 fi
 
+log "Verifying manager cannot mutate admin API key records"
+request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-manager-denied-update-${RUN_ID}\"}" "${MANAGER_TOKEN}"
+assert_status_any "manager denied admin api key update" "401" "403"
+request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${MANAGER_TOKEN}"
+assert_status_any "manager denied admin api key deletion" "401" "403"
+
 log "Smoke test completed successfully."
