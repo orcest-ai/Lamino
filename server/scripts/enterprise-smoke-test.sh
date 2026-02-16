@@ -173,6 +173,27 @@ contains_text() {
   [[ "$text" == *"$needle"* ]]
 }
 
+assert_max_length() {
+  local label="$1"
+  local value="$2"
+  local max_len="$3"
+  if (( ${#value} > max_len )); then
+    log "FAILED: ${label} exceeds max length ${max_len} (got ${#value})."
+    log "Value: ${value}"
+    exit 1
+  fi
+}
+
+assert_username_shape() {
+  local label="$1"
+  local value="$2"
+  if [[ ! "$value" =~ ^[a-z][a-z0-9._-]*$ ]]; then
+    log "FAILED: ${label} is not a valid normalized username."
+    log "Value: ${value}"
+    exit 1
+  fi
+}
+
 json_quote() {
   node -e 'process.stdout.write(JSON.stringify(process.argv[1] ?? ""));' "$1"
 }
@@ -340,6 +361,15 @@ USER_NAME="$(compose_name "qa-user-" 32 "${RUN_SUFFIX}")"
 MANAGER_USER_NAME="$(compose_name "qa-manager-" 32 "${RUN_SUFFIX}")"
 TEMPLATE_PROMPT="You are $(compose_name "qa-template-" 64 "${RUN_SUFFIX}")."
 
+assert_max_length "TEAM_NAME" "${TEAM_NAME}" 64
+assert_max_length "MANAGER_TEAM_NAME" "${MANAGER_TEAM_NAME}" 64
+assert_max_length "WORKSPACE_NAME" "${WORKSPACE_NAME}" 64
+assert_max_length "ISOLATED_WORKSPACE_NAME" "${ISOLATED_WORKSPACE_NAME}" 64
+assert_max_length "USER_NAME" "${USER_NAME}" 32
+assert_max_length "MANAGER_USER_NAME" "${MANAGER_USER_NAME}" 32
+assert_username_shape "USER_NAME" "${USER_NAME}"
+assert_username_shape "MANAGER_USER_NAME" "${MANAGER_USER_NAME}"
+
 log "Checking API reachability at ${BASE_URL}"
 if ! wait_for_api 60 1; then
   log "FAILED: API did not become ready at ${BASE_URL}/ping"
@@ -399,16 +429,22 @@ if [[ -z "${ADMIN_TOKEN}" ]]; then
   log "Admin login unavailable, attempting multi-user bootstrap"
   BOOTSTRAP_USERNAME_SEED="$(normalize_username_seed "${ADMIN_USERNAME}" 24)"
   BOOTSTRAP_USERNAME="${BOOTSTRAP_USERNAME_SEED}"
+  assert_max_length "BOOTSTRAP_USERNAME_SEED" "${BOOTSTRAP_USERNAME_SEED}" 24
+  assert_username_shape "BOOTSTRAP_USERNAME_SEED" "${BOOTSTRAP_USERNAME_SEED}"
   request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 
   if [[ "$HTTP_STATUS" == "400" ]]; then
     if contains_text "$HTTP_BODY" "already exists"; then
       BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
+      assert_max_length "BOOTSTRAP_USERNAME_RETRY" "${BOOTSTRAP_USERNAME}" 32
+      assert_username_shape "BOOTSTRAP_USERNAME_RETRY" "${BOOTSTRAP_USERNAME}"
       log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
       request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
       if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
         BOOTSTRAP_FALLBACK_SUFFIX="$(printf '%s' "$(date +%s)-$RANDOM" | tr -cd '[:alnum:]' | cut -c1-12)"
         BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${BOOTSTRAP_FALLBACK_SUFFIX}")"
+        assert_max_length "BOOTSTRAP_USERNAME_FALLBACK" "${BOOTSTRAP_USERNAME}" 32
+        assert_username_shape "BOOTSTRAP_USERNAME_FALLBACK" "${BOOTSTRAP_USERNAME}"
         log "Bootstrap retry username already exists; retrying as ${BOOTSTRAP_USERNAME}"
         request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
       fi
