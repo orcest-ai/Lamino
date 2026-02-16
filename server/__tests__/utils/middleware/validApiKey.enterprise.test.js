@@ -200,4 +200,53 @@ describe("validApiKey middleware", () => {
     expect(response.locals.multiUserMode).toBe(false);
     expect(next).toHaveBeenCalledTimes(1);
   });
+
+  it("requires auth:read scope for /v1/auth endpoints", async () => {
+    const request = {
+      header: jest.fn(() => "Bearer admin-read-only"),
+      method: "GET",
+      path: "/v1/auth",
+    };
+    const key = { id: 15, secret: "admin-read-only", scopes: "admin:read" };
+    mockGet.mockResolvedValueOnce(key);
+    mockIsUsable.mockReturnValueOnce(true);
+    mockHasScope.mockReturnValueOnce(false);
+    const response = mockResponse();
+    const next = jest.fn();
+
+    await validApiKey(request, response, next);
+
+    expect(mockHasScope).toHaveBeenCalledWith(key, "auth:read");
+    expect(response.status).toHaveBeenCalledWith(403);
+    expect(response.json).toHaveBeenCalledWith({
+      error: "API key is missing required scope: auth:read.",
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
+
+  it("accepts auth:read-scoped keys for /v1/auth endpoints", async () => {
+    const request = {
+      header: jest.fn(() => "Bearer auth-read"),
+      method: "GET",
+      path: "/v1/auth",
+    };
+    const key = { id: 16, secret: "auth-read", scopes: "auth:read" };
+    mockGet.mockResolvedValueOnce(key);
+    mockIsUsable.mockReturnValueOnce(true);
+    mockHasScope.mockReturnValueOnce(true);
+    mockParseScopes.mockReturnValueOnce(["auth:read"]);
+    const response = mockResponse();
+    const next = jest.fn();
+
+    await validApiKey(request, response, next);
+
+    expect(mockHasScope).toHaveBeenCalledWith(key, "auth:read");
+    expect(response.locals.apiKey).toEqual({
+      ...key,
+      scopes: ["auth:read"],
+      requiredScope: "auth:read",
+    });
+    expect(next).toHaveBeenCalledTimes(1);
+    expect(response.status).not.toHaveBeenCalled();
+  });
 });
