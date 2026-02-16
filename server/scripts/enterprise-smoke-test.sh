@@ -527,6 +527,8 @@ fi
 log "Asserting default users cannot access team admin routes"
 request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
 assert_status_any "default user denied team admin list" "401" "403"
+request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
+assert_status_any "default user denied system preference updates" "401" "403"
 
 log "Logging in as manager and validating team admin access"
 request "POST" "/request-token" "{\"username\":\"${MANAGER_USER_NAME}\",\"password\":\"ManagerUser123!\"}"
