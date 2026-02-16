@@ -521,6 +521,13 @@ if ! contains_text "$HTTP_BODY" "enterprise_usage_policies"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "GET" "/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${ADMIN_TOKEN}"
+assert_status "403" "usage policy effective blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_usage_policies"; then
+  log "FAILED: disabled effective policy response missing enterprise_usage_policies marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN}"
 assert_status "200" "re-enable enterprise_usage_policies flag"
@@ -760,6 +767,13 @@ request "GET" "/v1/admin/usage-policies" "" "${ADMIN_READ_KEY}"
 assert_status "403" "v1 usage policies blocked when feature disabled"
 if ! contains_text "$HTTP_BODY" "enterprise_usage_policies"; then
   log "FAILED: v1 usage policy gate response missing enterprise_usage_policies marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/v1/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${ADMIN_READ_KEY}"
+assert_status "403" "v1 effective usage policies blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_usage_policies"; then
+  log "FAILED: v1 effective usage policy gate response missing enterprise_usage_policies marker."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
