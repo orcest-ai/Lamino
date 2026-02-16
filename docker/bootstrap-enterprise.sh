@@ -8,10 +8,15 @@ SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-}"
 MAX_RETRIES="${MAX_RETRIES:-60}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
 ENABLE_MULTI_USER_RETRIES="${ENABLE_MULTI_USER_RETRIES:-6}"
+BOOTSTRAP_SUMMARY_FILE="${BOOTSTRAP_SUMMARY_FILE:-}"
 AUTH_HEADER_ARGS=()
 HTTP_RESPONSE_STATUS=""
 HTTP_RESPONSE_BODY=""
 EFFECTIVE_ADMIN_USERNAME="${ADMIN_USERNAME}"
+BOOTSTRAP_RETRY_COUNT=0
+RESULT_STATUS="failed"
+RESULT_MESSAGE="Bootstrap did not complete."
+STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 log() {
   printf '[bootstrap-enterprise] %s\n' "$*"
@@ -29,11 +34,12 @@ Options:
   --single-user-token <pass> Single-user AUTH_TOKEN password (required when AUTH_TOKEN/JWT_SECRET are set)
   --max-retries <n>          Max readiness retries (default: 60)
   --enable-retries <n>       Max username-collision retries for /enable-multi-user (default: 6)
+  --summary-file <path>      Optional JSON summary output path
   --sleep-seconds <n>        Seconds between retries (default: 2)
   -h, --help                 Show this help text
 
 Environment variables:
-  BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, SINGLE_USER_AUTH_TOKEN, MAX_RETRIES, ENABLE_MULTI_USER_RETRIES, SLEEP_SECONDS
+  BASE_URL, ADMIN_USERNAME, ADMIN_PASSWORD, SINGLE_USER_AUTH_TOKEN, MAX_RETRIES, ENABLE_MULTI_USER_RETRIES, BOOTSTRAP_SUMMARY_FILE, SLEEP_SECONDS
 EOF
 }
 
@@ -63,6 +69,10 @@ while [[ $# -gt 0 ]]; do
       ENABLE_MULTI_USER_RETRIES="$2"
       shift 2
       ;;
+    --summary-file)
+      BOOTSTRAP_SUMMARY_FILE="$2"
+      shift 2
+      ;;
     --sleep-seconds)
       SLEEP_SECONDS="$2"
       shift 2
@@ -78,6 +88,44 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+write_summary() {
+  if [[ -z "${BOOTSTRAP_SUMMARY_FILE}" ]]; then
+    return 0
+  fi
+
+  local summary_dir
+  summary_dir="$(dirname "${BOOTSTRAP_SUMMARY_FILE}")"
+  mkdir -p "${summary_dir}"
+
+  node -e '
+const fs = require("fs");
+const summaryPath = process.argv[1];
+const payload = {
+  status: process.argv[2],
+  message: process.argv[3],
+  baseUrl: process.argv[4],
+  requestedAdminUsername: process.argv[5],
+  effectiveAdminUsername: process.argv[6],
+  retriesUsed: Number(process.argv[7] || 0),
+  usedSingleUserToken: process.argv[8] === "true",
+  startedAt: process.argv[9],
+  finishedAt: process.argv[10],
+};
+fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
+' "${BOOTSTRAP_SUMMARY_FILE}" \
+    "${RESULT_STATUS}" \
+    "${RESULT_MESSAGE}" \
+    "${BASE_URL}" \
+    "${ADMIN_USERNAME}" \
+    "${EFFECTIVE_ADMIN_USERNAME}" \
+    "${BOOTSTRAP_RETRY_COUNT}" \
+    "$([[ -n "${SINGLE_USER_AUTH_TOKEN}" ]] && echo "true" || echo "false")" \
+    "${STARTED_AT}" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
+
+trap write_summary EXIT
 
 ensure_integer() {
   local label="$1"
@@ -202,6 +250,7 @@ wait_for_api() {
     attempt=$((attempt + 1))
   done
 
+  RESULT_MESSAGE="API did not become healthy in time."
   log "API did not become healthy in time."
   return 1
 }
@@ -229,6 +278,7 @@ enable_multi_user() {
   post_json "${BASE_URL}/api/system/enable-multi-user" "${payload}" "${AUTH_HEADER_ARGS[@]}"
 
   if [[ -z "$HTTP_RESPONSE_BODY" || "$HTTP_RESPONSE_STATUS" == "000" ]]; then
+    RESULT_MESSAGE="No response from /api/system/enable-multi-user (status=${HTTP_RESPONSE_STATUS:-unknown})"
     log "No response from /api/system/enable-multi-user (status=${HTTP_RESPONSE_STATUS:-unknown})"
     return 1
   fi
@@ -240,12 +290,15 @@ enable_multi_user() {
   fi
 
   if [[ "$HTTP_RESPONSE_BODY" == *"already enabled"* ]]; then
+    RESULT_MESSAGE="Multi-user mode was already enabled."
     log "Multi-user mode was already enabled."
     return 0
   fi
 
+  RESULT_MESSAGE="Failed enabling multi-user mode (status=${HTTP_RESPONSE_STATUS})."
   log "Failed enabling multi-user mode (status=${HTTP_RESPONSE_STATUS}). Response: ${HTTP_RESPONSE_BODY}"
   if [[ -z "$SINGLE_USER_AUTH_TOKEN" && "$HTTP_RESPONSE_STATUS" == "401" ]]; then
+    RESULT_MESSAGE="Failed enabling multi-user mode (status=401). Single-user token required."
     log "Hint: pass --single-user-token or set SINGLE_USER_AUTH_TOKEN when AUTH_TOKEN is configured."
   fi
   return 1
@@ -265,11 +318,13 @@ enable_multi_user_with_retries() {
     fi
 
     if [[ "${retry_attempt}" -ge "${ENABLE_MULTI_USER_RETRIES}" ]]; then
+      RESULT_MESSAGE="Username-collision retries exhausted (${ENABLE_MULTI_USER_RETRIES})."
       log "Username-collision retries exhausted (${ENABLE_MULTI_USER_RETRIES})."
       return 1
     fi
 
     retry_attempt=$((retry_attempt + 1))
+    BOOTSTRAP_RETRY_COUNT="${retry_attempt}"
     username="$(retry_username_for_attempt "${ADMIN_USERNAME}" "${retry_attempt}")"
     log "Bootstrap username already exists; retrying as ${username} (${retry_attempt}/${ENABLE_MULTI_USER_RETRIES})"
   done
@@ -287,17 +342,20 @@ request_single_user_session() {
   post_json "${BASE_URL}/api/request-token" "${payload}"
 
   if [[ -z "$HTTP_RESPONSE_BODY" || "$HTTP_RESPONSE_STATUS" == "000" ]]; then
+    RESULT_MESSAGE="No response from /api/request-token (status=${HTTP_RESPONSE_STATUS:-unknown})"
     log "No response from /api/request-token (status=${HTTP_RESPONSE_STATUS:-unknown})"
     return 1
   fi
 
   if [[ "$HTTP_RESPONSE_STATUS" != "200" || "$HTTP_RESPONSE_BODY" != *'"valid":true'* ]]; then
+    RESULT_MESSAGE="Failed acquiring single-user session token (status=${HTTP_RESPONSE_STATUS})."
     log "Failed acquiring single-user session token (status=${HTTP_RESPONSE_STATUS}). Response: ${HTTP_RESPONSE_BODY}"
     return 1
   fi
 
   session_token="$(printf '%s' "$HTTP_RESPONSE_BODY" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
   if [[ -z "$session_token" ]]; then
+    RESULT_MESSAGE="Single-user session token response was missing token value."
     log "Token response was valid but no token was found. Response: ${HTTP_RESPONSE_BODY}"
     return 1
   fi
@@ -312,6 +370,8 @@ main() {
   wait_for_api
 
   if [[ "$(is_multi_user_enabled)" == "true" ]]; then
+    RESULT_STATUS="success"
+    RESULT_MESSAGE="Multi-user mode already enabled."
     log "Multi-user mode already enabled. Nothing to do."
     return 0
   fi
@@ -322,6 +382,8 @@ main() {
 
   request_single_user_session
   enable_multi_user_with_retries
+  RESULT_STATUS="success"
+  RESULT_MESSAGE="Bootstrap complete."
   log "Bootstrap complete. Admin username: ${EFFECTIVE_ADMIN_USERNAME}"
 }
 

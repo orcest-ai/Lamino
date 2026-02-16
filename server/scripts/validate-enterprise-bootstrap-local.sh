@@ -22,6 +22,10 @@ NEGATIVE_SERVER_LOG="${NEGATIVE_SERVER_LOG:-/tmp/anythingllm-bootstrap-negative-
 NEGATIVE_BOOTSTRAP_LOG="${NEGATIVE_BOOTSTRAP_LOG:-/tmp/anythingllm-bootstrap-negative-run.log}"
 COLLISION_SERVER_LOG="${COLLISION_SERVER_LOG:-/tmp/anythingllm-bootstrap-collision-server.log}"
 COLLISION_BOOTSTRAP_LOG="${COLLISION_BOOTSTRAP_LOG:-/tmp/anythingllm-bootstrap-collision-run.log}"
+AUTH_BOOTSTRAP_SUMMARY="${AUTH_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-auth-summary.json}"
+OPEN_BOOTSTRAP_SUMMARY="${OPEN_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-open-summary.json}"
+NEGATIVE_BOOTSTRAP_SUMMARY="${NEGATIVE_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-negative-summary.json}"
+COLLISION_BOOTSTRAP_SUMMARY="${COLLISION_BOOTSTRAP_SUMMARY:-/tmp/anythingllm-bootstrap-collision-summary.json}"
 
 SERVER_PID=""
 
@@ -128,9 +132,33 @@ const prisma = new PrismaClient();
   cd "${previous_dir}"
 }
 
-count_retry_logs() {
-  local log_path="$1"
-  rg "retrying as" "${log_path}" --count | awk '{sum += $1} END {print sum + 0}'
+summary_field() {
+  local summary_path="$1"
+  local field="$2"
+  node -e '
+const fs = require("fs");
+const summary = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const field = process.argv[2];
+const value = summary[field];
+if (value === undefined || value === null) process.exit(2);
+process.stdout.write(String(value));
+' "${summary_path}" "${field}" 2>/dev/null || true
+}
+
+assert_summary_status() {
+  local summary_path="$1"
+  local expected="$2"
+  local label="$3"
+  if [[ ! -f "${summary_path}" ]]; then
+    log "Missing bootstrap summary for ${label}: ${summary_path}"
+    return 1
+  fi
+  local actual
+  actual="$(summary_field "${summary_path}" "status")"
+  if [[ "${actual}" != "${expected}" ]]; then
+    log "Unexpected bootstrap summary status for ${label}. expected=${expected} got=${actual:-<empty>}"
+    return 1
+  fi
 }
 
 run_auth_protected_scenario() {
@@ -141,6 +169,7 @@ run_auth_protected_scenario() {
 
   log "Scenario 1/4: auth-protected bootstrap with --single-user-token."
   reset_and_migrate
+  rm -f "${AUTH_BOOTSTRAP_SUMMARY}"
   start_server "${port}" "${auth_token}" "${jwt_secret}" "${AUTH_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
     log "Auth-protected scenario API did not become ready. Server log: ${AUTH_SERVER_LOG}"
@@ -153,8 +182,10 @@ run_auth_protected_scenario() {
       --base-url "${base_url}" \
       --single-user-token "${auth_token}" \
       --admin-username "bootstrapadmin" \
-      --admin-password "AdminPass!1234"
+      --admin-password "AdminPass!1234" \
+      --summary-file "${AUTH_BOOTSTRAP_SUMMARY}"
   )
+  assert_summary_status "${AUTH_BOOTSTRAP_SUMMARY}" "success" "auth-protected scenario"
   assert_multi_user_enabled "${base_url}"
   cleanup_server
 }
@@ -166,6 +197,7 @@ run_open_scenario() {
 
   log "Scenario 2/4: open single-user bootstrap without token."
   reset_and_migrate
+  rm -f "${OPEN_BOOTSTRAP_SUMMARY}"
   start_server "${port}" "" "" "${OPEN_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
     log "Open scenario API did not become ready. Server log: ${OPEN_SERVER_LOG}"
@@ -177,8 +209,10 @@ run_open_scenario() {
     ./bootstrap-enterprise.sh \
       --base-url "${bootstrap_base_url}" \
       --admin-username "bootstrapadmin2" \
-      --admin-password "AdminPass!1234"
+      --admin-password "AdminPass!1234" \
+      --summary-file "${OPEN_BOOTSTRAP_SUMMARY}"
   )
+  assert_summary_status "${OPEN_BOOTSTRAP_SUMMARY}" "success" "open scenario"
   assert_multi_user_enabled "${base_url}"
   cleanup_server
 }
@@ -189,6 +223,7 @@ run_missing_token_negative_scenario() {
 
   log "Scenario 3/4: auth-protected bootstrap without token should fail with hint."
   reset_and_migrate
+  rm -f "${NEGATIVE_BOOTSTRAP_SUMMARY}"
   start_server "${port}" "BootstrapPass!123" "bootstrap-secret-123" "${NEGATIVE_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
     log "Negative scenario API did not become ready. Server log: ${NEGATIVE_SERVER_LOG}"
@@ -202,7 +237,8 @@ run_missing_token_negative_scenario() {
     ./bootstrap-enterprise.sh \
       --base-url "${base_url}" \
       --admin-username "bootstrapadmin3" \
-      --admin-password "AdminPass!1234" >"${NEGATIVE_BOOTSTRAP_LOG}" 2>&1
+      --admin-password "AdminPass!1234" \
+      --summary-file "${NEGATIVE_BOOTSTRAP_SUMMARY}" >"${NEGATIVE_BOOTSTRAP_LOG}" 2>&1
     exit_code=$?
     set -e
     if [[ "${exit_code}" -eq 0 ]]; then
@@ -219,6 +255,13 @@ run_missing_token_negative_scenario() {
     log "Expected status=401 diagnostic not found in negative scenario output: ${NEGATIVE_BOOTSTRAP_LOG}"
     return 1
   fi
+  assert_summary_status "${NEGATIVE_BOOTSTRAP_SUMMARY}" "failed" "negative scenario"
+  local negative_message
+  negative_message="$(summary_field "${NEGATIVE_BOOTSTRAP_SUMMARY}" "message")"
+  if [[ "${negative_message}" != *"status=401"* ]]; then
+    log "Expected status=401 message in negative summary, got: ${negative_message:-<empty>}"
+    return 1
+  fi
   cleanup_server
 }
 
@@ -233,6 +276,7 @@ run_collision_retry_scenario() {
 
   log "Scenario 4/4: username collision retries should converge on fallback admin username."
   reset_and_migrate
+  rm -f "${COLLISION_BOOTSTRAP_SUMMARY}"
   seed_username_collision "${colliding_username}"
   seed_username_collision "${first_retry_username}"
   start_server "${port}" "" "" "${COLLISION_SERVER_LOG}"
@@ -246,24 +290,26 @@ run_collision_retry_scenario() {
     ./bootstrap-enterprise.sh \
       --base-url "${base_url}" \
       --admin-username "${colliding_username}" \
-      --admin-password "AdminPass!1234" >"${COLLISION_BOOTSTRAP_LOG}"
+      --admin-password "AdminPass!1234" \
+      --summary-file "${COLLISION_BOOTSTRAP_SUMMARY}" >"${COLLISION_BOOTSTRAP_LOG}"
   )
 
+  assert_summary_status "${COLLISION_BOOTSTRAP_SUMMARY}" "success" "collision scenario"
   assert_multi_user_enabled "${base_url}"
   if ! rg "retrying as" "${COLLISION_BOOTSTRAP_LOG}" >/dev/null; then
     log "Expected collision retry logs in ${COLLISION_BOOTSTRAP_LOG} but none were found."
     return 1
   fi
 
-  retry_count="$(count_retry_logs "${COLLISION_BOOTSTRAP_LOG}")"
+  retry_count="$(summary_field "${COLLISION_BOOTSTRAP_SUMMARY}" "retriesUsed")"
   if (( retry_count < 2 )); then
     log "Expected at least 2 collision retries, found ${retry_count} in ${COLLISION_BOOTSTRAP_LOG}."
     return 1
   fi
 
-  effective_username="$(sed -n 's/.*Bootstrap complete\. Admin username: \(.*\)$/\1/p' "${COLLISION_BOOTSTRAP_LOG}" | sed -n '1p')"
+  effective_username="$(summary_field "${COLLISION_BOOTSTRAP_SUMMARY}" "effectiveAdminUsername")"
   if [[ -z "${effective_username}" ]]; then
-    log "Unable to parse effective admin username from ${COLLISION_BOOTSTRAP_LOG}."
+    log "Unable to parse effective admin username from ${COLLISION_BOOTSTRAP_SUMMARY}."
     return 1
   fi
 

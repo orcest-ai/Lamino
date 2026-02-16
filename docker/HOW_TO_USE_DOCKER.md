@@ -64,6 +64,16 @@ If your `.env.enterprise` sets `AUTH_TOKEN` + `JWT_SECRET`, include the same sin
 
 Optional: if your chosen admin username already exists from a partial setup, bootstrap automatically retries with safe fallback usernames. You can tune retry count with `--enable-retries <n>` (or `ENABLE_MULTI_USER_RETRIES=<n>`).
 
+Optional: emit a machine-readable bootstrap result file for automation/debugging:
+
+```bash
+./bootstrap-enterprise.sh \
+  --base-url http://localhost:3001 \
+  --summary-file /tmp/anythingllm-bootstrap-summary.json \
+  --admin-username admin \
+  --admin-password "replace-this-password-now"
+```
+
 What this does:
 
 - boots AnythingLLM in Docker with persistent storage
