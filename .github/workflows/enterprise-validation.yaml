@@ -56,67 +56,13 @@ jobs:
       - name: Prepare database for smoke test
         run: cd server && npx prisma migrate deploy
 
-      - name: Seed bootstrap username collision fixtures
-        env:
-          ADMIN_USERNAME: "ADMIN+++CI_BOOTSTRAP_USERNAME"
-          RUN_ID: "ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-        run: |
-          cd server
-          node <<'NODE'
-          const { PrismaClient } = require("@prisma/client");
-          const prisma = new PrismaClient();
-
-          function normalizeUsernameSeed(raw = "", maxLen = 24) {
-            let sanitized = raw
-              .toLowerCase()
-              .replace(/[^a-z0-9._-]/g, "")
-              .slice(0, maxLen);
-            if (!sanitized || !/^[a-z]/.test(sanitized)) sanitized = "admin";
-            return sanitized;
-          }
-
-          function composeName(prefix, maxLen, suffix = "") {
-            if (prefix.length >= maxLen) return prefix.slice(0, maxLen);
-            return `${prefix}${suffix.slice(0, maxLen - prefix.length)}`;
-          }
-
-          const runSuffix =
-            (process.env.RUN_ID || "")
-              .toLowerCase()
-              .replace(/[^a-z0-9]/g, "")
-              .slice(0, 24) || "default";
-          const usernameSeed = normalizeUsernameSeed(process.env.ADMIN_USERNAME || "admin", 24);
-          const retryUsername = composeName(`${usernameSeed}-`, 32, runSuffix);
-
-          (async () => {
-            for (const username of [usernameSeed, retryUsername]) {
-              await prisma.users.upsert({
-                where: { username },
-                update: {},
-                create: {
-                  username,
-                  password: "ci-bootstrap-collision-seed",
-                  role: "admin",
-                },
-              });
-            }
-            await prisma.$disconnect();
-            console.log(
-              `Seeded bootstrap collision usernames for smoke: ${usernameSeed}, ${retryUsername}`
-            );
-          })().catch(async (error) => {
-            console.error(error);
-            await prisma.$disconnect();
-            process.exit(1);
-          });
-          NODE
-
       - name: Run enterprise smoke test
         run: |
           RESET_DB=0 \
           PORT=3001 \
           AUTH_TOKEN="ci-single-user-token" \
           JWT_SECRET="ci-enterprise-secret" \
+          SEED_BOOTSTRAP_COLLISION=1 \
           ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
           ADMIN_PASSWORD="EnterprisePass123!" \
           RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \

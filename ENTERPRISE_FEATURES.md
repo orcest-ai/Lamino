@@ -215,7 +215,7 @@ Validation stages:
 - build frontend bundle
 - reset `server/storage/anythingllm.db` for deterministic validation state
 - run `npx prisma migrate deploy` in `server`
-- run one-command local validator (`yarn validate:enterprise:local`) with CI-specific env and seeded collision fixtures
+- run one-command local validator (`yarn validate:enterprise:local`) with CI-specific env (including collision-seeding mode)
 
 Workflow reliability safeguards:
 
@@ -226,5 +226,5 @@ Workflow reliability safeguards:
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic
-- CI pre-seeds collision fixture usernames (`seed` + first retry candidate) so bootstrap collision retry paths are exercised on every run
+- CI validator runs with `SEED_BOOTSTRAP_COLLISION=1`, which seeds collision fixture usernames (`seed` + first retry candidate) before smoke execution so bootstrap collision retries are exercised every run
 - smoke bootstrap fallback retries `enable-multi-user` with progressively unique normalized usernames (run-id based, then timestamp/random fallback) when username-collision errors are returned
