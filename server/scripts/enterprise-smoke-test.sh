@@ -564,6 +564,10 @@ request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${TEAM_
 assert_status "401" "default user denied system preference reads"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied system preference updates"
+request "GET" "/admin/usage/overview" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage overview reads"
+request "GET" "/admin/usage-policies" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage policy reads"
 request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied api key listing"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-default-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${TEAM_USER_TOKEN}"
@@ -634,6 +638,20 @@ request "GET" "/admin/teams/${TEAM_ID}/access-map" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read team access map"
 if ! contains_text "$HTTP_BODY" "\"teamId\":${TEAM_ID}" || ! contains_text "$HTTP_BODY" "\"workspaceId\":${WORKSPACE_ID}"; then
   log "FAILED: manager team access map response missing expected team/workspace linkage."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/admin/usage/overview" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read usage overview"
+if ! contains_text "$HTTP_BODY" "summary"; then
+  log "FAILED: manager usage overview response missing summary payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/admin/usage-policies" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read usage policies"
+if ! contains_text "$HTTP_BODY" "policies"; then
+  log "FAILED: manager usage policy response missing policies payload."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
