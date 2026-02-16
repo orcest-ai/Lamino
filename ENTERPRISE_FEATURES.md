@@ -222,6 +222,12 @@ CI-equivalent end-to-end local replay:
 yarn validate:enterprise:ci-local
 ```
 
+For faster iterative local debugging (non-CI), the CI-local runner supports optional skips:
+
+```bash
+SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 yarn validate:enterprise:ci-local
+```
+
 ## CI validation workflow
 
 The repository includes an `Enterprise Validation` GitHub Actions workflow that runs on `push` and `pull_request` for the enterprise branch work.

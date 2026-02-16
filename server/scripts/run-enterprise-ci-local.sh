@@ -13,6 +13,8 @@ CI_RUN_ID="${CI_RUN_ID:-ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ012
 CI_LOG_PATH="${CI_LOG_PATH:-/tmp/anythingllm-server.log}"
 CI_PORT="${CI_PORT:-3001}"
 RUN_INSTALL="${RUN_INSTALL:-0}"
+SKIP_OPENAPI_CHECK="${SKIP_OPENAPI_CHECK:-0}"
+SKIP_FRONTEND_BUILD="${SKIP_FRONTEND_BUILD:-0}"
 
 cd "${REPO_ROOT}"
 
@@ -28,11 +30,19 @@ fi
 echo "[enterprise-ci-local] Running enterprise backend test suite."
 yarn test:enterprise
 
-echo "[enterprise-ci-local] Verifying OpenAPI artifact is current."
-(cd server && yarn swagger && git diff --exit-code -- swagger/openapi.json)
+if [[ "${SKIP_OPENAPI_CHECK}" == "1" ]]; then
+  echo "[enterprise-ci-local] Skipping OpenAPI drift check (SKIP_OPENAPI_CHECK=1)."
+else
+  echo "[enterprise-ci-local] Verifying OpenAPI artifact is current."
+  (cd server && yarn swagger && git diff --exit-code -- swagger/openapi.json)
+fi
 
-echo "[enterprise-ci-local] Building frontend."
-(cd frontend && yarn build)
+if [[ "${SKIP_FRONTEND_BUILD}" == "1" ]]; then
+  echo "[enterprise-ci-local] Skipping frontend build (SKIP_FRONTEND_BUILD=1)."
+else
+  echo "[enterprise-ci-local] Building frontend."
+  (cd frontend && yarn build)
+fi
 
 echo "[enterprise-ci-local] Running enterprise smoke with CI inputs."
 if ! RESET_DB=1 \
