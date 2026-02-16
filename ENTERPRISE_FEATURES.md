@@ -128,6 +128,7 @@ yarn test \
 # - child-process logging path when `process.send` is present
 # cleanup usage-events job suite includes:
 # - disabled-retention no-op behavior
+# - standalone `NODE_ENV` fallback behavior for direct CLI execution
 # - successful prune logging path
 # - prune error logging path
 # - unexpected exception logging + conclude path

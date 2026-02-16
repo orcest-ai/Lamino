@@ -56,6 +56,17 @@ describe("cleanup-usage-events job", () => {
     expect(mockConclude).toHaveBeenCalledTimes(1);
   });
 
+  it("defaults NODE_ENV to development when unset for standalone execution", async () => {
+    delete process.env.NODE_ENV;
+    process.env.USAGE_EVENTS_RETENTION_DAYS = "";
+    mockParseRetentionDays.mockReturnValueOnce(null);
+
+    await runCleanupJobModule();
+
+    expect(process.env.NODE_ENV).toBe("development");
+    expect(mockConclude).toHaveBeenCalledTimes(1);
+  });
+
   it("prunes usage events and logs deleted row count", async () => {
     process.env.USAGE_EVENTS_RETENTION_DAYS = "30";
     mockParseRetentionDays.mockReturnValueOnce(30);
