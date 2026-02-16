@@ -161,6 +161,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - enterprise_usage_policies gate disable blocks /admin/usage-policies/new
 # - admin:read API key can read /v1/admin/usage/overview
 # - admin:read API key can read /v1/admin/prompt-templates and /v1/admin/usage-policies
+# - auth:read API key can read `/v1/auth`; cross-scope denials are asserted (`admin:read` denied on `/v1/auth`, `auth:read` denied on `/v1/admin/teams`) with scope-hint validation in error payloads
 # - developer `/v1/admin/*` routes are re-checked against each enterprise feature gate (teams, monitoring, prompt library, policies) with admin:read API keys
 # - usage monitoring checks include timeseries, breakdown, and CSV export on both session and /v1 admin routes
 # - usage dashboard freshness checks verify filtered overview totals increase after probe event insertion

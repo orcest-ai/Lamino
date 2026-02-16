@@ -319,6 +319,9 @@ cleanup() {
   if [[ -n "${ADMIN_READ_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${AUTH_READ_KEY_ID:-}" ]]; then
+    request "DELETE" "/admin/delete-api-key/${AUTH_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${EXPIRED_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${EXPIRED_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -1201,6 +1204,12 @@ assert_status "200" "create admin read-only key"
 ADMIN_READ_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
 ADMIN_READ_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
 
+log "Creating auth-read API key"
+request "POST" "/admin/generate-api-key" "{\"name\":\"qa-auth-read-${RUN_ID}\",\"scopes\":[\"auth:read\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
+assert_status "200" "create auth-read key"
+AUTH_READ_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
+AUTH_READ_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
+
 request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"revokedAt\":\"invalid-revoked-at\"}" "${ADMIN_TOKEN}"
 assert_status "200" "invalid api key revokedAt payload rejected"
 if ! contains_text "$HTTP_BODY" "Invalid revokedAt datetime."; then
@@ -1212,6 +1221,28 @@ fi
 log "Verifying admin:read key can read teams"
 request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key teams list"
+
+request "GET" "/v1/auth" "" "${AUTH_READ_KEY}"
+assert_status "200" "auth:read key auth endpoint access"
+if ! contains_text "$HTTP_BODY" "\"authenticated\":true"; then
+  log "FAILED: auth:read key auth response missing authenticated=true payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/v1/auth" "" "${ADMIN_READ_KEY}"
+assert_status "403" "admin:read key denied on auth endpoint"
+if ! contains_text "$HTTP_BODY" "auth:read"; then
+  log "FAILED: admin:read key auth denial missing auth:read scope hint."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/v1/admin/teams" "" "${AUTH_READ_KEY}"
+assert_status "403" "auth:read key denied on admin teams"
+if ! contains_text "$HTTP_BODY" "admin:read"; then
+  log "FAILED: auth:read key admin denial missing admin:read scope hint."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage overview"
