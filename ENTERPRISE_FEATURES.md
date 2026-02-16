@@ -218,10 +218,7 @@ The repository includes an `Enterprise Validation` GitHub Actions workflow that 
 Validation stages:
 
 - install root/server/frontend dependencies
-- run `yarn test:enterprise`
-- regenerate OpenAPI spec and fail if `server/swagger/openapi.json` is stale
-- build frontend bundle
-- run one-command local validator (`yarn validate:enterprise:local`) with CI-specific env (deterministic DB reset + migrate + collision-seeding mode)
+- run one-command CI-equivalent validator (`yarn validate:enterprise:ci-local`) with CI-specific env (enterprise tests + OpenAPI drift check + frontend build + deterministic smoke reset/migrate/collision-seeding)
 
 Workflow reliability safeguards:
 

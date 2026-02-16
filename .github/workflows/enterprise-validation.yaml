@@ -38,31 +38,17 @@ jobs:
       - name: Install frontend dependencies
         run: cd frontend && yarn install --frozen-lockfile
 
-      - name: Run enterprise backend test suite
-        run: yarn test:enterprise
-
-      - name: Verify OpenAPI artifact is up to date
+      - name: Run enterprise validation pipeline
         run: |
-          cd server
-          yarn swagger
-          git diff --exit-code -- swagger/openapi.json
-
-      - name: Build frontend
-        run: cd frontend && yarn build
-
-      - name: Run enterprise smoke test
-        run: |
-          RESET_DB=1 \
-          PORT=3001 \
-          AUTH_TOKEN="ci-single-user-token" \
-          JWT_SECRET="ci-enterprise-secret" \
-          SEED_BOOTSTRAP_COLLISION=1 \
-          ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
-          ADMIN_PASSWORD="EnterprisePass123!" \
-          RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
-          LOG_PATH="/tmp/anythingllm-server.log" \
-          yarn validate:enterprise:local || {
-            echo "Enterprise smoke test failed; dumping server log."
+          CI_PORT=3001 \
+          CI_AUTH_TOKEN="ci-single-user-token" \
+          CI_JWT_SECRET="ci-enterprise-secret" \
+          CI_ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
+          CI_ADMIN_PASSWORD="EnterprisePass123!" \
+          CI_RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
+          CI_LOG_PATH="/tmp/anythingllm-server.log" \
+          yarn validate:enterprise:ci-local || {
+            echo "Enterprise validation pipeline failed; dumping server log."
             cat /tmp/anythingllm-server.log || true
             exit 1
           }
