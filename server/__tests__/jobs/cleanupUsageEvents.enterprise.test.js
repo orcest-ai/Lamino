@@ -91,4 +91,20 @@ describe("cleanup-usage-events job", () => {
     );
     expect(mockConclude).toHaveBeenCalledTimes(1);
   });
+
+  it("logs unexpected cleanup errors and still concludes", async () => {
+    process.env.USAGE_EVENTS_RETENTION_DAYS = "7";
+    mockParseRetentionDays.mockReturnValueOnce(7);
+    mockPruneOlderThanDays.mockRejectedValueOnce(new Error("unexpected-failure"));
+    const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+
+    await runCleanupJobModule();
+
+    expect(mockPruneOlderThanDays).toHaveBeenCalledWith(7);
+    expect(mockLog).toHaveBeenCalledWith(
+      "Usage-event cleanup errored: unexpected-failure"
+    );
+    expect(mockConclude).toHaveBeenCalledTimes(1);
+    consoleSpy.mockRestore();
+  });
 });

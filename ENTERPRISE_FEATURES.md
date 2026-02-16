@@ -130,6 +130,7 @@ yarn test \
 # - disabled-retention no-op behavior
 # - successful prune logging path
 # - prune error logging path
+# - unexpected exception logging + conclude path
 # multiUserProtected middleware suite includes:
 # - strict/flex role gate behavior across enabled/disabled multi-user mode
 # - default strict/flex role tuple includes both admin and manager access paths
