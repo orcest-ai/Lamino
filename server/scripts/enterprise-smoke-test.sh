@@ -615,6 +615,55 @@ assert_status "200" "admin:read key team workspaces"
 request "GET" "/v1/admin/teams/${TEAM_ID}/access-map" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key team access-map"
 
+log "Verifying feature gates deny developer /v1 admin routes"
+request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_teams for v1 gate check"
+request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
+assert_status "403" "v1 team list blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_teams"; then
+  log "FAILED: v1 team feature gate response missing enterprise_teams marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_teams after v1 gate check"
+
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_monitoring\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_usage_monitoring for v1 gate check"
+request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
+assert_status "403" "v1 usage overview blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_usage_monitoring"; then
+  log "FAILED: v1 usage feature gate response missing enterprise_usage_monitoring marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_monitoring\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_usage_monitoring after v1 gate check"
+
+request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_prompt_library for v1 gate check"
+request "GET" "/v1/admin/prompt-templates" "" "${ADMIN_READ_KEY}"
+assert_status "403" "v1 prompt templates blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_prompt_library"; then
+  log "FAILED: v1 prompt feature gate response missing enterprise_prompt_library marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_prompt_library after v1 gate check"
+
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "disable enterprise_usage_policies for v1 gate check"
+request "GET" "/v1/admin/usage-policies" "" "${ADMIN_READ_KEY}"
+assert_status "403" "v1 usage policies blocked when feature disabled"
+if ! contains_text "$HTTP_BODY" "enterprise_usage_policies"; then
+  log "FAILED: v1 usage policy gate response missing enterprise_usage_policies marker."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN}"
+assert_status "200" "re-enable enterprise_usage_policies after v1 gate check"
+
 log "Verifying admin:read key cannot perform admin write"
 request "POST" "/v1/admin/teams/new" "{\"name\":\"qa-should-fail-${RUN_ID}\"}" "${ADMIN_READ_KEY}"
 assert_status "403" "admin:read key denied on team create"
