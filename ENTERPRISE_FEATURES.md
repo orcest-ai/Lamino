@@ -241,6 +241,14 @@ For faster iterative local debugging (non-CI), the CI-local runner supports opti
 SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 yarn validate:enterprise:ci-local
 ```
 
+CI-local runner environment controls:
+
+- `RUN_INSTALL=1` → install root/server/frontend dependencies before validation.
+- `SKIP_OPENAPI_CHECK=1` → skip OpenAPI regeneration drift gate.
+- `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
+- `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
+- `CI_USAGE_RETENTION_DAYS_CHECK=<days>` → override retention days used for cleanup-command check (defaults to `1`).
+
 To fully mirror fresh CI dependency installation locally:
 
 ```bash
