@@ -106,6 +106,18 @@ describe("multiUserProtected middleware", () => {
   });
 
   describe("flexUserRoleValid", () => {
+    it("bypasses validation when all roles are allowed", async () => {
+      const middleware = flexUserRoleValid([ROLES.all]);
+      const response = mockResponse();
+      const next = jest.fn();
+
+      await middleware({}, response, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(mockIsMultiUserMode).not.toHaveBeenCalled();
+      expect(mockUserFromSession).not.toHaveBeenCalled();
+    });
+
     it("default role set allows manager access when multi-user is enabled", async () => {
       const middleware = flexUserRoleValid();
       const response = mockResponse();
@@ -149,6 +161,19 @@ describe("multiUserProtected middleware", () => {
       const response = mockResponse();
       const next = jest.fn();
       mockUserFromSession.mockResolvedValueOnce({ id: 10, role: ROLES.default });
+
+      await middleware({ headers: {} }, response, next);
+
+      expect(response.sendStatus).toHaveBeenCalledWith(401);
+      expect(response.end).toHaveBeenCalledTimes(1);
+      expect(next).not.toHaveBeenCalled();
+    });
+
+    it("rejects when session user cannot be resolved in multi-user mode", async () => {
+      const middleware = flexUserRoleValid([ROLES.admin]);
+      const response = mockResponse();
+      const next = jest.fn();
+      mockUserFromSession.mockResolvedValueOnce(null);
 
       await middleware({ headers: {} }, response, next);
 

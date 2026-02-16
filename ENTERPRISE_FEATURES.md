@@ -112,6 +112,7 @@ yarn test \
 # multiUserProtected middleware suite includes:
 # - strict/flex role gate behavior across enabled/disabled multi-user mode
 # - default strict/flex role tuple includes both admin and manager access paths
+# - explicit `<all>` bypass behavior and unresolved-session denial paths
 # - deterministic `401` denial behavior for role-mismatched admin routes
 # - setup guard behavior (`isMultiUserSetup`) when multi-user mode is disabled
 # systemPreferenceAccess helper suite includes:
