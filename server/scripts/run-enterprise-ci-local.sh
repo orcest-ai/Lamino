@@ -222,7 +222,50 @@ if ! RESET_DB=1 \
   cat "${CI_LOG_PATH}" || true
   exit 1
 fi
-record_stage_result "${CURRENT_STAGE}" "success" "Enterprise smoke validation passed."
+
+SMOKE_SUMMARY_PHASE="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(payload.currentPhase || "");
+' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+SMOKE_SUMMARY_REQUEST_COUNT="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(String(payload.requestCount ?? ""));
+' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+SMOKE_SUMMARY_MATRIX_STATUS="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(payload.verificationMatrix?.status || "");
+' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+SMOKE_SUMMARY_MATRIX_MISSING="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const missing = Array.isArray(payload.verificationMatrix?.missing)
+  ? payload.verificationMatrix.missing
+  : [];
+process.stdout.write(missing.join(","));
+' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+if [[ "${SMOKE_SUMMARY_MATRIX_STATUS}" != "pass" ]]; then
+  VALIDATION_MESSAGE="Enterprise smoke summary matrix status is not pass (${SMOKE_SUMMARY_MATRIX_STATUS:-<empty>})."
+  record_stage_result "${CURRENT_STAGE}" "failed" "${VALIDATION_MESSAGE}"
+  echo "[enterprise-ci-local] Smoke summary verificationMatrix status is not pass."
+  dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
+  exit 1
+fi
+SMOKE_STAGE_MESSAGE="Enterprise smoke validation passed (phase=${SMOKE_SUMMARY_PHASE:-<empty>}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT:-<empty>}, matrix=${SMOKE_SUMMARY_MATRIX_STATUS})"
+if [[ -n "${SMOKE_SUMMARY_MATRIX_MISSING}" ]]; then
+  SMOKE_STAGE_MESSAGE="${SMOKE_STAGE_MESSAGE}, missing=${SMOKE_SUMMARY_MATRIX_MISSING}"
+fi
+record_stage_result "${CURRENT_STAGE}" "success" "${SMOKE_STAGE_MESSAGE}"
 dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
 
 CURRENT_STAGE="bootstrap-validation"
