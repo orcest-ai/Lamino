@@ -316,7 +316,7 @@ cleanup() {
 
 trap cleanup EXIT
 
-RUN_SUFFIX="$(printf '%s' "$RUN_ID" | tr -cd '[:alnum:]' | cut -c1-24)"
+RUN_SUFFIX="$(printf '%s' "$RUN_ID" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c1-24)"
 if [[ -z "$RUN_SUFFIX" ]]; then
   RUN_SUFFIX="$(date +%s | tr -cd '[:alnum:]' | cut -c1-12)"
 fi

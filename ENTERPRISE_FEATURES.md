@@ -128,7 +128,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - API /ping readiness retry loop before executing checks
 # - when multi-user is disabled and AUTH_TOKEN is available, single-user login path is verified (invalid token denied, valid token accepted) before bootstrap
 # - smoke supports explicit `--single-user-token`/`SINGLE_USER_AUTH_TOKEN` input so CI can always validate the single-user auth branch deterministically
-# - generated smoke fixture names now normalize/truncate run-id suffixes to keep username/workspace/team payloads within backend validation limits even with long custom run ids
+# - generated smoke fixture names now normalize/truncate (and lowercase where needed) run-id suffixes to keep username/workspace/team payloads within backend validation limits even with long custom run ids
 # - admin credential payloads are JSON-escaped so special characters in usernames/passwords are handled safely during login/bootstrap requests
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - default user denied /admin/teams
@@ -182,4 +182,5 @@ Workflow reliability safeguards:
 - `/api/ping` readiness polling before smoke execution
 - automatic server log dump when smoke validation fails
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
+- CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - smoke bootstrap fallback that retries with a unique admin username if `enable-multi-user` reports username collisions
