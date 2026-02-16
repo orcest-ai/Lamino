@@ -106,6 +106,18 @@ describe("multiUserProtected middleware", () => {
   });
 
   describe("flexUserRoleValid", () => {
+    it("default role set allows manager access when multi-user is enabled", async () => {
+      const middleware = flexUserRoleValid();
+      const response = mockResponse();
+      const next = jest.fn();
+      mockUserFromSession.mockResolvedValueOnce({ id: 10, role: ROLES.manager });
+
+      await middleware({ headers: {} }, response, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(response.sendStatus).not.toHaveBeenCalled();
+    });
+
     it("bypasses role checks while multi-user mode is disabled", async () => {
       const middleware = flexUserRoleValid([ROLES.admin]);
       const response = mockResponse();
