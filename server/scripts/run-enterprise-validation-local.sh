@@ -14,6 +14,9 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
 RUN_ID="${RUN_ID:-$(date +%s)-$RANDOM}"
 SEED_BOOTSTRAP_COLLISION="${SEED_BOOTSTRAP_COLLISION:-0}"
 EXTRA_SMOKE_ARGS="${EXTRA_SMOKE_ARGS:-}"
+if [[ "${LOCAL_SINGLE_USER_TOKEN+x}" != "x" ]]; then
+  LOCAL_SINGLE_USER_TOKEN="${AUTH_TOKEN}"
+fi
 
 normalize_username_seed() {
   local raw="$1"
@@ -46,6 +49,11 @@ echo "[enterprise-local-validation] Using BASE_URL=${BASE_URL}"
 echo "[enterprise-local-validation] Log file: ${LOG_PATH}"
 if [[ -n "${EXTRA_SMOKE_ARGS}" ]]; then
   echo "[enterprise-local-validation] EXTRA_SMOKE_ARGS=${EXTRA_SMOKE_ARGS}"
+fi
+if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+  echo "[enterprise-local-validation] single-user auth preflight: enabled"
+else
+  echo "[enterprise-local-validation] single-user auth preflight: skipped"
 fi
 
 if [[ "${RESET_DB}" == "1" ]]; then
@@ -109,14 +117,17 @@ if ! curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
 fi
 
 echo "[enterprise-local-validation] Running enterprise smoke test."
-SMOKE_ARGS=(--single-user-token "${AUTH_TOKEN}")
+SMOKE_ARGS=()
+if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+  SMOKE_ARGS+=(--single-user-token "${LOCAL_SINGLE_USER_TOKEN}")
+fi
 if [[ -n "${EXTRA_SMOKE_ARGS}" ]]; then
   # shellcheck disable=SC2206
   EXTRA_ARGS_ARRAY=(${EXTRA_SMOKE_ARGS})
   SMOKE_ARGS+=("${EXTRA_ARGS_ARRAY[@]}")
 fi
 
-if ! BASE_URL="${BASE_URL}" AUTH_TOKEN="${AUTH_TOKEN}" JWT_SECRET="${JWT_SECRET}" \
+if ! BASE_URL="${BASE_URL}" SINGLE_USER_AUTH_TOKEN="${LOCAL_SINGLE_USER_TOKEN}" JWT_SECRET="${JWT_SECRET}" \
   ADMIN_USERNAME="${ADMIN_USERNAME}" ADMIN_PASSWORD="${ADMIN_PASSWORD}" RUN_ID="${RUN_ID}" \
   ./scripts/enterprise-smoke-test.sh "${SMOKE_ARGS[@]}"; then
   echo "[enterprise-local-validation] Enterprise smoke failed. Dumping server log from ${LOG_PATH}."

@@ -20,10 +20,15 @@ CI_USAGE_RETENTION_DAYS_CHECK="${CI_USAGE_RETENTION_DAYS_CHECK:-1}"
 CI_VALIDATE_USAGE_CLEANUP_NOOP="${CI_VALIDATE_USAGE_CLEANUP_NOOP:-1}"
 CI_EXTRA_SMOKE_ARGS="${CI_EXTRA_SMOKE_ARGS:-}"
 
+if [[ "${CI_SINGLE_USER_TOKEN+x}" != "x" ]]; then
+  CI_SINGLE_USER_TOKEN="${CI_AUTH_TOKEN}"
+fi
+
 cd "${REPO_ROOT}"
 
 echo "[enterprise-ci-local] Starting CI-equivalent enterprise validation pipeline."
 echo "[enterprise-ci-local] Settings: RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK} CI_VALIDATE_USAGE_CLEANUP_NOOP=${CI_VALIDATE_USAGE_CLEANUP_NOOP}"
+echo "[enterprise-ci-local] Auth settings: CI_AUTH_TOKEN set=$([[ -n "${CI_AUTH_TOKEN}" ]] && echo "yes" || echo "no"), CI_SINGLE_USER_TOKEN set=$([[ -n "${CI_SINGLE_USER_TOKEN}" ]] && echo "yes" || echo "no")"
 if [[ -n "${CI_EXTRA_SMOKE_ARGS}" ]]; then
   echo "[enterprise-ci-local] CI_EXTRA_SMOKE_ARGS=${CI_EXTRA_SMOKE_ARGS}"
 fi
@@ -56,6 +61,7 @@ echo "[enterprise-ci-local] Running enterprise smoke with CI inputs."
 if ! RESET_DB=1 \
   PORT="${CI_PORT}" \
   AUTH_TOKEN="${CI_AUTH_TOKEN}" \
+  LOCAL_SINGLE_USER_TOKEN="${CI_SINGLE_USER_TOKEN}" \
   JWT_SECRET="${CI_JWT_SECRET}" \
   SEED_BOOTSTRAP_COLLISION=1 \
   ADMIN_USERNAME="${CI_ADMIN_USERNAME}" \

@@ -249,11 +249,13 @@ CI-local runner environment controls:
 - `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
 - `CI_USAGE_RETENTION_DAYS_CHECK=<days>` → override retention days used for cleanup-command check (defaults to `1`).
 - `CI_VALIDATE_USAGE_CLEANUP_NOOP=0` → skip the additional retention-disabled/no-op cleanup validation path.
+- `CI_SINGLE_USER_TOKEN="..."` → override the nested local validator single-user token (defaults to `CI_AUTH_TOKEN`).
 - `CI_EXTRA_SMOKE_ARGS="..."` → append extra smoke-test CLI flags for the nested local validator invocation.
 
 Local validator runner controls:
 
-- `EXTRA_SMOKE_ARGS="..."` → append extra CLI flags to `enterprise-smoke-test.sh` (for targeted reproductions), while keeping default `--single-user-token` behavior.
+- `LOCAL_SINGLE_USER_TOKEN=""` → skip explicit single-user auth preflight while still running full smoke/bootstrap coverage.
+- `EXTRA_SMOKE_ARGS="..."` → append extra CLI flags to `enterprise-smoke-test.sh` (for targeted reproductions).
 
 To fully mirror fresh CI dependency installation locally:
 
