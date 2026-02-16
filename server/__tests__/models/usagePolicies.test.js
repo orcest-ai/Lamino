@@ -148,7 +148,7 @@ describe("UsagePolicies precedence resolution", () => {
         enabled: true,
         OR: [
           { scope: "system" },
-          { scope: "team", teamId: { in: [5, 8] } },
+          { scope: "team", teamId: { in: [5] } },
         ],
       },
       orderBy: [{ priority: "desc" }, { id: "asc" }],
@@ -181,7 +181,7 @@ describe("UsagePolicies precedence resolution", () => {
         name: "new-policy",
         enabled: false,
         teamId: null,
-        workspaceId: 4,
+        workspaceId: null,
         userId: null,
         priority: 100,
         rules: JSON.stringify({ maxPromptLength: 99 }),

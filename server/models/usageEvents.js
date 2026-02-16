@@ -10,8 +10,8 @@ const UsageEvents = {
     if (value === null || value === undefined || value === "") return null;
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return null;
-    const normalized = Math.trunc(parsed);
-    return normalized > 0 ? normalized : null;
+    if (!Number.isInteger(parsed)) return null;
+    return parsed > 0 ? parsed : null;
   },
 
   toDateOrNow: function (value) {

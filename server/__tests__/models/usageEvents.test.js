@@ -80,7 +80,7 @@ describe("UsageEvents model", () => {
     expect(sanitized.workspaceId).toBeNull();
     expect(sanitized.teamId).toBeNull();
     expect(sanitized.apiKeyId).toBeNull();
-    expect(sanitized.chatId).toBe(12);
+    expect(sanitized.chatId).toBeNull();
     expect(sanitized.threadId).toBe(33);
     expect(sanitized.occurredAt).toBeInstanceOf(Date);
     expect(sanitized.occurredAt.getTime()).toBeGreaterThanOrEqual(before);
