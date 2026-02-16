@@ -128,6 +128,11 @@ const prisma = new PrismaClient();
   cd "${previous_dir}"
 }
 
+count_retry_logs() {
+  local log_path="$1"
+  rg "retrying as" "${log_path}" --count | awk '{sum += $1} END {print sum + 0}'
+}
+
 run_auth_protected_scenario() {
   local port="${AUTH_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
@@ -209,6 +214,10 @@ run_missing_token_negative_scenario() {
     log "Expected hint not found in negative scenario output: ${NEGATIVE_BOOTSTRAP_LOG}"
     return 1
   fi
+  if ! rg "status=401" "${NEGATIVE_BOOTSTRAP_LOG}" >/dev/null; then
+    log "Expected status=401 diagnostic not found in negative scenario output: ${NEGATIVE_BOOTSTRAP_LOG}"
+    return 1
+  fi
   cleanup_server
 }
 
@@ -216,12 +225,15 @@ run_collision_retry_scenario() {
   local port="${COLLISION_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
   local colliding_username="collisionadmin"
-  local retry_username
+  local first_retry_username="collisionadmin-retry"
+  local effective_username
   local login_response
+  local retry_count
 
   log "Scenario 4/4: username collision retries should converge on fallback admin username."
   reset_and_migrate
   seed_username_collision "${colliding_username}"
+  seed_username_collision "${first_retry_username}"
   start_server "${port}" "" "" "${COLLISION_SERVER_LOG}"
   if ! wait_for_api "${base_url}"; then
     log "Collision scenario API did not become ready. Server log: ${COLLISION_SERVER_LOG}"
@@ -242,19 +254,25 @@ run_collision_retry_scenario() {
     return 1
   fi
 
-  retry_username="$(sed -n 's/.*retrying as \([^ ]*\).*/\1/p' "${COLLISION_BOOTSTRAP_LOG}" | sed -n '1p')"
-  if [[ -z "${retry_username}" ]]; then
-    log "Unable to parse retry username from ${COLLISION_BOOTSTRAP_LOG}."
+  retry_count="$(count_retry_logs "${COLLISION_BOOTSTRAP_LOG}")"
+  if (( retry_count < 2 )); then
+    log "Expected at least 2 collision retries, found ${retry_count} in ${COLLISION_BOOTSTRAP_LOG}."
+    return 1
+  fi
+
+  effective_username="$(sed -n 's/.*Bootstrap complete\. Admin username: \(.*\)$/\1/p' "${COLLISION_BOOTSTRAP_LOG}" | sed -n '1p')"
+  if [[ -z "${effective_username}" ]]; then
+    log "Unable to parse effective admin username from ${COLLISION_BOOTSTRAP_LOG}."
     return 1
   fi
 
   login_response="$(
     curl -sS -X POST "${base_url}/api/request-token" \
       -H "Content-Type: application/json" \
-      -d "{\"username\":\"${retry_username}\",\"password\":\"AdminPass!1234\"}" || true
+      -d "{\"username\":\"${effective_username}\",\"password\":\"AdminPass!1234\"}" || true
   )"
   if [[ "${login_response}" != *'"valid":true'* ]]; then
-    log "Expected successful login for fallback username ${retry_username}, got: ${login_response}"
+    log "Expected successful login for fallback username ${effective_username}, got: ${login_response}"
     return 1
   fi
   cleanup_server

@@ -79,6 +79,24 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
+ensure_integer() {
+  local label="$1"
+  local value="$2"
+  local min_value="$3"
+  if [[ ! "$value" =~ ^[0-9]+$ ]]; then
+    log "Invalid ${label} value '${value}'. Expected integer >= ${min_value}."
+    exit 1
+  fi
+  if (( value < min_value )); then
+    log "Invalid ${label} value '${value}'. Expected integer >= ${min_value}."
+    exit 1
+  fi
+}
+
+ensure_integer "max retries" "${MAX_RETRIES}" 1
+ensure_integer "sleep seconds" "${SLEEP_SECONDS}" 1
+ensure_integer "enable retries" "${ENABLE_MULTI_USER_RETRIES}" 0
+
 json_escape() {
   local value="$1"
   value="${value//\\/\\\\}"
