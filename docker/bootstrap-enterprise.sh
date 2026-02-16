@@ -23,7 +23,7 @@ Usage:
   ./bootstrap-enterprise.sh [options]
 
 Options:
-  --base-url <url>           AnythingLLM base URL (default: http://localhost:3001)
+  --base-url <url>           AnythingLLM base URL (default: http://localhost:3001, accepts optional /api suffix)
   --admin-username <name>    Initial multi-user admin username
   --admin-password <pass>    Initial multi-user admin password
   --single-user-token <pass> Single-user AUTH_TOKEN password (required when AUTH_TOKEN/JWT_SECRET are set)
@@ -96,6 +96,21 @@ ensure_integer() {
 ensure_integer "max retries" "${MAX_RETRIES}" 1
 ensure_integer "sleep seconds" "${SLEEP_SECONDS}" 1
 ensure_integer "enable retries" "${ENABLE_MULTI_USER_RETRIES}" 0
+
+normalize_base_url() {
+  local url="$1"
+  url="${url%/}"
+  if [[ "${url}" == */api ]]; then
+    url="${url%/api}"
+  fi
+  printf '%s' "${url}"
+}
+
+BASE_URL="$(normalize_base_url "${BASE_URL}")"
+if [[ -z "${BASE_URL}" ]]; then
+  log "Invalid base URL. Please provide a non-empty --base-url value."
+  exit 1
+fi
 
 json_escape() {
   local value="$1"

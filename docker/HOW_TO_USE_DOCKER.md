@@ -50,6 +50,8 @@ docker compose -f docker-compose.enterprise.yml up -d
   --admin-password "replace-this-password-now"
 ```
 
+`--base-url` accepts either the app URL (`http://localhost:3001`) or API URL (`http://localhost:3001/api`).
+
 If your `.env.enterprise` sets `AUTH_TOKEN` + `JWT_SECRET`, include the same single-user password during bootstrap so the script can mint an auth session before enabling multi-user mode:
 
 ```bash

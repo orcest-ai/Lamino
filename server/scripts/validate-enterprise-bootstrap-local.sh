@@ -162,6 +162,7 @@ run_auth_protected_scenario() {
 run_open_scenario() {
   local port="${OPEN_SCENARIO_PORT}"
   local base_url="http://localhost:${port}"
+  local bootstrap_base_url="${base_url}/api"
 
   log "Scenario 2/4: open single-user bootstrap without token."
   reset_and_migrate
@@ -174,7 +175,7 @@ run_open_scenario() {
   (
     cd "${REPO_ROOT}/docker"
     ./bootstrap-enterprise.sh \
-      --base-url "${base_url}" \
+      --base-url "${bootstrap_base_url}" \
       --admin-username "bootstrapadmin2" \
       --admin-password "AdminPass!1234"
   )
