@@ -1,3 +1,5 @@
+process.env.NODE_ENV = process.env.NODE_ENV || "development";
+
 const { log, conclude } = require("./helpers/index.js");
 const { UsageEvents } = require("../models/usageEvents.js");
 

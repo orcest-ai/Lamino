@@ -84,6 +84,7 @@ When disabled:
 - Usage-event growth can be managed with optional retention:
   - set `USAGE_EVENTS_RETENTION_DAYS=<positive-integer>` to enable daily background pruning of older `usage_events` rows.
   - unset/invalid values disable retention cleanup safely.
+  - optional one-off cleanup can be triggered with `yarn usage:cleanup-events` (respects `USAGE_EVENTS_RETENTION_DAYS`).
 
 ## Validation checklist
 
@@ -191,6 +192,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # convenience script aliases from repo root
 yarn test:enterprise
 yarn smoke:enterprise
+yarn usage:cleanup-events
 yarn validate:enterprise:local
 yarn validate:enterprise:ci-local
 ```
