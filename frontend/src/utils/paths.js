@@ -105,6 +105,18 @@ export default {
     workspaces: () => {
       return `/settings/workspaces`;
     },
+    teams: () => {
+      return `/settings/teams`;
+    },
+    promptEngineering: () => {
+      return `/settings/prompt-engineering`;
+    },
+    usageMonitoring: () => {
+      return `/settings/usage-monitoring`;
+    },
+    usagePolicies: () => {
+      return `/settings/usage-policies`;
+    },
     chats: () => {
       return "/settings/workspace-chats";
     },

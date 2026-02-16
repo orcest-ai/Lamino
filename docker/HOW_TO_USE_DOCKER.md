@@ -35,6 +35,56 @@ Use the Dockerized version of AnythingLLM for a much faster and complete startup
 > It is best to mount the containers storage volume to a folder on your host machine
 > so that you can pull in future updates without deleting your existing data!
 
+## Enterprise quickstart (deployment-first)
+
+If you want to deploy first and then configure multi-user/team usage immediately, use the dedicated enterprise compose and bootstrap flow:
+
+```bash
+cd docker
+cp .env.enterprise.example .env.enterprise
+mkdir -p storage && touch storage/.env
+docker compose -f docker-compose.enterprise.yml up -d
+./bootstrap-enterprise.sh \
+  --base-url http://localhost:3001 \
+  --admin-username admin \
+  --admin-password "replace-this-password-now"
+```
+
+`--base-url` accepts either the app URL (`http://localhost:3001`) or API URL (`http://localhost:3001/api`).
+
+If your `.env.enterprise` sets `AUTH_TOKEN` + `JWT_SECRET`, include the same single-user password during bootstrap so the script can mint an auth session before enabling multi-user mode:
+
+```bash
+./bootstrap-enterprise.sh \
+  --base-url http://localhost:3001 \
+  --single-user-token "replace-with-your-auth-token-password" \
+  --admin-username admin \
+  --admin-password "replace-this-password-now"
+```
+
+Optional: if your chosen admin username already exists from a partial setup, bootstrap automatically retries with safe fallback usernames. You can tune retry count with `--enable-retries <n>` (or `ENABLE_MULTI_USER_RETRIES=<n>`).
+
+Optional: emit a machine-readable bootstrap result file for automation/debugging:
+
+```bash
+./bootstrap-enterprise.sh \
+  --base-url http://localhost:3001 \
+  --summary-file /tmp/anythingllm-bootstrap-summary.json \
+  --admin-username admin \
+  --admin-password "replace-this-password-now"
+```
+
+What this does:
+
+- boots AnythingLLM in Docker with persistent storage
+- waits for the API to become healthy
+- optionally obtains a single-user session token (when `--single-user-token` is provided)
+- retries username collisions with fallback admin usernames when needed
+- enables multi-user mode
+- creates the initial admin account
+
+After this completes, sign in with the provided admin credentials and continue setup at `http://localhost:3001`.
+
 Pull in the latest image from docker. Supports both `amd64` and `arm64` CPU architectures.
 
 ```shell

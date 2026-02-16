@@ -10,6 +10,9 @@ export default function NewApiKeyModal({ closeModal, onSuccess }) {
   const [apiKey, setApiKey] = useState(null);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [name, setName] = useState("");
+  const [scopes, setScopes] = useState("*");
+  const [expiresAt, setExpiresAt] = useState("");
 
   const handleCreate = async (e) => {
     setError(null);
@@ -17,7 +20,15 @@ export default function NewApiKeyModal({ closeModal, onSuccess }) {
     const user = userFromStorage();
     const Model = !!user ? Admin : System;
 
-    const { apiKey: newApiKey, error } = await Model.generateApiKey();
+    const parsedScopes = scopes
+      .split(",")
+      .map((scope) => scope.trim())
+      .filter(Boolean);
+    const { apiKey: newApiKey, error } = await Model.generateApiKey({
+      name: name || null,
+      scopes: parsedScopes.length > 0 ? parsedScopes : ["*"],
+      expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+    });
     if (!!newApiKey) {
       setApiKey(newApiKey);
       onSuccess();
@@ -90,6 +101,47 @@ export default function NewApiKeyModal({ closeModal, onSuccess }) {
                     )}
                   </button>
                 </div>
+              )}
+              {!apiKey && (
+                <>
+                  <div>
+                    <label className="text-white text-sm font-semibold block mb-2">
+                      Key Name (optional)
+                    </label>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
+                      placeholder="CI automation key"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-white text-sm font-semibold block mb-2">
+                      Scopes (comma-separated)
+                    </label>
+                    <input
+                      value={scopes}
+                      onChange={(e) => setScopes(e.target.value)}
+                      className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
+                      placeholder="*,workspace:chat,admin:read"
+                    />
+                    <p className="text-xs text-theme-text-secondary mt-1">
+                      Use <code>*</code> for full access or assign precise
+                      scopes.
+                    </p>
+                  </div>
+                  <div>
+                    <label className="text-white text-sm font-semibold block mb-2">
+                      Expires At (optional)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={expiresAt}
+                      onChange={(e) => setExpiresAt(e.target.value)}
+                      className="border-none bg-theme-settings-input-bg text-white text-sm rounded-lg outline-none block w-full p-2.5"
+                    />
+                  </div>
+                </>
               )}
               <p className="text-white text-opacity-60 text-xs md:text-sm">
                 Once created the API key can be used to programmatically access

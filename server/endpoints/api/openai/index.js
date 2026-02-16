@@ -14,6 +14,7 @@ const {
 } = require("../../../utils/chats/openaiCompatible");
 const { getModelTag } = require("../../utils");
 const { extractTextContent, extractAttachments } = require("./helpers");
+const { enforceChatPolicies } = require("../../../utils/helpers/policies/chatPolicy");
 
 function apiOpenAICompatibleEndpoints(app) {
   if (!app) return;
@@ -134,6 +135,17 @@ function apiOpenAICompatibleEndpoints(app) {
               "No user prompt found. Must be last element in message array with 'user' role.",
           });
         }
+        const promptContent = extractTextContent(userMessage.content);
+        const policyCheck = await enforceChatPolicies({
+          user: null,
+          workspace,
+          message: promptContent,
+        });
+        if (!policyCheck.allowed) {
+          return response.status(403).json({
+            error: policyCheck.error,
+          });
+        }
 
         const systemPrompt =
           messages.find((chat) => chat.role === "system")?.content ?? null;
@@ -144,7 +156,7 @@ function apiOpenAICompatibleEndpoints(app) {
             workspace,
             systemPrompt,
             history,
-            prompt: extractTextContent(userMessage.content),
+            prompt: promptContent,
             attachments: extractAttachments(userMessage.content),
             temperature: Number(temperature),
           });
@@ -173,7 +185,7 @@ function apiOpenAICompatibleEndpoints(app) {
           workspace,
           systemPrompt,
           history,
-          prompt: extractTextContent(userMessage.content),
+          prompt: promptContent,
           attachments: extractAttachments(userMessage.content),
           temperature: Number(temperature),
           response,

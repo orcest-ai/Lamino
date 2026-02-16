@@ -1,5 +1,31 @@
 const { safeJsonParse } = require("../utils/http");
 const prisma = require("../utils/prisma");
+const { UsageEvents } = require("./usageEvents");
+
+function parseUsageMetrics(metrics = {}) {
+  const promptTokens = Number(
+    metrics?.prompt_tokens ?? metrics?.promptTokens ?? 0
+  );
+  const completionTokens = Number(
+    metrics?.completion_tokens ?? metrics?.completionTokens ?? 0
+  );
+  const totalTokens = Number(
+    metrics?.total_tokens ?? metrics?.totalTokens ?? promptTokens + completionTokens
+  );
+  const durationRaw = Number(metrics?.duration ?? metrics?.durationMs ?? 0);
+  const durationMs =
+    !Number.isFinite(durationRaw) || durationRaw <= 0
+      ? null
+      : durationRaw > 1000
+        ? Math.round(durationRaw)
+        : Math.round(durationRaw * 1000);
+  return {
+    promptTokens: Number.isFinite(promptTokens) ? promptTokens : 0,
+    completionTokens: Number.isFinite(completionTokens) ? completionTokens : 0,
+    totalTokens: Number.isFinite(totalTokens) ? totalTokens : 0,
+    durationMs,
+  };
+}
 
 /**
  * @typedef {Object} EmbedChat
@@ -28,6 +54,30 @@ const EmbedChats = {
           response: JSON.stringify(response),
           connection_information: JSON.stringify(connection_information),
           session_id: String(sessionId),
+        },
+      });
+
+      const embed = await prisma.embed_configs.findFirst({
+        where: { id: Number(embedId) },
+        select: {
+          workspace_id: true,
+        },
+      });
+      const usageMetrics = parseUsageMetrics(response?.metrics || {});
+      await UsageEvents.log({
+        eventType: "embed_chat",
+        workspaceId: embed?.workspace_id ? Number(embed.workspace_id) : null,
+        promptTokens: usageMetrics.promptTokens,
+        completionTokens: usageMetrics.completionTokens,
+        totalTokens: usageMetrics.totalTokens,
+        durationMs: usageMetrics.durationMs,
+        mode: response?.type || null,
+        metadata: {
+          embedId: Number(embedId),
+          sessionId: String(sessionId),
+          sourceCount: Array.isArray(response?.sources)
+            ? response.sources.length
+            : 0,
         },
       });
       return { chat, message: null };

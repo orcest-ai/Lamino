@@ -311,6 +311,40 @@ const router = createBrowserRouter([
           return { element: <ManagerRoute Component={AdminWorkspaces} /> };
         },
       },
+      {
+        path: "/settings/teams",
+        lazy: async () => {
+          const { default: AdminTeams } = await import("@/pages/Admin/Teams");
+          return { element: <ManagerRoute Component={AdminTeams} /> };
+        },
+      },
+      {
+        path: "/settings/prompt-engineering",
+        lazy: async () => {
+          const { default: PromptLibrary } = await import(
+            "@/pages/Admin/PromptLibrary"
+          );
+          return { element: <ManagerRoute Component={PromptLibrary} /> };
+        },
+      },
+      {
+        path: "/settings/usage-monitoring",
+        lazy: async () => {
+          const { default: UsageMonitoring } = await import(
+            "@/pages/Admin/UsageMonitoring"
+          );
+          return { element: <ManagerRoute Component={UsageMonitoring} /> };
+        },
+      },
+      {
+        path: "/settings/usage-policies",
+        lazy: async () => {
+          const { default: UsagePolicies } = await import(
+            "@/pages/Admin/UsagePolicies"
+          );
+          return { element: <ManagerRoute Component={UsagePolicies} /> };
+        },
+      },
       // Onboarding Flow
       {
         path: "/onboarding",

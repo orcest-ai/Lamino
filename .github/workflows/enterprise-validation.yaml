@@ -1,0 +1,82 @@
+name: Enterprise Validation
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - "cursor/**"
+
+concurrency:
+  group: enterprise-validation-${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  enterprise-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "yarn"
+          cache-dependency-path: |
+            yarn.lock
+            server/yarn.lock
+            frontend/yarn.lock
+
+      - name: Install root dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install server dependencies
+        run: cd server && yarn install --frozen-lockfile
+
+      - name: Install frontend dependencies
+        run: cd frontend && yarn install --frozen-lockfile
+
+      - name: Run enterprise validation pipeline
+        run: |
+          CI_PORT=3101 \
+          CI_BOOTSTRAP_VALIDATION_BASE_PORT=4201 \
+          CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH="/tmp/anythingllm-bootstrap-validation-summary.json" \
+          CI_VALIDATION_SUMMARY_PATH="/tmp/anythingllm-enterprise-ci-validation-summary.json" \
+          CI_AUTH_TOKEN="ci-single-user-token" \
+          CI_SINGLE_USER_TOKEN="ci-single-user-token" \
+          CI_JWT_SECRET="ci-enterprise-secret" \
+          CI_ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
+          CI_ADMIN_PASSWORD="EnterprisePass123!" \
+          CI_RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
+          CI_SMOKE_SUMMARY_PATH="/tmp/anythingllm-enterprise-ci-smoke-summary.json" \
+          SKIP_BOOTSTRAP_CHECK="0" \
+          CI_USAGE_RETENTION_DAYS_CHECK="1" \
+          CI_VALIDATE_USAGE_CLEANUP_NOOP="1" \
+          CI_LOG_PATH="/tmp/anythingllm-server.log" \
+          yarn validate:enterprise:ci-local || {
+            echo "Enterprise validation pipeline failed; dumping server log."
+            cat /tmp/anythingllm-server.log || true
+            echo "Enterprise validation pipeline failed; dumping CI validation summary."
+            node -e 'const fs=require("fs");const p="/tmp/anythingllm-enterprise-ci-validation-summary.json";if(fs.existsSync(p)){console.log(fs.readFileSync(p,"utf8"));}' || true
+            echo "Enterprise validation pipeline failed; dumping smoke summary."
+            node -e 'const fs=require("fs");const p="/tmp/anythingllm-enterprise-ci-smoke-summary.json";if(fs.existsSync(p)){console.log(fs.readFileSync(p,"utf8"));}' || true
+            echo "Enterprise validation pipeline failed; dumping bootstrap summary."
+            node -e 'const fs=require("fs");const p="/tmp/anythingllm-bootstrap-validation-summary.json";if(fs.existsSync(p)){console.log(fs.readFileSync(p,"utf8"));}' || true
+            exit 1
+          }
+
+      - name: Upload enterprise validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: enterprise-validation-artifacts
+          if-no-files-found: ignore
+          path: |
+            /tmp/anythingllm-server.log
+            /tmp/anythingllm-enterprise-ci-validation-summary.json
+            /tmp/anythingllm-enterprise-ci-smoke-summary.json
+            /tmp/anythingllm-bootstrap-validation-summary.json
+            /tmp/anythingllm-bootstrap-*-summary.json
+            /tmp/anythingllm-bootstrap-*.log

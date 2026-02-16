@@ -15,6 +15,7 @@ const {
 } = require("../../../utils/helpers/chat/responses");
 const { ApiChatHandler } = require("../../../utils/chats/apiChatHandler");
 const { getModelTag } = require("../../utils");
+const { enforceChatPolicies } = require("../../../utils/helpers/policies/chatPolicy");
 
 function apiWorkspaceEndpoints(app) {
   if (!app) return;
@@ -683,6 +684,24 @@ function apiWorkspaceEndpoints(app) {
           return;
         }
 
+        if (!reset) {
+          const policyCheck = await enforceChatPolicies({
+            user: null,
+            workspace,
+            message,
+          });
+          if (!policyCheck.allowed) {
+            return response.status(403).json({
+              id: uuidv4(),
+              type: "abort",
+              textResponse: null,
+              sources: [],
+              close: true,
+              error: policyCheck.error,
+            });
+          }
+        }
+
         const result = await ApiChatHandler.chatSync({
           workspace,
           message,
@@ -832,6 +851,25 @@ function apiWorkspaceEndpoints(app) {
               : `${mode} is not a valid mode.`,
           });
           return;
+        }
+
+        if (!reset) {
+          const policyCheck = await enforceChatPolicies({
+            user: null,
+            workspace,
+            message,
+          });
+          if (!policyCheck.allowed) {
+            response.status(403).json({
+              id: uuidv4(),
+              type: "abort",
+              textResponse: null,
+              sources: [],
+              close: true,
+              error: policyCheck.error,
+            });
+            return;
+          }
         }
 
         response.setHeader("Cache-Control", "no-cache");

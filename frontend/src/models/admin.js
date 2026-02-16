@@ -155,6 +155,338 @@ const Admin = {
       });
   },
 
+  // Team Management
+  teams: async () => {
+    return await fetch(`${API_BASE}/admin/teams`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.teams || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  team: async (teamId) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.team || null)
+      .catch((e) => {
+        console.error(e);
+        return null;
+      });
+  },
+  newTeam: async (data = {}) => {
+    return await fetch(`${API_BASE}/admin/teams/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { team: null, error: e.message };
+      });
+  },
+  updateTeam: async (teamId, data = {}) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, team: null, error: e.message };
+      });
+  },
+  deleteTeam: async (teamId) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  updateTeamMembers: async (teamId, members = []) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}/update-members`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify({ members }),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  updateTeamWorkspaces: async (teamId, workspaceIds = []) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}/update-workspaces`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify({ workspaceIds }),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  teamAccessMap: async (teamId) => {
+    return await fetch(`${API_BASE}/admin/teams/${teamId}/access-map`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.map || null)
+      .catch((e) => {
+        console.error(e);
+        return null;
+      });
+  },
+
+  // Prompt Engineering
+  promptTemplates: async () => {
+    return await fetch(`${API_BASE}/admin/prompt-templates`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.templates || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newPromptTemplate: async (data = {}) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { template: null, error: e.message };
+      });
+  },
+  updatePromptTemplate: async (templateId, updates = {}) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/${templateId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(updates),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, template: null, error: e.message };
+      });
+  },
+  deletePromptTemplate: async (templateId) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/${templateId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  promptTemplateVersions: async (templateId) => {
+    return await fetch(`${API_BASE}/admin/prompt-templates/${templateId}/versions`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.versions || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newPromptTemplateVersion: async (templateId, data = {}) => {
+    return await fetch(
+      `${API_BASE}/admin/prompt-templates/${templateId}/versions/new`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+        body: JSON.stringify(data),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { version: null, error: e.message };
+      });
+  },
+  approvePromptTemplateVersion: async (templateId, versionId) => {
+    return await fetch(
+      `${API_BASE}/admin/prompt-templates/${templateId}/versions/${versionId}/approve`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  applyPromptTemplateToWorkspace: async (templateId, data = {}) => {
+    return await fetch(
+      `${API_BASE}/admin/prompt-templates/${templateId}/apply-to-workspace`,
+      {
+        method: "POST",
+        headers: baseHeaders(),
+        body: JSON.stringify(data),
+      }
+    )
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+
+  // Usage monitoring
+  usageOverview: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage/overview${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => res?.summary || null)
+      .catch((e) => {
+        console.error(e);
+        return null;
+      });
+  },
+  usageTimeSeries: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage/timeseries${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => res?.series || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  usageBreakdown: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage/breakdown${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => res?.breakdown || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  usageExportCsv: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return fetch(`${API_BASE}/admin/usage/export.csv${search ? `?${search}` : ""}`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to export usage CSV.");
+        return res.text();
+      })
+      .catch((e) => {
+        console.error(e);
+        return "";
+      });
+  },
+
+  // Usage policies
+  usagePolicies: async () => {
+    return await fetch(`${API_BASE}/admin/usage-policies`, {
+      method: "GET",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .then((res) => res?.policies || [])
+      .catch((e) => {
+        console.error(e);
+        return [];
+      });
+  },
+  newUsagePolicy: async (data = {}) => {
+    return await fetch(`${API_BASE}/admin/usage-policies/new`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(data),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { policy: null, error: e.message };
+      });
+  },
+  updateUsagePolicy: async (policyId, updates = {}) => {
+    return await fetch(`${API_BASE}/admin/usage-policies/${policyId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(updates),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, policy: null, error: e.message };
+      });
+  },
+  deleteUsagePolicy: async (policyId) => {
+    return await fetch(`${API_BASE}/admin/usage-policies/${policyId}`, {
+      method: "DELETE",
+      headers: baseHeaders(),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, error: e.message };
+      });
+  },
+  effectiveUsagePolicy: async (query = {}) => {
+    const search = new URLSearchParams(query).toString();
+    return await fetch(
+      `${API_BASE}/admin/usage-policies/effective${search ? `?${search}` : ""}`,
+      {
+        method: "GET",
+        headers: baseHeaders(),
+      }
+    )
+      .then((res) => res.json())
+      .then((res) => ({ rules: res?.rules || {}, policies: res?.policies || [] }))
+      .catch((e) => {
+        console.error(e);
+        return { rules: {}, policies: [] };
+      });
+  },
+
   // System Preferences
   /**
    * Fetches system preferences by fields
@@ -205,10 +537,15 @@ const Admin = {
         return { apiKeys: [], error: e.message };
       });
   },
-  generateApiKey: async function () {
+  generateApiKey: async function ({
+    name = null,
+    scopes = ["*"],
+    expiresAt = null,
+  } = {}) {
     return fetch(`${API_BASE}/admin/generate-api-key`, {
       method: "POST",
       headers: baseHeaders(),
+      body: JSON.stringify({ name, scopes, expiresAt }),
     })
       .then((res) => {
         if (!res.ok) {
@@ -219,6 +556,18 @@ const Admin = {
       .catch((e) => {
         console.error(e);
         return { apiKey: null, error: e.message };
+      });
+  },
+  updateApiKey: async function (apiKeyId = "", updates = {}) {
+    return fetch(`${API_BASE}/admin/api-keys/${apiKeyId}`, {
+      method: "POST",
+      headers: baseHeaders(),
+      body: JSON.stringify(updates),
+    })
+      .then((res) => res.json())
+      .catch((e) => {
+        console.error(e);
+        return { success: false, apiKey: null, error: e.message };
       });
   },
   deleteApiKey: async function (apiKeyId = "") {

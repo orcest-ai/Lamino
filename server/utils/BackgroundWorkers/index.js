@@ -7,6 +7,7 @@ class BackgroundService {
   name = "BackgroundWorkerService";
   static _instance = null;
   documentSyncEnabled = false;
+  usageEventsRetentionDays = 0;
   #root = path.resolve(__dirname, "../../jobs");
 
   #alwaysRunJobs = [
@@ -26,6 +27,12 @@ class BackgroundService {
     },
   ];
 
+  #usageRetentionJob = {
+    name: "cleanup-usage-events",
+    timeout: "1m",
+    interval: "24hr",
+  };
+
   constructor() {
     if (BackgroundService._instance) {
       this.#log("SINGLETON LOCK: Using existing BackgroundService.");
@@ -43,6 +50,7 @@ class BackgroundService {
   async boot() {
     const { DocumentSyncQueue } = require("../../models/documentSyncQueue");
     this.documentSyncEnabled = await DocumentSyncQueue.enabled();
+    this.usageEventsRetentionDays = this.resolveUsageEventsRetentionDays();
     const jobsToRun = this.jobs();
 
     this.#log("Starting...");
@@ -75,7 +83,24 @@ class BackgroundService {
   jobs() {
     const activeJobs = [...this.#alwaysRunJobs];
     if (this.documentSyncEnabled) activeJobs.push(...this.#documentSyncJobs);
+    if (this.usageEventsRetentionDays > 0)
+      activeJobs.push(this.#usageRetentionJob);
     return activeJobs;
+  }
+
+  resolveUsageEventsRetentionDays() {
+    const rawValue = process.env.USAGE_EVENTS_RETENTION_DAYS;
+    if (rawValue === null || rawValue === undefined || rawValue === "")
+      return 0;
+
+    const parsed = Number(rawValue);
+    if (!Number.isFinite(parsed) || !Number.isInteger(parsed) || parsed <= 0) {
+      this.#log(
+        `USAGE_EVENTS_RETENTION_DAYS='${rawValue}' is invalid. Usage-event cleanup job disabled.`
+      );
+      return 0;
+    }
+    return parsed;
   }
 
   onError(error, _workerMetadata) {

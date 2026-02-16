@@ -23,11 +23,13 @@ import System from "@/models/system";
 import Option from "./MenuOption";
 import { CanViewChatHistoryProvider } from "../CanViewChatHistory";
 import useAppVersion from "@/hooks/useAppVersion";
+import useEnterpriseFeatureFlags from "@/hooks/useEnterpriseFeatureFlags";
 
 export default function SettingsSidebar() {
   const { t } = useTranslation();
   const { logo } = useLogo();
   const { user } = useUser();
+  const { flags: featureFlags } = useEnterpriseFeatureFlags();
   const sidebarRef = useRef(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [showBgOverlay, setShowBgOverlay] = useState(false);
@@ -108,7 +110,11 @@ export default function SettingsSidebar() {
               <div className="h-full flex flex-col w-full justify-between pt-4 overflow-y-scroll no-scroll">
                 <div className="h-auto md:sidebar-items">
                   <div className="flex flex-col gap-y-4 pb-[60px] overflow-y-scroll no-scroll">
-                    <SidebarOptions user={user} t={t} />
+                    <SidebarOptions
+                      user={user}
+                      t={t}
+                      featureFlags={featureFlags}
+                    />
                     <div className="h-[1.5px] bg-[#3D4147] mx-3 mt-[14px]" />
                     <SupportEmail />
                     <Link
@@ -159,7 +165,11 @@ export default function SettingsSidebar() {
             <div className="relative h-[calc(100%-60px)] flex flex-col w-full justify-between pt-[10px] overflow-y-scroll no-scroll">
               <div className="h-auto sidebar-items">
                 <div className="flex flex-col gap-y-2 pb-[60px] overflow-y-scroll no-scroll">
-                  <SidebarOptions user={user} t={t} />
+                  <SidebarOptions
+                    user={user}
+                    t={t}
+                    featureFlags={featureFlags}
+                  />
                   <div className="h-[1.5px] bg-[#3D4147] mx-3 mt-[14px]" />
                   <SupportEmail />
                   <Link
@@ -211,7 +221,7 @@ function SupportEmail() {
   );
 }
 
-const SidebarOptions = ({ user = null, t }) => (
+const SidebarOptions = ({ user = null, t, featureFlags = {} }) => (
   <CanViewChatHistoryProvider>
     {({ viewable: canViewChatHistory }) => (
       <>
@@ -274,6 +284,12 @@ const SidebarOptions = ({ user = null, t }) => (
               roles: ["admin", "manager"],
             },
             {
+              btnText: "Teams",
+              href: paths.settings.teams(),
+              hidden: featureFlags?.enterprise_teams === false,
+              roles: ["admin", "manager"],
+            },
+            {
               hidden: !canViewChatHistory,
               btnText: t("settings.workspace-chats"),
               href: paths.settings.chats(),
@@ -283,6 +299,12 @@ const SidebarOptions = ({ user = null, t }) => (
             {
               btnText: t("settings.invites"),
               href: paths.settings.invites(),
+              roles: ["admin", "manager"],
+            },
+            {
+              btnText: "Prompt Engineering",
+              href: paths.settings.promptEngineering(),
+              hidden: featureFlags?.enterprise_prompt_library === false,
               roles: ["admin", "manager"],
             },
             {
@@ -379,6 +401,20 @@ const SidebarOptions = ({ user = null, t }) => (
               href: paths.settings.systemPromptVariables(),
               flex: true,
               roles: ["admin"],
+            },
+            {
+              btnText: "Usage Monitoring",
+              href: paths.settings.usageMonitoring(),
+              hidden: featureFlags?.enterprise_usage_monitoring === false,
+              flex: true,
+              roles: ["admin", "manager"],
+            },
+            {
+              btnText: "Usage Policies",
+              href: paths.settings.usagePolicies(),
+              hidden: featureFlags?.enterprise_usage_policies === false,
+              flex: true,
+              roles: ["admin", "manager"],
             },
             {
               btnText: t("settings.browser-extension"),
