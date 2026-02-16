@@ -38,6 +38,18 @@ describe("multiUserProtected middleware", () => {
   });
 
   describe("strictMultiUserRoleValid", () => {
+    it("default role set allows manager access", async () => {
+      const middleware = strictMultiUserRoleValid();
+      const response = mockResponse();
+      const next = jest.fn();
+      mockUserFromSession.mockResolvedValueOnce({ id: 7, role: ROLES.manager });
+
+      await middleware({ headers: {} }, response, next);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(response.sendStatus).not.toHaveBeenCalled();
+    });
+
     it("bypasses validation when all roles are allowed", async () => {
       const middleware = strictMultiUserRoleValid([ROLES.all]);
       const response = mockResponse();

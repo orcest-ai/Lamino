@@ -110,6 +110,7 @@ yarn test \
 # - response locals propagation for multi-user mode + api key context
 # multiUserProtected middleware suite includes:
 # - strict/flex role gate behavior across enabled/disabled multi-user mode
+# - default strict-role tuple includes both admin and manager access paths
 # - deterministic `401` denial behavior for role-mismatched admin routes
 # - setup guard behavior (`isMultiUserSetup`) when multi-user mode is disabled
 # systemPreferenceAccess helper suite includes:
