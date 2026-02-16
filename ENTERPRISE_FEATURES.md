@@ -121,6 +121,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 
 # smoke script now includes role matrix assertions:
 # - API /ping readiness retry loop before executing checks
+# - when multi-user is disabled and AUTH_TOKEN is available, single-user login path is verified (invalid token denied, valid token accepted) before bootstrap
 # - default user denied /admin/teams
 # - manager user can list/create teams
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden

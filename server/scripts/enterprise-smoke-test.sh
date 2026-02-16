@@ -4,6 +4,7 @@ set -euo pipefail
 BASE_URL="${BASE_URL:-http://localhost:3001/api}"
 ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
+SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-${AUTH_TOKEN:-}}"
 RUN_ID="${RUN_ID:-$(date +%s)}"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
@@ -283,6 +284,31 @@ if ! wait_for_api 60 1; then
   log "FAILED: API did not become ready at ${BASE_URL}/ping"
   log "Last status=${HTTP_STATUS} body=${HTTP_BODY}"
   exit 1
+fi
+
+request "GET" "/system/multi-user-mode"
+assert_status "200" "read multi-user mode setting"
+CURRENT_MULTI_USER_MODE="$(json_get_or_empty "$HTTP_BODY" "multiUserMode")"
+if [[ "${CURRENT_MULTI_USER_MODE}" == "false" && -n "${SINGLE_USER_AUTH_TOKEN}" ]]; then
+  log "Verifying single-user authentication path before bootstrap"
+  request "POST" "/request-token" "{\"password\":\"invalid-${RUN_ID}\"}"
+  assert_status "401" "single-user login rejects invalid auth token"
+  if ! contains_text "$HTTP_BODY" "Invalid password provided"; then
+    log "FAILED: single-user invalid-login response missing expected message."
+    log "Response: ${HTTP_BODY}"
+    exit 1
+  fi
+
+  request "POST" "/request-token" "{\"password\":\"${SINGLE_USER_AUTH_TOKEN}\"}"
+  assert_status "200" "single-user login accepts auth token"
+  SINGLE_USER_TOKEN="$(json_get_or_empty "$HTTP_BODY" "token")"
+  if [[ -z "${SINGLE_USER_TOKEN}" ]]; then
+    log "FAILED: single-user login did not return a token."
+    log "Response: ${HTTP_BODY}"
+    exit 1
+  fi
+elif [[ "${CURRENT_MULTI_USER_MODE}" == "false" ]]; then
+  log "Single-user auth check skipped (SINGLE_USER_AUTH_TOKEN/AUTH_TOKEN not provided)."
 fi
 
 log "Logging in as admin user"
