@@ -219,6 +219,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
   - Optional bootstrap-validation aggregate summary output path override: `CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH="/tmp/bootstrap-validation-summary.json" yarn validate:enterprise:ci-local`.
   - Optional CI-local aggregate stage-summary output path override: `CI_VALIDATION_SUMMARY_PATH="/tmp/ci-validation-summary.json" yarn validate:enterprise:ci-local`.
   - CI aggregate stage summary records smoke telemetry in-stage (`phase`, `requestCount`, `verificationMatrix.status`) for faster triage.
+  - CI aggregate summary also includes structured `artifacts.smoke` / `artifacts.bootstrap` metadata (summary path + status + key counters) for machine-readable diagnostics.
   - Optional to mirror fresh CI dependency installation: `RUN_INSTALL=1 yarn validate:enterprise:ci-local`.
   - Optional cleanup-check retention override: `CI_USAGE_RETENTION_DAYS_CHECK=30 yarn validate:enterprise:ci-local`.
   - Optional to skip retention-disabled cleanup no-op validation: `CI_VALIDATE_USAGE_CLEANUP_NOOP=0 yarn validate:enterprise:ci-local`.

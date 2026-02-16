@@ -29,6 +29,18 @@ STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 CURRENT_STAGE="initialization"
 VALIDATION_STATUS="failed"
 VALIDATION_MESSAGE="CI-local validation did not complete."
+SMOKE_METADATA_STATUS=""
+SMOKE_METADATA_PHASE=""
+SMOKE_METADATA_REQUEST_COUNT=""
+SMOKE_METADATA_MATRIX_STATUS=""
+SMOKE_METADATA_MATRIX_MISSING=""
+SMOKE_METADATA_REQUIRED_COUNT=""
+SMOKE_METADATA_PASSED_COUNT=""
+SMOKE_METADATA_SUMMARY_PATH=""
+BOOTSTRAP_METADATA_STATUS=""
+BOOTSTRAP_METADATA_SCENARIO_COUNT=""
+BOOTSTRAP_METADATA_FAILED_SCENARIOS=""
+BOOTSTRAP_METADATA_SUMMARY_PATH=""
 
 if [[ "${CI_SINGLE_USER_TOKEN+x}" != "x" ]]; then
   CI_SINGLE_USER_TOKEN="${CI_AUTH_TOKEN}"
@@ -104,6 +116,13 @@ const payload = {
   startedAt: process.argv[6],
   finishedAt: process.argv[7],
   stages: [],
+  artifacts: {},
+};
+
+const parseOptionalInt = (raw) => {
+  if (raw === undefined || raw === null || raw === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? Math.trunc(value) : null;
 };
 
 if (fs.existsSync(stageFile)) {
@@ -116,6 +135,54 @@ if (fs.existsSync(stageFile)) {
   payload.stages = entries;
 }
 
+const smokeSummaryPath = process.argv[8];
+const smokeStatus = process.argv[9];
+const smokePhase = process.argv[10];
+const smokeRequestCount = parseOptionalInt(process.argv[11]);
+const smokeMatrixStatus = process.argv[12];
+const smokeMatrixMissing = (process.argv[13] || "").split(",").filter(Boolean);
+const smokeMatrixRequired = parseOptionalInt(process.argv[14]);
+const smokeMatrixPassed = parseOptionalInt(process.argv[15]);
+const hasSmokeArtifact = [
+  smokeSummaryPath,
+  smokeStatus,
+  smokePhase,
+  smokeMatrixStatus,
+  String(smokeRequestCount ?? ""),
+].some(Boolean);
+
+if (hasSmokeArtifact) {
+  payload.artifacts.smoke = {
+    summaryPath: smokeSummaryPath || null,
+    status: smokeStatus || null,
+    phase: smokePhase || null,
+    requestCount: smokeRequestCount,
+    verificationMatrixStatus: smokeMatrixStatus || null,
+    verificationMatrixMissing: smokeMatrixMissing,
+    verificationMatrixRequiredCount: smokeMatrixRequired,
+    verificationMatrixPassedCount: smokeMatrixPassed,
+  };
+}
+
+const bootstrapSummaryPath = process.argv[16];
+const bootstrapStatus = process.argv[17];
+const bootstrapScenarioCount = parseOptionalInt(process.argv[18]);
+const bootstrapFailedScenarios = (process.argv[19] || "").split(",").filter(Boolean);
+const hasBootstrapArtifact = [
+  bootstrapSummaryPath,
+  bootstrapStatus,
+  String(bootstrapScenarioCount ?? ""),
+].some(Boolean);
+
+if (hasBootstrapArtifact) {
+  payload.artifacts.bootstrap = {
+    summaryPath: bootstrapSummaryPath || null,
+    status: bootstrapStatus || null,
+    scenarioCount: bootstrapScenarioCount,
+    failedScenarios: bootstrapFailedScenarios,
+  };
+}
+
 fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
 ' "${STAGE_RESULTS_FILE}" \
     "${CI_VALIDATION_SUMMARY_PATH}" \
@@ -123,7 +190,19 @@ fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
     "${VALIDATION_MESSAGE}" \
     "${CURRENT_STAGE}" \
     "${STARTED_AT}" \
-    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" || true
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+    "${SMOKE_METADATA_SUMMARY_PATH}" \
+    "${SMOKE_METADATA_STATUS}" \
+    "${SMOKE_METADATA_PHASE}" \
+    "${SMOKE_METADATA_REQUEST_COUNT}" \
+    "${SMOKE_METADATA_MATRIX_STATUS}" \
+    "${SMOKE_METADATA_MATRIX_MISSING}" \
+    "${SMOKE_METADATA_REQUIRED_COUNT}" \
+    "${SMOKE_METADATA_PASSED_COUNT}" \
+    "${BOOTSTRAP_METADATA_SUMMARY_PATH}" \
+    "${BOOTSTRAP_METADATA_STATUS}" \
+    "${BOOTSTRAP_METADATA_SCENARIO_COUNT}" \
+    "${BOOTSTRAP_METADATA_FAILED_SCENARIOS}" || true
 }
 
 on_exit() {
@@ -216,54 +295,72 @@ if ! RESET_DB=1 \
   LOG_PATH="${CI_LOG_PATH}" \
   yarn validate:enterprise:local; then
   VALIDATION_MESSAGE="Enterprise smoke validation failed."
+  SMOKE_METADATA_STATUS="failed"
+  SMOKE_METADATA_SUMMARY_PATH="${CI_SMOKE_SUMMARY_PATH}"
   record_stage_result "${CURRENT_STAGE}" "failed" "${VALIDATION_MESSAGE}"
   echo "[enterprise-ci-local] Smoke run failed. Dumping server log from ${CI_LOG_PATH}."
   dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
   cat "${CI_LOG_PATH}" || true
   exit 1
 fi
+SMOKE_METADATA_SUMMARY_PATH="${CI_SMOKE_SUMMARY_PATH}"
 
-SMOKE_SUMMARY_PHASE="$(
-  node -e '
+mapfile -t SMOKE_METADATA_LINES < <(node -e '
 const fs = require("fs");
-const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-process.stdout.write(payload.currentPhase || "");
-' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
-)"
-SMOKE_SUMMARY_REQUEST_COUNT="$(
-  node -e '
-const fs = require("fs");
-const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-process.stdout.write(String(payload.requestCount ?? ""));
-' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
-)"
-SMOKE_SUMMARY_MATRIX_STATUS="$(
-  node -e '
-const fs = require("fs");
-const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-process.stdout.write(payload.verificationMatrix?.status || "");
-' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
-)"
-SMOKE_SUMMARY_MATRIX_MISSING="$(
-  node -e '
-const fs = require("fs");
-const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
-const missing = Array.isArray(payload.verificationMatrix?.missing)
-  ? payload.verificationMatrix.missing
-  : [];
-process.stdout.write(missing.join(","));
-' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null || true
-)"
-if [[ "${SMOKE_SUMMARY_MATRIX_STATUS}" != "pass" ]]; then
-  VALIDATION_MESSAGE="Enterprise smoke summary matrix status is not pass (${SMOKE_SUMMARY_MATRIX_STATUS:-<empty>})."
+const emit = (value) => console.log(String(value ?? "").replace(/\r?\n/g, " "));
+try {
+  const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const required = Array.isArray(payload.verificationMatrix?.required)
+    ? payload.verificationMatrix.required
+    : [];
+  const passed = Array.isArray(payload.verificationMatrix?.passed)
+    ? payload.verificationMatrix.passed
+    : [];
+  const missing = Array.isArray(payload.verificationMatrix?.missing)
+    ? payload.verificationMatrix.missing
+    : [];
+  emit(payload.status || "");
+  emit(payload.currentPhase || "");
+  emit(String(payload.requestCount ?? ""));
+  emit(payload.verificationMatrix?.status || "");
+  emit(missing.join(","));
+  emit(String(required.length));
+  emit(String(passed.length));
+} catch {
+  emit("");
+  emit("");
+  emit("");
+  emit("");
+  emit("");
+  emit("");
+  emit("");
+}
+' "${CI_SMOKE_SUMMARY_PATH}" 2>/dev/null)
+SMOKE_METADATA_STATUS="${SMOKE_METADATA_LINES[0]:-}"
+SMOKE_METADATA_PHASE="${SMOKE_METADATA_LINES[1]:-}"
+SMOKE_METADATA_REQUEST_COUNT="${SMOKE_METADATA_LINES[2]:-}"
+SMOKE_METADATA_MATRIX_STATUS="${SMOKE_METADATA_LINES[3]:-}"
+SMOKE_METADATA_MATRIX_MISSING="${SMOKE_METADATA_LINES[4]:-}"
+SMOKE_METADATA_REQUIRED_COUNT="${SMOKE_METADATA_LINES[5]:-}"
+SMOKE_METADATA_PASSED_COUNT="${SMOKE_METADATA_LINES[6]:-}"
+
+if [[ "${SMOKE_METADATA_STATUS}" != "success" ]]; then
+  VALIDATION_MESSAGE="Enterprise smoke summary status is not success (${SMOKE_METADATA_STATUS:-<empty>})."
+  record_stage_result "${CURRENT_STAGE}" "failed" "${VALIDATION_MESSAGE}"
+  echo "[enterprise-ci-local] Smoke summary status is not success."
+  dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
+  exit 1
+fi
+if [[ "${SMOKE_METADATA_MATRIX_STATUS}" != "pass" ]]; then
+  VALIDATION_MESSAGE="Enterprise smoke summary matrix status is not pass (${SMOKE_METADATA_MATRIX_STATUS:-<empty>})."
   record_stage_result "${CURRENT_STAGE}" "failed" "${VALIDATION_MESSAGE}"
   echo "[enterprise-ci-local] Smoke summary verificationMatrix status is not pass."
   dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
   exit 1
 fi
-SMOKE_STAGE_MESSAGE="Enterprise smoke validation passed (phase=${SMOKE_SUMMARY_PHASE:-<empty>}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT:-<empty>}, matrix=${SMOKE_SUMMARY_MATRIX_STATUS})"
-if [[ -n "${SMOKE_SUMMARY_MATRIX_MISSING}" ]]; then
-  SMOKE_STAGE_MESSAGE="${SMOKE_STAGE_MESSAGE}, missing=${SMOKE_SUMMARY_MATRIX_MISSING}"
+SMOKE_STAGE_MESSAGE="Enterprise smoke validation passed (phase=${SMOKE_METADATA_PHASE:-<empty>}, requestCount=${SMOKE_METADATA_REQUEST_COUNT:-<empty>}, matrix=${SMOKE_METADATA_MATRIX_STATUS:-<empty>}, matrixChecks=${SMOKE_METADATA_PASSED_COUNT:-<empty>}/${SMOKE_METADATA_REQUIRED_COUNT:-<empty>})"
+if [[ -n "${SMOKE_METADATA_MATRIX_MISSING}" ]]; then
+  SMOKE_STAGE_MESSAGE="${SMOKE_STAGE_MESSAGE}, missing=${SMOKE_METADATA_MATRIX_MISSING}"
 fi
 record_stage_result "${CURRENT_STAGE}" "success" "${SMOKE_STAGE_MESSAGE}"
 dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
@@ -271,6 +368,8 @@ dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
 CURRENT_STAGE="bootstrap-validation"
 if [[ "${SKIP_BOOTSTRAP_CHECK}" == "1" ]]; then
   echo "[enterprise-ci-local] Skipping deployment bootstrap validation (SKIP_BOOTSTRAP_CHECK=1)."
+  BOOTSTRAP_METADATA_STATUS="skipped"
+  BOOTSTRAP_METADATA_SUMMARY_PATH="${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}"
   record_stage_result "${CURRENT_STAGE}" "skipped" "SKIP_BOOTSTRAP_CHECK=1"
 else
   echo "[enterprise-ci-local] Running deployment bootstrap validation scenarios."
@@ -278,13 +377,52 @@ else
     BOOTSTRAP_VALIDATION_SUMMARY_PATH="${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}" \
     yarn validate:enterprise:bootstrap-local; then
     VALIDATION_MESSAGE="Bootstrap validation scenarios failed."
+    BOOTSTRAP_METADATA_STATUS="failed"
+    BOOTSTRAP_METADATA_SUMMARY_PATH="${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}"
     record_stage_result "${CURRENT_STAGE}" "failed" "${VALIDATION_MESSAGE}"
     echo "[enterprise-ci-local] Bootstrap validation failed. Dumping bootstrap summaries."
     dump_json_file "${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}" "Bootstrap validation summary"
     dump_bootstrap_summaries
     exit 1
   fi
-  record_stage_result "${CURRENT_STAGE}" "success" "Bootstrap validation scenarios passed."
+  BOOTSTRAP_METADATA_SUMMARY_PATH="${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}"
+  mapfile -t BOOTSTRAP_METADATA_LINES < <(node -e '
+const fs = require("fs");
+const emit = (value) => console.log(String(value ?? "").replace(/\r?\n/g, " "));
+try {
+  const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+  const scenarios = Array.isArray(payload.scenarios) ? payload.scenarios : [];
+  const failed = scenarios
+    .filter((scenario) => scenario?.status && scenario.status !== "success")
+    .map((scenario) => scenario?.name)
+    .filter(Boolean);
+  emit(payload.status || "");
+  emit(String(scenarios.length));
+  emit(failed.join(","));
+} catch {
+  emit("");
+  emit("");
+  emit("");
+}
+' "${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}" 2>/dev/null)
+  BOOTSTRAP_METADATA_STATUS="${BOOTSTRAP_METADATA_LINES[0]:-}"
+  BOOTSTRAP_METADATA_SCENARIO_COUNT="${BOOTSTRAP_METADATA_LINES[1]:-}"
+  BOOTSTRAP_METADATA_FAILED_SCENARIOS="${BOOTSTRAP_METADATA_LINES[2]:-}"
+  if [[ "${BOOTSTRAP_METADATA_STATUS}" != "success" ]]; then
+    VALIDATION_MESSAGE="Bootstrap validation summary status is not success (${BOOTSTRAP_METADATA_STATUS:-<empty>})."
+    record_stage_result "${CURRENT_STAGE}" "failed" "${VALIDATION_MESSAGE}"
+    echo "[enterprise-ci-local] Bootstrap summary status is not success."
+    dump_json_file "${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}" "Bootstrap validation summary"
+    exit 1
+  fi
+  BOOTSTRAP_STAGE_MESSAGE="Bootstrap validation scenarios passed"
+  if [[ -n "${BOOTSTRAP_METADATA_SCENARIO_COUNT}" ]]; then
+    BOOTSTRAP_STAGE_MESSAGE="${BOOTSTRAP_STAGE_MESSAGE} (scenarios=${BOOTSTRAP_METADATA_SCENARIO_COUNT})"
+  fi
+  if [[ -n "${BOOTSTRAP_METADATA_FAILED_SCENARIOS}" ]]; then
+    BOOTSTRAP_STAGE_MESSAGE="${BOOTSTRAP_STAGE_MESSAGE}, failed=${BOOTSTRAP_METADATA_FAILED_SCENARIOS}"
+  fi
+  record_stage_result "${CURRENT_STAGE}" "success" "${BOOTSTRAP_STAGE_MESSAGE}"
   dump_json_file "${CI_BOOTSTRAP_VALIDATION_SUMMARY_PATH}" "Bootstrap validation summary"
 fi
 
