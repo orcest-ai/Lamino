@@ -182,6 +182,30 @@ yarn test:enterprise
 yarn smoke:enterprise
 ```
 
+## Manual verification matrix (phase-9 closure)
+
+The matrix below captures the required manual (terminal-driven) verification paths and their concrete assertions.
+
+| Matrix item | Verification path | Expected / enforced result |
+| --- | --- | --- |
+| single-user mode | Smoke starts from `multi_user_mode=false` with `AUTH_TOKEN` present, validates `/request-token` invalid+valid password behavior before bootstrap | Invalid token denied (`401`), valid token accepted (`200`) with token payload |
+| multi-user mode admin/manager/default | Smoke bootstraps or logs in, creates `admin`/`manager`/`default` actors, then runs role-scoped endpoint matrix | `admin` succeeds on admin APIs; `manager` succeeds on allowed team/prompt/policy/usage reads+writes; `default` receives strict denials (`401`) on admin surfaces |
+| team-assigned workspace visibility | Smoke creates assigned and isolated workspaces, maps team members, then lists as default user | Assigned workspace visible, isolated workspace hidden |
+| policy enforcement paths | Smoke creates scoped policies and performs chat calls with scoped chat key | deterministic policy denials for prompt length, daily token quota, and daily chat quota with explicit error messages |
+| scoped API key failures/successes | Smoke creates `workspace:chat`, `admin:read`, and `auth:read` keys and exercises cross-scope calls | scoped allow on matching endpoints; explicit `403` denials + required-scope hints on cross-scope access |
+| usage dashboard data freshness | Smoke injects probe usage events and queries overview/timeseries/breakdown/export across session + `/v1` routes | usage totals and breakdown payloads include fresh probe data; CSV exports include expected headers |
+
+Recommended deterministic execution command (clean-db):
+
+```bash
+cd server
+rm -f storage/anythingllm.db
+npx prisma migrate deploy --schema=./prisma/schema.prisma
+AUTH_TOKEN="EnterprisePass123!" JWT_SECRET="enterprise-smoke-secret" NODE_ENV=development node index.js
+# in another shell:
+AUTH_TOKEN="EnterprisePass123!" JWT_SECRET="enterprise-smoke-secret" ./scripts/enterprise-smoke-test.sh
+```
+
 ## CI validation workflow
 
 The repository includes an `Enterprise Validation` GitHub Actions workflow that runs on `push` and `pull_request` for the enterprise branch work.
