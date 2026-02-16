@@ -96,7 +96,8 @@ yarn test \
   server/__tests__/utils/helpers/systemPreferenceAccess.test.js \
   server/__tests__/utils/policies/chatPolicy.test.js \
   server/__tests__/utils/middleware/featureGate.test.js \
-  server/__tests__/utils/middleware/validApiKey.enterprise.test.js
+  server/__tests__/utils/middleware/validApiKey.enterprise.test.js \
+  server/__tests__/utils/middleware/multiUserProtected.enterprise.test.js
 
 # api key scope mapping suite includes coverage for:
 # - admin/workspace/workspace-thread/openai route families
@@ -107,6 +108,10 @@ yarn test \
 # - revoked/expired/missing-scope denial paths
 # - no-required-scope pass-through
 # - response locals propagation for multi-user mode + api key context
+# multiUserProtected middleware suite includes:
+# - strict/flex role gate behavior across enabled/disabled multi-user mode
+# - deterministic `401` denial behavior for role-mismatched admin routes
+# - setup guard behavior (`isMultiUserSetup`) when multi-user mode is disabled
 # systemPreferenceAccess helper suite includes:
 # - manager enterprise-flag restricted key detection
 # - manager-only access error generation for restricted keys
