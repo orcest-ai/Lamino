@@ -142,6 +142,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - API key lifecycle checks include malformed `expiresAt`/`revokedAt` payload rejection assertions with explicit validation messages
 # - effective usage-policy endpoints (`/admin` and `/v1/admin`) are validated against malformed `teamIds` query payloads and must resolve identically to clean team-id inputs
 # - policy enforcement matrix includes maxPromptLength, maxTokensPerDay, and maxChatsPerDay denial paths using scoped chat keys
+# - usage-policy feature-gate checks include denial assertions for effective-policy routes on both session and `/v1` admin surfaces
 
 # convenience script aliases from repo root
 yarn test:enterprise
