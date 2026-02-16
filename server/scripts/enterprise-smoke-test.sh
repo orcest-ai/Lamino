@@ -401,13 +401,25 @@ if [[ -z "${ADMIN_TOKEN}" ]]; then
   BOOTSTRAP_USERNAME="${BOOTSTRAP_USERNAME_SEED}"
   request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 
-  if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
-    BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
-    log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
-    request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+  if [[ "$HTTP_STATUS" == "400" ]]; then
+    if contains_text "$HTTP_BODY" "already exists"; then
+      BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
+      log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
+      request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+    else
+      log "FAILED: bootstrap enable-multi-user rejected payload."
+      log "Response: ${HTTP_BODY}"
+      exit 1
+    fi
   fi
 
-  if [[ "$HTTP_STATUS" != "200" && "$HTTP_STATUS" != "400" ]]; then
+  if [[ "$HTTP_STATUS" == "400" ]]; then
+    log "FAILED: bootstrap enable-multi-user retry did not succeed."
+    log "Response: ${HTTP_BODY}"
+    exit 1
+  fi
+
+  if [[ "$HTTP_STATUS" != "200" ]]; then
     log "FAILED: bootstrap multi-user mode (${HTTP_STATUS})"
     log "Response: ${HTTP_BODY}"
     exit 1

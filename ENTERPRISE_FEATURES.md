@@ -133,6 +133,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - bootstrap username seeds are normalized (lowercased, sanitized, length-bounded) before `enable-multi-user` retries to avoid invalid-username edge cases
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - smoke fails fast with explicit credential guidance when multi-user mode is already enabled but admin login credentials are invalid
+# - bootstrap `enable-multi-user` 400 payload rejections now fail immediately with explicit diagnostics unless the error is a handled username-collision retry
 # - default user denied /admin/teams
 # - manager user can list/create teams
 # - manager user can still update non-enterprise preferences (e.g., `custom_app_name`), persistence is verified, and restoration to the original value is explicitly confirmed; enterprise flag writes are denied with explicit key-level error messages (including direct keys and `feature_flags` payload updates)
