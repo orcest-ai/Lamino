@@ -253,6 +253,9 @@ wait_for_api() {
 
 cleanup() {
   set +e
+  if [[ -n "${ADMIN_TOKEN:-}" && -n "${ORIGINAL_CUSTOM_APP_NAME_JSON:-}" ]]; then
+    request "POST" "/admin/system-preferences" "{\"custom_app_name\":${ORIGINAL_CUSTOM_APP_NAME_JSON}}" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${ADMIN_TOKEN:-}" ]]; then
     request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\",\"enterprise_prompt_library\":\"enabled\",\"enterprise_usage_monitoring\":\"enabled\",\"enterprise_usage_policies\":\"enabled\"}" "${ADMIN_TOKEN:-}"
   fi
@@ -451,13 +454,27 @@ MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
 
 request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${ADMIN_TOKEN}"
 assert_status "200" "load current custom app name for manager preference test"
-CUSTOM_APP_NAME_JSON="$(json_get_json_value "$HTTP_BODY" "settings.custom_app_name")"
-if [[ -z "${CUSTOM_APP_NAME_JSON}" ]]; then
-  CUSTOM_APP_NAME_JSON="null"
+ORIGINAL_CUSTOM_APP_NAME_JSON="$(json_get_json_value "$HTTP_BODY" "settings.custom_app_name")"
+if [[ -z "${ORIGINAL_CUSTOM_APP_NAME_JSON}" ]]; then
+  ORIGINAL_CUSTOM_APP_NAME_JSON="null"
 fi
 
-request "POST" "/admin/system-preferences" "{\"custom_app_name\":${CUSTOM_APP_NAME_JSON}}" "${MANAGER_TOKEN}"
+MANAGER_TEMP_APP_NAME="qa-manager-app-${RUN_ID}"
+request "POST" "/admin/system-preferences" "{\"custom_app_name\":$(json_quote "${MANAGER_TEMP_APP_NAME}")}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can update non-enterprise system preference"
+
+request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${ADMIN_TOKEN}"
+assert_status "200" "verify manager custom app name update persisted"
+UPDATED_CUSTOM_APP_NAME="$(json_get_or_empty "$HTTP_BODY" "settings.custom_app_name")"
+if [[ "${UPDATED_CUSTOM_APP_NAME}" != "${MANAGER_TEMP_APP_NAME}" ]]; then
+  log "FAILED: manager custom_app_name update was not persisted."
+  log "Expected: ${MANAGER_TEMP_APP_NAME} | Actual: ${UPDATED_CUSTOM_APP_NAME}"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"custom_app_name\":${ORIGINAL_CUSTOM_APP_NAME_JSON}}" "${ADMIN_TOKEN}"
+assert_status "200" "restore original custom app name after manager preference test"
 
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${MANAGER_TOKEN}"
 assert_status "403" "manager denied enterprise key system preference writes"
