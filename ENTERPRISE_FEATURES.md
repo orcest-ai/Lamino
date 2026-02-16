@@ -85,6 +85,8 @@ When disabled:
   - set `USAGE_EVENTS_RETENTION_DAYS=<positive-integer>` to enable daily background pruning of older `usage_events` rows.
   - unset/invalid values disable retention cleanup safely.
   - optional one-off cleanup can be triggered with `yarn usage:cleanup-events` (respects `USAGE_EVENTS_RETENTION_DAYS`).
+  - example one-off execution:
+    - `USAGE_EVENTS_RETENTION_DAYS=30 yarn usage:cleanup-events`
 
 ## Validation checklist
 
