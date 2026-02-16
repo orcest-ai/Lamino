@@ -406,6 +406,12 @@ if [[ -z "${ADMIN_TOKEN}" ]]; then
       BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
       log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
       request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+      if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
+        BOOTSTRAP_FALLBACK_SUFFIX="$(printf '%s' "$(date +%s)-$RANDOM" | tr -cd '[:alnum:]' | cut -c1-12)"
+        BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${BOOTSTRAP_FALLBACK_SUFFIX}")"
+        log "Bootstrap retry username already exists; retrying as ${BOOTSTRAP_USERNAME}"
+        request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+      fi
     else
       log "FAILED: bootstrap enable-multi-user rejected payload."
       log "Response: ${HTTP_BODY}"
@@ -549,6 +555,22 @@ request "POST" "/admin/system-preferences" "{\"enterprise_usage_monitoring\":\"d
 assert_status "403" "manager denied usage monitoring enterprise key writes"
 if ! contains_text "$HTTP_BODY" "Managers cannot update enterprise_usage_monitoring"; then
   log "FAILED: manager usage monitoring denial missing expected error message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"enterprise_prompt_library\":\"disabled\"}" "${MANAGER_TOKEN}"
+assert_status "403" "manager denied prompt library enterprise key writes"
+if ! contains_text "$HTTP_BODY" "Managers cannot update enterprise_prompt_library"; then
+  log "FAILED: manager prompt library denial missing expected error message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "POST" "/admin/system-preferences" "{\"enterprise_usage_policies\":\"disabled\"}" "${MANAGER_TOKEN}"
+assert_status "403" "manager denied usage policy enterprise key writes"
+if ! contains_text "$HTTP_BODY" "Managers cannot update enterprise_usage_policies"; then
+  log "FAILED: manager usage policy denial missing expected error message."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi

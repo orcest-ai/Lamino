@@ -136,7 +136,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - bootstrap `enable-multi-user` 400 payload rejections now fail immediately with explicit diagnostics unless the error is a handled username-collision retry
 # - default user denied /admin/teams
 # - manager user can list/create teams
-# - manager user can still update non-enterprise preferences (e.g., `custom_app_name`), persistence is verified, and restoration to the original value is explicitly confirmed; enterprise flag writes are denied with explicit key-level error messages (including multiple direct enterprise keys and `feature_flags` payload updates)
+# - manager user can still update non-enterprise preferences (e.g., `custom_app_name`), persistence is verified, and restoration to the original value is explicitly confirmed; enterprise flag writes are denied with explicit key-level error messages across all direct enterprise keys (`enterprise_teams`, `enterprise_prompt_library`, `enterprise_usage_monitoring`, `enterprise_usage_policies`) and `feature_flags` payload updates
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
@@ -187,4 +187,4 @@ Workflow reliability safeguards:
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic
-- smoke bootstrap fallback that retries with a unique admin username if `enable-multi-user` reports username collisions
+- smoke bootstrap fallback retries `enable-multi-user` with progressively unique normalized usernames (run-id based, then timestamp/random fallback) when username-collision errors are returned
