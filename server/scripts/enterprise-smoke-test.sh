@@ -1145,4 +1145,10 @@ assert_status "401" "manager denied admin api key update"
 request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${MANAGER_TOKEN}"
 assert_status "401" "manager denied admin api key deletion"
 
+log "Verifying default user cannot mutate admin API key records"
+request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-default-denied-update-${RUN_ID}\"}" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied admin api key update"
+request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied admin api key deletion"
+
 log "Smoke test completed successfully."
