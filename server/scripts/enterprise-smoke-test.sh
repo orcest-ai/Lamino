@@ -1453,6 +1453,15 @@ if ! contains_text "$HTTP_BODY" "revoked"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "POST" "/admin/api-keys/${AUTH_READ_KEY_ID}" "{\"revokedAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
+assert_status "200" "revoke auth read key"
+request "GET" "/v1/auth" "" "${AUTH_READ_KEY}"
+assert_status "403" "revoked auth key denied"
+if ! contains_text "$HTTP_BODY" "revoked"; then
+  log "FAILED: revoked auth key denial missing expected message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 log "Verifying manager cannot mutate admin API key records"
 request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-manager-denied-update-${RUN_ID}\"}" "${MANAGER_TOKEN}"
