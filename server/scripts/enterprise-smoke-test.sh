@@ -307,6 +307,12 @@ cleanup() {
   if [[ -n "${TEMPLATE_ID:-}" ]]; then
     request "DELETE" "/admin/prompt-templates/${TEMPLATE_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${MANAGER_TEMPLATE_ID:-}" ]]; then
+    request "DELETE" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
+  if [[ -n "${UNEXPECTED_DEFAULT_TEMPLATE_ID:-}" ]]; then
+    request "DELETE" "/admin/prompt-templates/${UNEXPECTED_DEFAULT_TEMPLATE_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -585,6 +591,17 @@ if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_DEFAULT_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
 fi
 assert_status "401" "default user denied usage policy writes"
+request "GET" "/admin/prompt-templates" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied prompt template reads"
+request "POST" "/admin/prompt-templates/new" "{\"name\":\"qa-default-denied-template-${RUN_ID}\",\"scope\":\"system\"}" "${TEAM_USER_TOKEN}"
+if [[ "$HTTP_STATUS" == "200" ]]; then
+  UNEXPECTED_DEFAULT_TEMPLATE_ID="$(json_get_or_empty "$HTTP_BODY" "template.id")"
+fi
+assert_status "401" "default user denied prompt template writes"
+request "POST" "/admin/prompt-templates/999999" "{\"name\":\"qa-default-denied-template-update-${RUN_ID}\"}" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied prompt template update writes"
+request "DELETE" "/admin/prompt-templates/999999" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied prompt template deletion"
 request "POST" "/admin/usage-policies/999999" "{\"name\":\"qa-default-denied-policy-update-${RUN_ID}\"}" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage policy update writes"
 request "DELETE" "/admin/usage-policies/999999" "" "${TEAM_USER_TOKEN}"
@@ -691,6 +708,16 @@ if ! contains_text "$HTTP_BODY" "rules"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "GET" "/admin/prompt-templates" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read prompt templates"
+request "POST" "/admin/prompt-templates/new" "{\"name\":\"qa-manager-template-${RUN_ID}\",\"scope\":\"system\",\"prompt\":\"Manager template ${RUN_ID}\"}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can create prompt template"
+MANAGER_TEMPLATE_ID="$(json_get_or_empty "$HTTP_BODY" "template.id")"
+request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "{\"name\":\"qa-manager-template-updated-${RUN_ID}\"}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can update prompt template"
+request "DELETE" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can delete prompt template"
+MANAGER_TEMPLATE_ID=""
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-manager-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create usage policy"
 MANAGER_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
