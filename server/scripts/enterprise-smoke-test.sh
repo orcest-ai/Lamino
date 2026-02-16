@@ -1494,6 +1494,13 @@ if ! contains_text "$HTTP_BODY" "revoked"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "POST" "/v1/admin/teams/new" "{\"name\":\"qa-revoked-wildcard-denied-${RUN_ID}\"}" "${WILDCARD_KEY}"
+assert_status "403" "revoked wildcard key denied on admin writes"
+if ! contains_text "$HTTP_BODY" "revoked"; then
+  log "FAILED: revoked wildcard key admin-write denial missing expected message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 log "Verifying manager cannot mutate admin API key records"
 request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-manager-denied-update-${RUN_ID}\"}" "${MANAGER_TOKEN}"

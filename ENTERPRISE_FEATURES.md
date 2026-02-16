@@ -195,7 +195,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - prompt apply checks include post-apply workspace prompt verification and admin:read denial on v1 api-key update
 # - workspace:chat key denial checks include access attempts to admin-read routes (scope boundary validation)
 # - API key lifecycle checks include explicit expired-key and revoked-key denial assertions
-# - revoked-key lifecycle checks cover `/v1/admin/*` and `/v1/auth` surfaces for admin:read, auth:read, and wildcard (`*`) keys
+# - revoked-key lifecycle checks cover `/v1/admin/*` (read + write) and `/v1/auth` surfaces for admin:read, auth:read, and wildcard (`*`) keys
 # - API key lifecycle checks include malformed `expiresAt`/`revokedAt` payload rejection assertions with explicit validation messages
 # - effective usage-policy endpoints (`/admin` and `/v1/admin`) are validated against malformed `userId`, `workspaceId`, and `teamIds` query payloads and must resolve identically to clean-id inputs
 # - policy enforcement matrix includes maxPromptLength, maxTokensPerDay, and maxChatsPerDay denial paths using scoped chat keys
