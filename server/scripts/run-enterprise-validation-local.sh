@@ -262,6 +262,56 @@ console.log(JSON.stringify(payload, null, 2));
   exit 1
 fi
 
-echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok)."
+EXPECTED_MATRIX_CHECKS=(
+  "multi-user-mode-admin-manager-default"
+  "team-assigned-workspace-visibility"
+  "policy-enforcement-paths"
+  "scoped-api-key-failures-successes"
+  "usage-dashboard-data-freshness"
+)
+if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
+  EXPECTED_MATRIX_CHECKS=("single-user-mode" "${EXPECTED_MATRIX_CHECKS[@]}")
+fi
+
+SMOKE_SUMMARY_MISSING_MATRIX_CHECKS="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const expected = process.argv.slice(2).filter(Boolean);
+const passed = Array.isArray(payload.verificationMatrix?.passed)
+  ? payload.verificationMatrix.passed
+  : [];
+const missing = expected.filter((check) => !passed.includes(check));
+process.stdout.write(missing.join(","));
+' "${SMOKE_SUMMARY_PATH}" "${EXPECTED_MATRIX_CHECKS[@]}" 2>/dev/null || true
+)"
+if [[ -n "${SMOKE_SUMMARY_MISSING_MATRIX_CHECKS}" ]]; then
+  echo "[enterprise-local-validation] Smoke summary verificationMatrix is missing required checks: ${SMOKE_SUMMARY_MISSING_MATRIX_CHECKS}"
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+SMOKE_SUMMARY_MATRIX_STATUS="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(payload.verificationMatrix?.status || "");
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+if [[ "${SMOKE_SUMMARY_MATRIX_STATUS}" != "pass" ]]; then
+  echo "[enterprise-local-validation] Smoke summary verificationMatrix status is not pass (got: ${SMOKE_SUMMARY_MATRIX_STATUS:-<empty>})."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok, matrixChecks=ok)."
 
 echo "[enterprise-local-validation] Enterprise local validation succeeded."

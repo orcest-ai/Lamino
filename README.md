@@ -209,7 +209,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
   - Optional to skip single-user preflight branch while still running full smoke: `LOCAL_SINGLE_USER_TOKEN="" yarn validate:enterprise:local`.
   - Optional to intentionally reuse an already-running API server on the same port: `ALLOW_PORT_REUSE=1 yarn validate:enterprise:local`.
   - Optional smoke summary output path override: `SMOKE_SUMMARY_PATH="/tmp/my-smoke-summary.json" yarn validate:enterprise:local`.
-  - Smoke summary now includes phase telemetry (`currentPhase`, `phaseHistory`) and `requestCount`; validator enforces `status=success`, `currentPhase=completed`, `requestCount>0`, and required matrix phases in `phaseHistory` (including `single-user-preflight` when single-user token validation is enabled).
+  - Smoke summary now includes phase telemetry (`currentPhase`, `phaseHistory`), `requestCount`, and `verificationMatrix` (`required`/`passed`/`missing` checks); validator enforces `status=success`, `currentPhase=completed`, `requestCount>0`, required matrix phases in `phaseHistory`, and `verificationMatrix.status=pass` (including `single-user-mode` when single-user token validation is enabled).
   - Optional extra smoke flags: `EXTRA_SMOKE_ARGS="--run-id my-debug-run" yarn validate:enterprise:local`.
 - `yarn validate:enterprise:ci-local` Run the CI-equivalent enterprise pipeline locally (tests + OpenAPI drift check + frontend build + deterministic smoke).
   - Optional for quicker local debugging: `SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local`.

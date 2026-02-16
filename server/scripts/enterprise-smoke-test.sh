@@ -19,6 +19,15 @@ RESULT_MESSAGE="Smoke test did not complete."
 STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 CURRENT_PHASE="init"
 PHASE_HISTORY=()
+MATRIX_REQUIRED_CHECKS=(
+  "multi-user-mode-admin-manager-default"
+  "team-assigned-workspace-visibility"
+  "policy-enforcement-paths"
+  "scoped-api-key-failures-successes"
+  "usage-dashboard-data-freshness"
+)
+MATRIX_CHECKS_PASSED=()
+SINGLE_USER_MATRIX_REQUIRED="false"
 
 log() {
   local message="$*"
@@ -106,6 +115,21 @@ const payload = {
   requestCount: Number(process.argv[10] || 0),
   currentPhase: process.argv[11] || "unknown",
   phaseHistory: (process.argv[12] || "").split("|").filter(Boolean),
+  verificationMatrix: (() => {
+    const requiredBase = (process.argv[13] || "").split("|").filter(Boolean);
+    const passed = (process.argv[14] || "").split("|").filter(Boolean);
+    const requireSingleUser = process.argv[15] === "true";
+    const required = requireSingleUser
+      ? ["single-user-mode", ...requiredBase]
+      : requiredBase;
+    const missing = required.filter((check) => !passed.includes(check));
+    return {
+      status: missing.length === 0 ? "pass" : "incomplete",
+      required,
+      passed,
+      missing,
+    };
+  })(),
 };
 fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
 ' "${SMOKE_SUMMARY_FILE}" \
@@ -119,13 +143,27 @@ fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
     "${REQUEST_COUNT}" \
     "${CURRENT_PHASE}" \
-    "$(IFS='|'; echo "${PHASE_HISTORY[*]}")"
+    "$(IFS='|'; echo "${PHASE_HISTORY[*]}")" \
+    "$(IFS='|'; echo "${MATRIX_REQUIRED_CHECKS[*]}")" \
+    "$(IFS='|'; echo "${MATRIX_CHECKS_PASSED[*]}")" \
+    "${SINGLE_USER_MATRIX_REQUIRED}"
 }
 
 set_phase() {
   local phase="$1"
   CURRENT_PHASE="${phase}"
   PHASE_HISTORY+=("${phase}")
+}
+
+mark_matrix_check() {
+  local key="$1"
+  local existing
+  for existing in "${MATRIX_CHECKS_PASSED[@]}"; do
+    if [[ "${existing}" == "${key}" ]]; then
+      return 0
+    fi
+  done
+  MATRIX_CHECKS_PASSED+=("${key}")
 }
 
 request() {
@@ -481,6 +519,7 @@ request "GET" "/system/multi-user-mode"
 assert_status "200" "read multi-user mode setting"
 CURRENT_MULTI_USER_MODE="$(json_get_or_empty "$HTTP_BODY" "multiUserMode")"
 if [[ "${CURRENT_MULTI_USER_MODE}" == "false" && -n "${SINGLE_USER_AUTH_TOKEN}" ]]; then
+  SINGLE_USER_MATRIX_REQUIRED="true"
   set_phase "single-user-preflight"
   log "Verifying single-user authentication path before bootstrap"
   request "POST" "/request-token" "{\"password\":$(json_quote "invalid-${RUN_ID}")}"
@@ -499,6 +538,7 @@ if [[ "${CURRENT_MULTI_USER_MODE}" == "false" && -n "${SINGLE_USER_AUTH_TOKEN}" 
     log "Response: ${HTTP_BODY}"
     exit 1
   fi
+  mark_matrix_check "single-user-mode"
 elif [[ "${CURRENT_MULTI_USER_MODE}" == "false" ]]; then
   log "Single-user auth check skipped (SINGLE_USER_AUTH_TOKEN/AUTH_TOKEN not provided)."
 fi
@@ -639,6 +679,7 @@ if contains_text "$HTTP_BODY" "$ISOLATED_WORKSPACE_SLUG"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+mark_matrix_check "team-assigned-workspace-visibility"
 
 set_phase "default-role-matrix"
 log "Asserting default users cannot access team admin routes"
@@ -1024,6 +1065,7 @@ if [[ "${POST_MANAGER_ENTERPRISE_TEAMS_FLAG}" != "${BASELINE_ENTERPRISE_TEAMS_FL
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+mark_matrix_check "multi-user-mode-admin-manager-default"
 
 set_phase "feature-gates"
 log "Verifying team feature gate denies team routes when disabled"
@@ -1126,6 +1168,7 @@ if (( UPDATED_USAGE_TOTAL_TOKENS < BASE_USAGE_TOTAL_TOKENS + PROBE_TOTAL_TOKENS 
   log "Before totalTokens=${BASE_USAGE_TOTAL_TOKENS}, after totalTokens=${UPDATED_USAGE_TOTAL_TOKENS}, expectedIncrease=${PROBE_TOTAL_TOKENS}, probeEventId=${PROBE_USAGE_EVENT_ID}"
   exit 1
 fi
+mark_matrix_check "usage-dashboard-data-freshness"
 
 set_phase "prompt-library"
 log "Verifying prompt library feature gate denies template routes when disabled"
@@ -1273,6 +1316,7 @@ if ! contains_text "$HTTP_BODY" "Daily chat quota reached"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+mark_matrix_check "policy-enforcement-paths"
 
 set_phase "api-key-scopes"
 log "Verifying malformed API key datetime payloads are rejected"
@@ -1594,6 +1638,7 @@ request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"name\":\"qa-default-de
 assert_status "401" "default user denied admin api key update"
 request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied admin api key deletion"
+mark_matrix_check "scoped-api-key-failures-successes"
 
 set_phase "completed"
 RESULT_STATUS="success"
