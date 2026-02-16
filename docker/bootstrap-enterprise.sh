@@ -8,6 +8,8 @@ SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-}"
 MAX_RETRIES="${MAX_RETRIES:-60}"
 SLEEP_SECONDS="${SLEEP_SECONDS:-2}"
 AUTH_HEADER_ARGS=()
+HTTP_RESPONSE_STATUS=""
+HTTP_RESPONSE_BODY=""
 
 log() {
   printf '[bootstrap-enterprise] %s\n' "$*"
@@ -80,6 +82,24 @@ json_escape() {
   printf '%s' "$value"
 }
 
+post_json() {
+  local url="$1"
+  local payload="$2"
+  shift 2
+
+  local raw_response
+  raw_response="$(
+    curl -sS -X POST "${url}" \
+      "$@" \
+      -H "Content-Type: application/json" \
+      -d "${payload}" \
+      -w $'\n%{http_code}' || true
+  )"
+
+  HTTP_RESPONSE_STATUS="${raw_response##*$'\n'}"
+  HTTP_RESPONSE_BODY="${raw_response%$'\n'*}"
+}
+
 wait_for_api() {
   local attempt=1
   while [[ "$attempt" -le "$MAX_RETRIES" ]]; do
@@ -111,32 +131,29 @@ is_multi_user_enabled() {
 }
 
 enable_multi_user() {
-  local payload response
+  local payload
   payload="$(printf '{"username":"%s","password":"%s"}' \
     "$(json_escape "$ADMIN_USERNAME")" \
     "$(json_escape "$ADMIN_PASSWORD")")"
-  response="$(curl -fsS -X POST "${BASE_URL}/api/system/enable-multi-user" \
-    "${AUTH_HEADER_ARGS[@]}" \
-    -H "Content-Type: application/json" \
-    -d "$payload" || true)"
+  post_json "${BASE_URL}/api/system/enable-multi-user" "${payload}" "${AUTH_HEADER_ARGS[@]}"
 
-  if [[ -z "$response" ]]; then
-    log "No response from /api/system/enable-multi-user"
+  if [[ -z "$HTTP_RESPONSE_BODY" || "$HTTP_RESPONSE_STATUS" == "000" ]]; then
+    log "No response from /api/system/enable-multi-user (status=${HTTP_RESPONSE_STATUS:-unknown})"
     return 1
   fi
 
-  if [[ "$response" == *'"success":true'* ]]; then
+  if [[ "$HTTP_RESPONSE_BODY" == *'"success":true'* ]]; then
     log "Multi-user mode enabled and admin account created."
     return 0
   fi
 
-  if [[ "$response" == *"already enabled"* ]]; then
+  if [[ "$HTTP_RESPONSE_BODY" == *"already enabled"* ]]; then
     log "Multi-user mode was already enabled."
     return 0
   fi
 
-  log "Failed enabling multi-user mode. Response: $response"
-  if [[ -z "$SINGLE_USER_AUTH_TOKEN" && "$response" == *"No auth token found."* ]]; then
+  log "Failed enabling multi-user mode (status=${HTTP_RESPONSE_STATUS}). Response: ${HTTP_RESPONSE_BODY}"
+  if [[ -z "$SINGLE_USER_AUTH_TOKEN" && "$HTTP_RESPONSE_STATUS" == "401" ]]; then
     log "Hint: pass --single-user-token or set SINGLE_USER_AUTH_TOKEN when AUTH_TOKEN is configured."
   fi
   return 1
@@ -149,25 +166,23 @@ request_single_user_session() {
 
   log "Requesting single-user session token for bootstrap."
 
-  local payload response session_token
+  local payload session_token
   payload="$(printf '{"password":"%s"}' "$(json_escape "$SINGLE_USER_AUTH_TOKEN")")"
-  response="$(curl -sS -X POST "${BASE_URL}/api/request-token" \
-    -H "Content-Type: application/json" \
-    -d "$payload" || true)"
+  post_json "${BASE_URL}/api/request-token" "${payload}"
 
-  if [[ -z "$response" ]]; then
-    log "No response from /api/request-token"
+  if [[ -z "$HTTP_RESPONSE_BODY" || "$HTTP_RESPONSE_STATUS" == "000" ]]; then
+    log "No response from /api/request-token (status=${HTTP_RESPONSE_STATUS:-unknown})"
     return 1
   fi
 
-  if [[ "$response" != *'"valid":true'* ]]; then
-    log "Failed acquiring single-user session token. Response: $response"
+  if [[ "$HTTP_RESPONSE_STATUS" != "200" || "$HTTP_RESPONSE_BODY" != *'"valid":true'* ]]; then
+    log "Failed acquiring single-user session token (status=${HTTP_RESPONSE_STATUS}). Response: ${HTTP_RESPONSE_BODY}"
     return 1
   fi
 
-  session_token="$(printf '%s' "$response" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
+  session_token="$(printf '%s' "$HTTP_RESPONSE_BODY" | sed -n 's/.*"token":"\([^"]*\)".*/\1/p')"
   if [[ -z "$session_token" ]]; then
-    log "Token response was valid but no token was found. Response: $response"
+    log "Token response was valid but no token was found. Response: ${HTTP_RESPONSE_BODY}"
     return 1
   fi
 
