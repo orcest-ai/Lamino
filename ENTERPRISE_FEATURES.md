@@ -24,7 +24,7 @@ This repository includes an additive enterprise layer for team and commercial op
 3. **Usage Monitoring**
    - Normalized `usage_events` capture from workspace/embed chat persistence
    - Metric sanitization guards convert malformed numeric usage values to safe defaults and clamp negative values before persistence
-   - Identifier/timestamp sanitization guards normalize malformed or non-positive ids to `null` and invalid `occurredAt` values to safe current timestamps
+   - Identifier/timestamp sanitization guards normalize malformed, decimal, or non-positive ids to `null` and invalid `occurredAt` values to safe current timestamps
    - Usage analytics query filters sanitize invalid/blank values, require positive integer IDs, and bound day-window inputs to sane limits
    - Inverted `from/to` query windows are normalized to a valid chronological range
    - Overview, timeseries, breakdown, and CSV export APIs
@@ -34,7 +34,7 @@ This repository includes an additive enterprise layer for team and commercial op
 
 4. **Usage Policy Engine**
    - Scoped policy CRUD (`system`, `team`, `workspace`, `user`)
-   - Policy payload normalization sanitizes malformed ids/priority/boolean fields to stable safe defaults
+   - Policy payload normalization sanitizes malformed/decimal/non-positive ids and malformed priority/boolean fields to stable safe defaults
    - Effective policy resolution and chat preflight enforcement
    - Endpoints:
      - Session API: `/api/admin/usage-policies*`
