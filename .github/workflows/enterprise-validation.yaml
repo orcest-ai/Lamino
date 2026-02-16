@@ -50,15 +50,9 @@ jobs:
       - name: Build frontend
         run: cd frontend && yarn build
 
-      - name: Reset SQLite database for deterministic smoke run
-        run: rm -f server/storage/anythingllm.db
-
-      - name: Prepare database for smoke test
-        run: cd server && npx prisma migrate deploy
-
       - name: Run enterprise smoke test
         run: |
-          RESET_DB=0 \
+          RESET_DB=1 \
           PORT=3001 \
           AUTH_TOKEN="ci-single-user-token" \
           JWT_SECRET="ci-enterprise-secret" \

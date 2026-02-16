@@ -213,9 +213,7 @@ Validation stages:
 - run `yarn test:enterprise`
 - regenerate OpenAPI spec and fail if `server/swagger/openapi.json` is stale
 - build frontend bundle
-- reset `server/storage/anythingllm.db` for deterministic validation state
-- run `npx prisma migrate deploy` in `server`
-- run one-command local validator (`yarn validate:enterprise:local`) with CI-specific env (including collision-seeding mode)
+- run one-command local validator (`yarn validate:enterprise:local`) with CI-specific env (deterministic DB reset + migrate + collision-seeding mode)
 
 Workflow reliability safeguards:
 
