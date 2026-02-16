@@ -14,6 +14,7 @@ const { PromptTemplateVersion } = require("../../../models/promptTemplateVersion
 const { UsageEvents } = require("../../../models/usageEvents");
 const { UsagePolicies } = require("../../../models/usagePolicies");
 const {
+  parseIdFilter,
   parseIdList,
   usageBaseClause,
   timeSeriesBucket,
@@ -1442,10 +1443,8 @@ function apiAdminEndpoints(app) {
         }
         const teamIds = parseIdList(request.query?.teamIds);
         const { rules, policies } = await UsagePolicies.resolveRulesFor({
-          userId: request.query?.userId ? Number(request.query.userId) : null,
-          workspaceId: request.query?.workspaceId
-            ? Number(request.query.workspaceId)
-            : null,
+          userId: parseIdFilter(request.query?.userId),
+          workspaceId: parseIdFilter(request.query?.workspaceId),
           teamIds,
         });
         response.status(200).json({ rules, policies, error: null });
