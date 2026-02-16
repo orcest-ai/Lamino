@@ -103,8 +103,12 @@ if ! curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
 fi
 
 echo "[enterprise-local-validation] Running enterprise smoke test."
-BASE_URL="${BASE_URL}" AUTH_TOKEN="${AUTH_TOKEN}" JWT_SECRET="${JWT_SECRET}" \
+if ! BASE_URL="${BASE_URL}" AUTH_TOKEN="${AUTH_TOKEN}" JWT_SECRET="${JWT_SECRET}" \
   ADMIN_USERNAME="${ADMIN_USERNAME}" ADMIN_PASSWORD="${ADMIN_PASSWORD}" RUN_ID="${RUN_ID}" \
-  ./scripts/enterprise-smoke-test.sh --single-user-token "${AUTH_TOKEN}"
+  ./scripts/enterprise-smoke-test.sh --single-user-token "${AUTH_TOKEN}"; then
+  echo "[enterprise-local-validation] Enterprise smoke failed. Dumping server log from ${LOG_PATH}."
+  cat "${LOG_PATH}" || true
+  exit 1
+fi
 
 echo "[enterprise-local-validation] Enterprise local validation succeeded."

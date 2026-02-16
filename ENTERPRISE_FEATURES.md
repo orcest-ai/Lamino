@@ -226,6 +226,7 @@ Workflow reliability safeguards:
 - setup-node yarn dependency caching for faster repeated validation runs
 - `/api/ping` readiness polling before smoke execution
 - automatic server log dump when smoke validation fails
+- local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards
 - CI smoke invocation also uses a deliberately invalid-format `ADMIN_USERNAME` to continuously exercise bootstrap-username seed normalization logic
