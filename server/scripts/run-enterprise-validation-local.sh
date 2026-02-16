@@ -14,6 +14,7 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
 RUN_ID="${RUN_ID:-$(date +%s)-$RANDOM}"
 SEED_BOOTSTRAP_COLLISION="${SEED_BOOTSTRAP_COLLISION:-0}"
 EXTRA_SMOKE_ARGS="${EXTRA_SMOKE_ARGS:-}"
+ALLOW_PORT_REUSE="${ALLOW_PORT_REUSE:-0}"
 if [[ "${LOCAL_SINGLE_USER_TOKEN+x}" != "x" ]]; then
   LOCAL_SINGLE_USER_TOKEN="${AUTH_TOKEN}"
 fi
@@ -54,6 +55,13 @@ if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
   echo "[enterprise-local-validation] single-user auth preflight: enabled"
 else
   echo "[enterprise-local-validation] single-user auth preflight: skipped"
+fi
+
+if [[ "${ALLOW_PORT_REUSE}" != "1" ]] && curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
+  echo "[enterprise-local-validation] Port ${PORT} is already serving API traffic."
+  echo "[enterprise-local-validation] Refusing to reuse an existing server to avoid false-positive validation."
+  echo "[enterprise-local-validation] Set ALLOW_PORT_REUSE=1 to bypass this guard intentionally."
+  exit 1
 fi
 
 if [[ "${RESET_DB}" == "1" ]]; then
@@ -98,12 +106,23 @@ const prisma = new PrismaClient();
 fi
 
 echo "[enterprise-local-validation] Starting server on port ${PORT}."
-AUTH_TOKEN="${AUTH_TOKEN}" JWT_SECRET="${JWT_SECRET}" NODE_ENV=development PORT="${PORT}" node index.js >"${LOG_PATH}" 2>&1 &
+AUTH_TOKEN="${AUTH_TOKEN}" JWT_SECRET="${JWT_SECRET}" NODE_ENV=development SERVER_PORT="${PORT}" PORT="${PORT}" node index.js >"${LOG_PATH}" 2>&1 &
 SERVER_PID=$!
 trap 'kill "${SERVER_PID}" >/dev/null 2>&1 || true' EXIT
 
+if ! kill -0 "${SERVER_PID}" >/dev/null 2>&1; then
+  echo "[enterprise-local-validation] Server process exited immediately after startup."
+  cat "${LOG_PATH}" || true
+  exit 1
+fi
+
 echo "[enterprise-local-validation] Waiting for server readiness."
 for _ in {1..120}; do
+  if ! kill -0 "${SERVER_PID}" >/dev/null 2>&1; then
+    echo "[enterprise-local-validation] Server process exited before readiness."
+    cat "${LOG_PATH}" || true
+    exit 1
+  fi
   if curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
     break
   fi

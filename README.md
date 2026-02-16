@@ -204,14 +204,18 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
 - `yarn smoke:enterprise` Run the enterprise smoke test against an already running server.
 - `yarn usage:cleanup-events` Run one-off usage-events retention cleanup (uses `USAGE_EVENTS_RETENTION_DAYS`).
   - Example: `USAGE_EVENTS_RETENTION_DAYS=30 yarn usage:cleanup-events`.
+- `yarn validate:enterprise:bootstrap-local` Validate deployment bootstrap paths (auth-protected + open + missing-token hint).
 - `yarn validate:enterprise:local` Run deterministic local enterprise validation (db reset + migrate + smoke).
   - Optional to skip single-user preflight branch while still running full smoke: `LOCAL_SINGLE_USER_TOKEN="" yarn validate:enterprise:local`.
+  - Optional to intentionally reuse an already-running API server on the same port: `ALLOW_PORT_REUSE=1 yarn validate:enterprise:local`.
   - Optional extra smoke flags: `EXTRA_SMOKE_ARGS="--run-id my-debug-run" yarn validate:enterprise:local`.
 - `yarn validate:enterprise:ci-local` Run the CI-equivalent enterprise pipeline locally (tests + OpenAPI drift check + frontend build + deterministic smoke).
-  - Optional for quicker local debugging: `SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 yarn validate:enterprise:ci-local`.
+  - Optional for quicker local debugging: `SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local`.
+  - Optional smoke port override (default is `3101`): `CI_PORT=3201 yarn validate:enterprise:ci-local`.
   - Optional to mirror fresh CI dependency installation: `RUN_INSTALL=1 yarn validate:enterprise:ci-local`.
   - Optional cleanup-check retention override: `CI_USAGE_RETENTION_DAYS_CHECK=30 yarn validate:enterprise:ci-local`.
   - Optional to skip retention-disabled cleanup no-op validation: `CI_VALIDATE_USAGE_CLEANUP_NOOP=0 yarn validate:enterprise:ci-local`.
+  - Optional to skip deployment bootstrap validation: `SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local`.
   - Optional explicit single-user token override for nested smoke runner: `CI_SINGLE_USER_TOKEN="custom-token" yarn validate:enterprise:ci-local`.
   - Optional extra smoke flags passthrough: `CI_EXTRA_SMOKE_ARGS="--run-id ci-local-extra-001" yarn validate:enterprise:ci-local`.
 

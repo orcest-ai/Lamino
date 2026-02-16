@@ -206,6 +206,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 yarn test:enterprise
 yarn smoke:enterprise
 yarn usage:cleanup-events
+yarn validate:enterprise:bootstrap-local
 yarn validate:enterprise:local
 yarn validate:enterprise:ci-local
 ```
@@ -238,15 +239,17 @@ yarn validate:enterprise:ci-local
 For faster iterative local debugging (non-CI), the CI-local runner supports optional skips:
 
 ```bash
-SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 yarn validate:enterprise:ci-local
+SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local
 ```
 
 CI-local runner environment controls:
 
 - `RUN_INSTALL=1` → install root/server/frontend dependencies before validation.
+- `CI_PORT=<port>` → override CI-local smoke server port (defaults to `3101` locally).
 - `SKIP_OPENAPI_CHECK=1` → skip OpenAPI regeneration drift gate.
 - `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
 - `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
+- `SKIP_BOOTSTRAP_CHECK=1` → skip deployment bootstrap validation scenarios.
 - `CI_USAGE_RETENTION_DAYS_CHECK=<days>` → override retention days used for cleanup-command check (defaults to `1`).
 - `CI_VALIDATE_USAGE_CLEANUP_NOOP=0` → skip the additional retention-disabled/no-op cleanup validation path.
 - `CI_SINGLE_USER_TOKEN="..."` → override the nested local validator single-user token (defaults to `CI_AUTH_TOKEN`).
@@ -255,6 +258,7 @@ CI-local runner environment controls:
 Local validator runner controls:
 
 - `LOCAL_SINGLE_USER_TOKEN=""` → skip explicit single-user auth preflight while still running full smoke/bootstrap coverage.
+- `ALLOW_PORT_REUSE=1` → intentionally reuse an already-running API server on the selected port (default guard fails fast to avoid false-positive runs against stale processes).
 - `EXTRA_SMOKE_ARGS="..."` → append extra CLI flags to `enterprise-smoke-test.sh` (for targeted reproductions).
 
 To fully mirror fresh CI dependency installation locally:
@@ -271,6 +275,7 @@ Validation stages:
 
 - install root/server/frontend dependencies
 - run one-command CI-equivalent validator (`yarn validate:enterprise:ci-local`) with CI-specific env (enterprise tests + OpenAPI drift check + frontend build + deterministic smoke reset/migrate/collision-seeding)
+- CI-equivalent validator runs deployment bootstrap validation (`yarn validate:enterprise:bootstrap-local`) across auth-protected + open + missing-token-hint scenarios (unless `SKIP_BOOTSTRAP_CHECK=1`)
 - CI-equivalent validator also runs one-off usage cleanup command checks (`yarn usage:cleanup-events`) for:
   - retention-enabled path (`CI_USAGE_RETENTION_DAYS_CHECK`)
   - retention-disabled/no-op path (unless `CI_VALIDATE_USAGE_CLEANUP_NOOP=0`)
