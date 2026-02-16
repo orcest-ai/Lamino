@@ -198,6 +198,15 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
 - `yarn dev:frontend` To boot the frontend locally (from root of repo).
 - `yarn dev:collector` To then run the document collector (from root of repo).
 
+### Enterprise validation commands
+
+- `yarn test:enterprise` Run the focused enterprise backend test suite.
+- `yarn smoke:enterprise` Run the enterprise smoke test against an already running server.
+- `yarn validate:enterprise:local` Run deterministic local enterprise validation (db reset + migrate + smoke).
+- `yarn validate:enterprise:ci-local` Run the CI-equivalent enterprise pipeline locally (tests + OpenAPI drift check + frontend build + deterministic smoke).
+
+See [ENTERPRISE_FEATURES.md](./ENTERPRISE_FEATURES.md) for full validation matrix details.
+
 [Learn about documents](./server/storage/documents/DOCUMENTS.md)
 
 [Learn about vector caching](./server/storage/vector-cache/VECTOR_CACHE.md)
