@@ -234,6 +234,12 @@ For faster iterative local debugging (non-CI), the CI-local runner supports opti
 SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 yarn validate:enterprise:ci-local
 ```
 
+To fully mirror fresh CI dependency installation locally:
+
+```bash
+RUN_INSTALL=1 yarn validate:enterprise:ci-local
+```
+
 ## CI validation workflow
 
 The repository includes an `Enterprise Validation` GitHub Actions workflow that runs on `push` and `pull_request` for the enterprise branch work.
