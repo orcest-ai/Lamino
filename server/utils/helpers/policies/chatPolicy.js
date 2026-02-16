@@ -12,13 +12,23 @@ function startOfUtcDay() {
 
 function normalizeAllowedArray(value = null) {
   if (!value) return [];
-  if (Array.isArray(value)) return value.map((entry) => String(entry));
+  if (Array.isArray(value))
+    return value
+      .map((entry) => String(entry).trim())
+      .filter(Boolean);
   if (typeof value === "string")
     return value
       .split(",")
       .map((entry) => entry.trim())
       .filter(Boolean);
   return [];
+}
+
+function parsePositiveLimit(value = null) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  if (parsed <= 0) return null;
+  return parsed;
 }
 
 async function resolvePolicyContext({ user = null, workspace = null }) {
@@ -50,6 +60,9 @@ async function enforceChatPolicies({ user = null, workspace = null, message = ""
   const model = workspace?.chatModel || null;
   const allowedProviders = normalizeAllowedArray(rules.allowedProviders);
   const allowedModels = normalizeAllowedArray(rules.allowedModels);
+  const maxPromptLength = parsePositiveLimit(rules.maxPromptLength);
+  const maxChatsPerDay = parsePositiveLimit(rules.maxChatsPerDay);
+  const maxTokensPerDay = parsePositiveLimit(rules.maxTokensPerDay);
 
   if (
     allowedProviders.length > 0 &&
@@ -81,21 +94,17 @@ async function enforceChatPolicies({ user = null, workspace = null, message = ""
     };
   }
 
-  if (
-    rules.maxPromptLength &&
-    typeof message === "string" &&
-    message.length > Number(rules.maxPromptLength)
-  ) {
+  if (maxPromptLength && typeof message === "string" && message.length > maxPromptLength) {
     return {
       allowed: false,
       code: "policy_prompt_too_long",
-      error: `Prompt length exceeds policy limit of ${rules.maxPromptLength} characters.`,
+      error: `Prompt length exceeds policy limit of ${maxPromptLength} characters.`,
       policies,
       rules,
     };
   }
 
-  const needsDailyUsageCheck = !!rules.maxChatsPerDay || !!rules.maxTokensPerDay;
+  const needsDailyUsageCheck = !!maxChatsPerDay || !!maxTokensPerDay;
   if (needsDailyUsageCheck) {
     const where = {
       occurredAt: {
@@ -107,27 +116,27 @@ async function enforceChatPolicies({ user = null, workspace = null, message = ""
       eventType: { in: ["workspace_chat", "workspace_thread_chat", "embed_chat"] },
     };
 
-    if (rules.maxChatsPerDay) {
+    if (maxChatsPerDay) {
       const sentChats = await UsageEvents.count(where);
-      if (sentChats >= Number(rules.maxChatsPerDay)) {
+      if (sentChats >= maxChatsPerDay) {
         return {
           allowed: false,
           code: "policy_daily_chat_limit",
-          error: `Daily chat quota reached (${rules.maxChatsPerDay}).`,
+          error: `Daily chat quota reached (${maxChatsPerDay}).`,
           policies,
           rules,
         };
       }
     }
 
-    if (rules.maxTokensPerDay) {
+    if (maxTokensPerDay) {
       const aggregate = await UsageEvents.aggregate(where);
       const tokenCount = Number(aggregate?._sum?.totalTokens || 0);
-      if (tokenCount >= Number(rules.maxTokensPerDay)) {
+      if (tokenCount >= maxTokensPerDay) {
         return {
           allowed: false,
           code: "policy_daily_token_limit",
-          error: `Daily token quota reached (${rules.maxTokensPerDay}).`,
+          error: `Daily token quota reached (${maxTokensPerDay}).`,
           policies,
           rules,
         };

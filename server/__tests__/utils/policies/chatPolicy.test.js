@@ -63,7 +63,7 @@ describe("Chat policy enforcement", () => {
 
   it("blocks chats that use a provider disallowed by policy", async () => {
     mockUsagePolicyResolveRulesFor.mockResolvedValue({
-      rules: { allowedProviders: ["anthropic"] },
+      rules: { allowedProviders: [" anthropic ", ""] },
       policies: [{ id: 11 }],
     });
     const result = await enforceChatPolicies({
@@ -170,6 +170,26 @@ describe("Chat policy enforcement", () => {
     });
     expect(result.allowed).toBe(true);
     expect(mockUsagePolicyResolveRulesFor).not.toHaveBeenCalled();
+    expect(mockUsageEventsCount).not.toHaveBeenCalled();
+    expect(mockUsageEventsAggregate).not.toHaveBeenCalled();
+  });
+
+  it("ignores malformed numeric limits instead of enforcing them", async () => {
+    mockUsagePolicyResolveRulesFor.mockResolvedValue({
+      rules: {
+        maxPromptLength: "not-a-number",
+        maxChatsPerDay: " ",
+        maxTokensPerDay: "0",
+      },
+      policies: [{ id: 66 }],
+    });
+    const result = await enforceChatPolicies({
+      user: { id: 9 },
+      workspace: { id: 4, chatProvider: "openai", chatModel: "gpt-4o" },
+      message: "a message that should not be blocked",
+    });
+
+    expect(result.allowed).toBe(true);
     expect(mockUsageEventsCount).not.toHaveBeenCalled();
     expect(mockUsageEventsAggregate).not.toHaveBeenCalled();
   });
