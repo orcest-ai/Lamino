@@ -123,6 +123,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - API /ping readiness retry loop before executing checks
 # - default user denied /admin/teams
 # - manager user can list/create teams
+# - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
 # - enterprise_usage_monitoring gate disable/enable around /admin/usage/overview
