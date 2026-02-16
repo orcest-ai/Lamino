@@ -522,6 +522,25 @@ request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-strict-policy-${RUN_I
 assert_status "200" "create strict usage policy"
 POLICY_ID="$(json_get "$HTTP_BODY" "policy.id")"
 
+log "Verifying effective usage policy endpoints sanitize malformed teamIds"
+request "GET" "/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${ADMIN_TOKEN}"
+assert_status "200" "session effective policy with clean teamIds"
+CLEAN_EFFECTIVE_MAX_PROMPT="$(json_get_or_empty "$HTTP_BODY" "rules.maxPromptLength")"
+if [[ -z "${CLEAN_EFFECTIVE_MAX_PROMPT}" ]]; then
+  log "FAILED: clean effective policy response missing rules.maxPromptLength."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID},${TEAM_ID},foo,0,-3,4.2" "" "${ADMIN_TOKEN}"
+assert_status "200" "session effective policy with malformed teamIds"
+DIRTY_EFFECTIVE_MAX_PROMPT="$(json_get_or_empty "$HTTP_BODY" "rules.maxPromptLength")"
+if [[ "${DIRTY_EFFECTIVE_MAX_PROMPT}" != "${CLEAN_EFFECTIVE_MAX_PROMPT}" ]]; then
+  log "FAILED: malformed teamIds changed effective session policy resolution unexpectedly."
+  log "Clean maxPromptLength=${CLEAN_EFFECTIVE_MAX_PROMPT} Dirty maxPromptLength=${DIRTY_EFFECTIVE_MAX_PROMPT}"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Creating workspace:chat scoped API key"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-chat-key-${RUN_ID}\",\"scopes\":[\"workspace:chat\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create scoped chat key"
@@ -613,6 +632,25 @@ assert_status "200" "admin:read key prompt template versions list"
 
 request "GET" "/v1/admin/usage-policies" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage policies list"
+
+request "GET" "/v1/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key effective policy clean teamIds"
+V1_CLEAN_EFFECTIVE_MAX_PROMPT="$(json_get_or_empty "$HTTP_BODY" "rules.maxPromptLength")"
+if [[ -z "${V1_CLEAN_EFFECTIVE_MAX_PROMPT}" ]]; then
+  log "FAILED: v1 clean effective policy response missing rules.maxPromptLength."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "GET" "/v1/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID},${TEAM_ID},foo,0,-9,7.7" "" "${ADMIN_READ_KEY}"
+assert_status "200" "admin:read key effective policy malformed teamIds"
+V1_DIRTY_EFFECTIVE_MAX_PROMPT="$(json_get_or_empty "$HTTP_BODY" "rules.maxPromptLength")"
+if [[ "${V1_DIRTY_EFFECTIVE_MAX_PROMPT}" != "${V1_CLEAN_EFFECTIVE_MAX_PROMPT}" ]]; then
+  log "FAILED: malformed teamIds changed effective v1 policy resolution unexpectedly."
+  log "Clean maxPromptLength=${V1_CLEAN_EFFECTIVE_MAX_PROMPT} Dirty maxPromptLength=${V1_DIRTY_EFFECTIVE_MAX_PROMPT}"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 log "Verifying admin:read key can fetch team detail endpoints"
 request "GET" "/v1/admin/teams/${TEAM_ID}" "" "${ADMIN_READ_KEY}"
