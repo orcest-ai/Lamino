@@ -215,7 +215,7 @@ Validation stages:
 - build frontend bundle
 - reset `server/storage/anythingllm.db` for deterministic validation state
 - run `npx prisma migrate deploy` in `server`
-- boot server and run `server/scripts/enterprise-smoke-test.sh`
+- run one-command local validator (`yarn validate:enterprise:local`) with CI-specific env and seeded collision fixtures
 
 Workflow reliability safeguards:
 

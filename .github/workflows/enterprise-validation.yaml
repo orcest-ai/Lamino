@@ -113,26 +113,15 @@ jobs:
 
       - name: Run enterprise smoke test
         run: |
-          cd server
-          PORT=3001 NODE_ENV=development JWT_SECRET=ci-enterprise-secret AUTH_TOKEN=ci-single-user-token node index.js > /tmp/anythingllm-server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID || true' EXIT
-          for i in {1..60}; do
-            if curl -sf "http://localhost:3001/api/ping" >/dev/null; then
-              break
-            fi
-            sleep 1
-          done
-          if ! curl -sf "http://localhost:3001/api/ping" >/dev/null; then
-            echo "Server did not become healthy in time."
-            cat /tmp/anythingllm-server.log || true
-            exit 1
-          fi
-          BASE_URL="http://localhost:3001/api" \
+          RESET_DB=0 \
+          PORT=3001 \
+          AUTH_TOKEN="ci-single-user-token" \
+          JWT_SECRET="ci-enterprise-secret" \
           ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
           ADMIN_PASSWORD="EnterprisePass123!" \
           RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
-          ./scripts/enterprise-smoke-test.sh --single-user-token "ci-single-user-token" || {
+          LOG_PATH="/tmp/anythingllm-server.log" \
+          yarn validate:enterprise:local || {
             echo "Enterprise smoke test failed; dumping server log."
             cat /tmp/anythingllm-server.log || true
             exit 1
