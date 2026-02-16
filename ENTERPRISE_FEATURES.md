@@ -181,6 +181,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # convenience script aliases from repo root
 yarn test:enterprise
 yarn smoke:enterprise
+yarn validate:enterprise:local
 ```
 
 ## Manual verification matrix (phase-9 closure)
@@ -199,12 +200,7 @@ The matrix below captures the required manual (terminal-driven) verification pat
 Recommended deterministic execution command (clean-db):
 
 ```bash
-cd server
-rm -f storage/anythingllm.db
-npx prisma migrate deploy --schema=./prisma/schema.prisma
-AUTH_TOKEN="EnterprisePass123!" JWT_SECRET="enterprise-smoke-secret" NODE_ENV=development node index.js
-# in another shell:
-AUTH_TOKEN="EnterprisePass123!" JWT_SECRET="enterprise-smoke-secret" ./scripts/enterprise-smoke-test.sh
+yarn validate:enterprise:local
 ```
 
 ## CI validation workflow
