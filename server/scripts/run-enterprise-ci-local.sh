@@ -15,6 +15,8 @@ CI_PORT="${CI_PORT:-3001}"
 RUN_INSTALL="${RUN_INSTALL:-0}"
 SKIP_OPENAPI_CHECK="${SKIP_OPENAPI_CHECK:-0}"
 SKIP_FRONTEND_BUILD="${SKIP_FRONTEND_BUILD:-0}"
+SKIP_USAGE_CLEANUP_CHECK="${SKIP_USAGE_CLEANUP_CHECK:-0}"
+CI_USAGE_RETENTION_DAYS_CHECK="${CI_USAGE_RETENTION_DAYS_CHECK:-1}"
 
 cd "${REPO_ROOT}"
 
@@ -58,6 +60,13 @@ if ! RESET_DB=1 \
   echo "[enterprise-ci-local] Smoke run failed. Dumping server log from ${CI_LOG_PATH}."
   cat "${CI_LOG_PATH}" || true
   exit 1
+fi
+
+if [[ "${SKIP_USAGE_CLEANUP_CHECK}" == "1" ]]; then
+  echo "[enterprise-ci-local] Skipping usage cleanup command check (SKIP_USAGE_CLEANUP_CHECK=1)."
+else
+  echo "[enterprise-ci-local] Running usage cleanup command check."
+  USAGE_EVENTS_RETENTION_DAYS="${CI_USAGE_RETENTION_DAYS_CHECK}" yarn usage:cleanup-events
 fi
 
 echo "[enterprise-ci-local] CI-equivalent enterprise validation succeeded."

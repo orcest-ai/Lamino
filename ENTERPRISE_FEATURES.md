@@ -236,7 +236,7 @@ yarn validate:enterprise:ci-local
 For faster iterative local debugging (non-CI), the CI-local runner supports optional skips:
 
 ```bash
-SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 yarn validate:enterprise:ci-local
+SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 yarn validate:enterprise:ci-local
 ```
 
 To fully mirror fresh CI dependency installation locally:
@@ -253,6 +253,7 @@ Validation stages:
 
 - install root/server/frontend dependencies
 - run one-command CI-equivalent validator (`yarn validate:enterprise:ci-local`) with CI-specific env (enterprise tests + OpenAPI drift check + frontend build + deterministic smoke reset/migrate/collision-seeding)
+- CI-equivalent validator also runs a one-off usage cleanup command check (`yarn usage:cleanup-events`) with configurable retention input
 
 Workflow reliability safeguards:
 
