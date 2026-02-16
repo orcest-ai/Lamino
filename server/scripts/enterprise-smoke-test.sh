@@ -247,6 +247,9 @@ cleanup() {
   if [[ -n "${TOKEN_POLICY_ID:-}" ]]; then
     request "DELETE" "/admin/usage-policies/${TOKEN_POLICY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${CHAT_QUOTA_POLICY_ID:-}" ]]; then
+    request "DELETE" "/admin/usage-policies/${CHAT_QUOTA_POLICY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${TEAM_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -592,6 +595,18 @@ request "POST" "/v1/workspace/${WORKSPACE_SLUG}/chat" "{\"message\":\"short\",\"
 assert_status "403" "token quota policy blocks chat"
 if ! contains_text "$HTTP_BODY" "Daily token quota reached"; then
   log "FAILED: token quota denial missing expected message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+log "Verifying chat quota policy blocks chat when daily message cap is reached"
+request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-chat-quota-policy-${RUN_ID}\",\"scope\":\"system\",\"priority\":44,\"rules\":{\"maxChatsPerDay\":1}}" "${ADMIN_TOKEN}"
+assert_status "200" "create chat quota usage policy"
+CHAT_QUOTA_POLICY_ID="$(json_get "$HTTP_BODY" "policy.id")"
+request "POST" "/v1/workspace/${WORKSPACE_SLUG}/chat" "{\"message\":\"short\",\"mode\":\"chat\"}" "${CHAT_KEY}"
+assert_status "403" "chat quota policy blocks chat"
+if ! contains_text "$HTTP_BODY" "Daily chat quota reached"; then
+  log "FAILED: chat quota denial missing expected message."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
