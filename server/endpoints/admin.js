@@ -20,6 +20,7 @@ const {
   getEmbeddingEngineSelection,
 } = require("../utils/helpers");
 const {
+  parseIdList,
   usageBaseClause,
   timeSeriesBucket,
 } = require("../utils/helpers/usageFilters");
@@ -1154,12 +1155,7 @@ function adminEndpoints(app) {
     ],
     async (request, response) => {
       try {
-        const teamIds = request.query?.teamIds
-          ? String(request.query.teamIds)
-              .split(",")
-              .map((id) => Number(id))
-              .filter((id) => !Number.isNaN(id))
-          : [];
+        const teamIds = parseIdList(request.query?.teamIds);
         const { rules, policies } = await UsagePolicies.resolveRulesFor({
           userId: request.query?.userId ? Number(request.query.userId) : null,
           workspaceId: request.query?.workspaceId

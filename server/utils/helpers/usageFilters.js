@@ -11,6 +11,22 @@ function parseIdFilter(value = null) {
   return parsed;
 }
 
+function parseIdList(value = null) {
+  const values = Array.isArray(value)
+    ? value
+    : value === null || value === undefined
+      ? []
+      : String(value).split(",");
+
+  const normalized = [];
+  for (const item of values) {
+    const parsed = parseIdFilter(item);
+    if (parsed === null) continue;
+    if (!normalized.includes(parsed)) normalized.push(parsed);
+  }
+  return normalized;
+}
+
 function parseStringFilter(value = null) {
   if (value === null || value === undefined) return null;
   const parsed = String(value).trim();
@@ -65,6 +81,9 @@ function timeSeriesBucket(date = new Date(), interval = "day") {
 }
 
 module.exports = {
+  parseIdFilter,
+  parseIdList,
+  parseStringFilter,
   usageTimeRange,
   usageBaseClause,
   timeSeriesBucket,

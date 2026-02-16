@@ -1,10 +1,27 @@
 const {
+  parseIdFilter,
+  parseIdList,
+  parseStringFilter,
   usageTimeRange,
   usageBaseClause,
   timeSeriesBucket,
 } = require("../../../utils/helpers/usageFilters");
 
 describe("usageFilters helper", () => {
+  it("normalizes id and string primitive filters safely", () => {
+    expect(parseIdFilter("7")).toBe(7);
+    expect(parseIdFilter("7.2")).toBeNull();
+    expect(parseIdFilter("-8")).toBeNull();
+    expect(parseStringFilter("  openai  ")).toBe("openai");
+    expect(parseStringFilter("   ")).toBeNull();
+  });
+
+  it("normalizes comma-delimited id lists and drops invalid values", () => {
+    expect(parseIdList("1,2,2,foo,0,4.2,-9,3")).toEqual([1, 2, 3]);
+    expect(parseIdList(["5", "5", "7", "bad", 8])).toEqual([5, 7, 8]);
+    expect(parseIdList(null)).toEqual([]);
+  });
+
   it("falls back to a sane time window when inputs are invalid", () => {
     const { from, to } = usageTimeRange({
       days: "-4",
