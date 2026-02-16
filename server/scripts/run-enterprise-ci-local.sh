@@ -11,6 +11,7 @@ CI_ADMIN_USERNAME="${CI_ADMIN_USERNAME:-ADMIN+++CI_BOOTSTRAP_USERNAME}"
 CI_ADMIN_PASSWORD="${CI_ADMIN_PASSWORD:-EnterprisePass123!}"
 CI_RUN_ID="${CI_RUN_ID:-ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789}"
 CI_LOG_PATH="${CI_LOG_PATH:-/tmp/anythingllm-server.log}"
+CI_SMOKE_SUMMARY_PATH="${CI_SMOKE_SUMMARY_PATH:-/tmp/anythingllm-enterprise-ci-smoke-summary.json}"
 CI_PORT="${CI_PORT:-3101}"
 RUN_INSTALL="${RUN_INSTALL:-0}"
 SKIP_OPENAPI_CHECK="${SKIP_OPENAPI_CHECK:-0}"
@@ -29,7 +30,7 @@ fi
 cd "${REPO_ROOT}"
 
 echo "[enterprise-ci-local] Starting CI-equivalent enterprise validation pipeline."
-echo "[enterprise-ci-local] Settings: CI_PORT=${CI_PORT} CI_BOOTSTRAP_VALIDATION_BASE_PORT=${CI_BOOTSTRAP_VALIDATION_BASE_PORT} RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} SKIP_BOOTSTRAP_CHECK=${SKIP_BOOTSTRAP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK} CI_VALIDATE_USAGE_CLEANUP_NOOP=${CI_VALIDATE_USAGE_CLEANUP_NOOP}"
+echo "[enterprise-ci-local] Settings: CI_PORT=${CI_PORT} CI_SMOKE_SUMMARY_PATH=${CI_SMOKE_SUMMARY_PATH} CI_BOOTSTRAP_VALIDATION_BASE_PORT=${CI_BOOTSTRAP_VALIDATION_BASE_PORT} RUN_INSTALL=${RUN_INSTALL} SKIP_OPENAPI_CHECK=${SKIP_OPENAPI_CHECK} SKIP_FRONTEND_BUILD=${SKIP_FRONTEND_BUILD} SKIP_USAGE_CLEANUP_CHECK=${SKIP_USAGE_CLEANUP_CHECK} SKIP_BOOTSTRAP_CHECK=${SKIP_BOOTSTRAP_CHECK} CI_USAGE_RETENTION_DAYS_CHECK=${CI_USAGE_RETENTION_DAYS_CHECK} CI_VALIDATE_USAGE_CLEANUP_NOOP=${CI_VALIDATE_USAGE_CLEANUP_NOOP}"
 echo "[enterprise-ci-local] Auth settings: CI_AUTH_TOKEN set=$([[ -n "${CI_AUTH_TOKEN}" ]] && echo "yes" || echo "no"), CI_SINGLE_USER_TOKEN set=$([[ -n "${CI_SINGLE_USER_TOKEN}" ]] && echo "yes" || echo "no")"
 if [[ -n "${CI_EXTRA_SMOKE_ARGS}" ]]; then
   echo "[enterprise-ci-local] CI_EXTRA_SMOKE_ARGS=${CI_EXTRA_SMOKE_ARGS}"
@@ -69,10 +70,19 @@ if ! RESET_DB=1 \
   ADMIN_USERNAME="${CI_ADMIN_USERNAME}" \
   ADMIN_PASSWORD="${CI_ADMIN_PASSWORD}" \
   RUN_ID="${CI_RUN_ID}" \
+  SMOKE_SUMMARY_PATH="${CI_SMOKE_SUMMARY_PATH}" \
   EXTRA_SMOKE_ARGS="${CI_EXTRA_SMOKE_ARGS}" \
   LOG_PATH="${CI_LOG_PATH}" \
   yarn validate:enterprise:local; then
   echo "[enterprise-ci-local] Smoke run failed. Dumping server log from ${CI_LOG_PATH}."
+  if [[ -f "${CI_SMOKE_SUMMARY_PATH}" ]]; then
+    echo "[enterprise-ci-local] Smoke summary:"
+    node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${CI_SMOKE_SUMMARY_PATH}" || true
+  fi
   cat "${CI_LOG_PATH}" || true
   exit 1
 fi

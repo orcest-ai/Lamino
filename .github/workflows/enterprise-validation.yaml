@@ -48,6 +48,7 @@ jobs:
           CI_ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
           CI_ADMIN_PASSWORD="EnterprisePass123!" \
           CI_RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
+          CI_SMOKE_SUMMARY_PATH="/tmp/anythingllm-enterprise-ci-smoke-summary.json" \
           SKIP_BOOTSTRAP_CHECK="0" \
           CI_USAGE_RETENTION_DAYS_CHECK="1" \
           CI_VALIDATE_USAGE_CLEANUP_NOOP="1" \

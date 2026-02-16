@@ -6,14 +6,22 @@ ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-EnterprisePass123!}"
 SINGLE_USER_AUTH_TOKEN="${SINGLE_USER_AUTH_TOKEN:-${AUTH_TOKEN:-}}"
 RUN_ID="${RUN_ID:-$(date +%s)-$RANDOM}"
+SMOKE_SUMMARY_FILE="${SMOKE_SUMMARY_FILE:-}"
 SCRIPT_DIR="$(cd -- "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SERVER_DIR="$(cd -- "${SCRIPT_DIR}/.." && pwd)"
 
 HTTP_STATUS=""
 HTTP_BODY=""
 ADMIN_TOKEN=""
+RESULT_STATUS="failed"
+RESULT_MESSAGE="Smoke test did not complete."
+STARTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 log() {
+  local message="$*"
+  if [[ "${message}" == FAILED:* ]]; then
+    RESULT_MESSAGE="${message#FAILED: }"
+  fi
   printf '[enterprise-smoke-test] %s\n' "$*"
 }
 
@@ -28,6 +36,7 @@ Options:
   --admin-password <pass>  Admin password for login (default: EnterprisePass123!)
   --single-user-token <t>  AUTH token for single-user login verification
   --run-id <value>         Unique suffix to avoid collisions (default: timestamp-random)
+  --summary-file <path>    Optional JSON summary output path
   -h, --help               Show help
 EOF
 }
@@ -54,6 +63,10 @@ while [[ $# -gt 0 ]]; do
       RUN_ID="$2"
       shift 2
       ;;
+    --summary-file)
+      SMOKE_SUMMARY_FILE="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       exit 0
@@ -65,6 +78,40 @@ while [[ $# -gt 0 ]]; do
       ;;
   esac
 done
+
+write_summary() {
+  if [[ -z "${SMOKE_SUMMARY_FILE}" ]]; then
+    return 0
+  fi
+
+  local summary_dir
+  summary_dir="$(dirname "${SMOKE_SUMMARY_FILE}")"
+  mkdir -p "${summary_dir}"
+
+  node -e '
+const fs = require("fs");
+const summaryPath = process.argv[1];
+const payload = {
+  status: process.argv[2],
+  message: process.argv[3],
+  runId: process.argv[4],
+  baseUrl: process.argv[5],
+  adminUsername: process.argv[6],
+  singleUserPreflight: process.argv[7] === "true",
+  startedAt: process.argv[8],
+  finishedAt: process.argv[9],
+};
+fs.writeFileSync(summaryPath, JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_FILE}" \
+    "${RESULT_STATUS}" \
+    "${RESULT_MESSAGE}" \
+    "${RUN_ID}" \
+    "${BASE_URL}" \
+    "${ADMIN_USERNAME}" \
+    "$([[ -n "${SINGLE_USER_AUTH_TOKEN}" ]] && echo "true" || echo "false")" \
+    "${STARTED_AT}" \
+    "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+}
 
 request() {
   local method="$1"
@@ -367,7 +414,12 @@ cleanup() {
   set -e
 }
 
-trap cleanup EXIT
+on_exit() {
+  cleanup
+  write_summary
+}
+
+trap on_exit EXIT
 
 RUN_SUFFIX="$(printf '%s' "$RUN_ID" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]' | cut -c1-24)"
 if [[ -z "$RUN_SUFFIX" ]]; then
@@ -1514,4 +1566,6 @@ assert_status "401" "default user denied admin api key update"
 request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied admin api key deletion"
 
+RESULT_STATUS="success"
+RESULT_MESSAGE="Smoke test completed successfully."
 log "Smoke test completed successfully."

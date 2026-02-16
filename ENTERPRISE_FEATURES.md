@@ -246,6 +246,7 @@ CI-local runner environment controls:
 
 - `RUN_INSTALL=1` → install root/server/frontend dependencies before validation.
 - `CI_PORT=<port>` → override CI-local smoke server port (defaults to `3101` locally).
+- `CI_SMOKE_SUMMARY_PATH=<path>` → override smoke summary JSON output path for nested local validator (defaults to `/tmp/anythingllm-enterprise-ci-smoke-summary.json`).
 - `CI_BOOTSTRAP_VALIDATION_BASE_PORT=<port>` → set deterministic base port for bootstrap validator scenarios (defaults to `4201`; uses `base`, `base+1`, `base+2`, `base+3`).
 - `SKIP_OPENAPI_CHECK=1` → skip OpenAPI regeneration drift gate.
 - `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
@@ -260,6 +261,7 @@ Local validator runner controls:
 
 - `LOCAL_SINGLE_USER_TOKEN=""` → skip explicit single-user auth preflight while still running full smoke/bootstrap coverage.
 - `ALLOW_PORT_REUSE=1` → intentionally reuse an already-running API server on the selected port (default guard fails fast to avoid false-positive runs against stale processes).
+- `SMOKE_SUMMARY_PATH=<path>` → override smoke summary JSON output path (defaults to `/tmp/anythingllm-enterprise-smoke-summary-<port>.json`).
 - `EXTRA_SMOKE_ARGS="..."` → append extra CLI flags to `enterprise-smoke-test.sh` (for targeted reproductions).
 
 To fully mirror fresh CI dependency installation locally:
@@ -287,6 +289,7 @@ Workflow reliability safeguards:
 - setup-node yarn dependency caching for faster repeated validation runs
 - `/api/ping` readiness polling before smoke execution
 - automatic server log dump when smoke validation fails
+- smoke run emits structured JSON summary (`SMOKE_SUMMARY_PATH` / `CI_SMOKE_SUMMARY_PATH`) and failure paths print it for fast triage
 - local/CI validator scripts also dump server logs automatically on smoke failures for faster diagnosis
 - CI smoke invocation passes `--single-user-token` explicitly to guarantee deterministic single-user branch validation
 - CI smoke invocation supplies an intentionally long/symbol-heavy `RUN_ID` to continuously validate fixture-name normalization safeguards

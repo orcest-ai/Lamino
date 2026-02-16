@@ -15,6 +15,7 @@ RUN_ID="${RUN_ID:-$(date +%s)-$RANDOM}"
 SEED_BOOTSTRAP_COLLISION="${SEED_BOOTSTRAP_COLLISION:-0}"
 EXTRA_SMOKE_ARGS="${EXTRA_SMOKE_ARGS:-}"
 ALLOW_PORT_REUSE="${ALLOW_PORT_REUSE:-0}"
+SMOKE_SUMMARY_PATH="${SMOKE_SUMMARY_PATH:-/tmp/anythingllm-enterprise-smoke-summary-${PORT}.json}"
 if [[ "${LOCAL_SINGLE_USER_TOKEN+x}" != "x" ]]; then
   LOCAL_SINGLE_USER_TOKEN="${AUTH_TOKEN}"
 fi
@@ -48,6 +49,7 @@ mkdir -p "$(dirname "${LOG_PATH}")"
 
 echo "[enterprise-local-validation] Using BASE_URL=${BASE_URL}"
 echo "[enterprise-local-validation] Log file: ${LOG_PATH}"
+echo "[enterprise-local-validation] Smoke summary file: ${SMOKE_SUMMARY_PATH}"
 if [[ -n "${EXTRA_SMOKE_ARGS}" ]]; then
   echo "[enterprise-local-validation] EXTRA_SMOKE_ARGS=${EXTRA_SMOKE_ARGS}"
 fi
@@ -136,10 +138,12 @@ if ! curl -sf "${BASE_URL}/ping" >/dev/null 2>&1; then
 fi
 
 echo "[enterprise-local-validation] Running enterprise smoke test."
+rm -f "${SMOKE_SUMMARY_PATH}"
 SMOKE_ARGS=()
 if [[ -n "${LOCAL_SINGLE_USER_TOKEN}" ]]; then
   SMOKE_ARGS+=(--single-user-token "${LOCAL_SINGLE_USER_TOKEN}")
 fi
+SMOKE_ARGS+=(--summary-file "${SMOKE_SUMMARY_PATH}")
 if [[ -n "${EXTRA_SMOKE_ARGS}" ]]; then
   # shellcheck disable=SC2206
   EXTRA_ARGS_ARRAY=(${EXTRA_SMOKE_ARGS})
@@ -150,7 +154,37 @@ if ! BASE_URL="${BASE_URL}" SINGLE_USER_AUTH_TOKEN="${LOCAL_SINGLE_USER_TOKEN}" 
   ADMIN_USERNAME="${ADMIN_USERNAME}" ADMIN_PASSWORD="${ADMIN_PASSWORD}" RUN_ID="${RUN_ID}" \
   ./scripts/enterprise-smoke-test.sh "${SMOKE_ARGS[@]}"; then
   echo "[enterprise-local-validation] Enterprise smoke failed. Dumping server log from ${LOG_PATH}."
+  if [[ -f "${SMOKE_SUMMARY_PATH}" ]]; then
+    echo "[enterprise-local-validation] Smoke summary:"
+    node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  fi
   cat "${LOG_PATH}" || true
+  exit 1
+fi
+
+if [[ ! -f "${SMOKE_SUMMARY_PATH}" ]]; then
+  echo "[enterprise-local-validation] Smoke summary file was not generated."
+  exit 1
+fi
+
+SMOKE_SUMMARY_STATUS="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(payload.status || "");
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+if [[ "${SMOKE_SUMMARY_STATUS}" != "success" ]]; then
+  echo "[enterprise-local-validation] Smoke summary status is not success (got: ${SMOKE_SUMMARY_STATUS:-<empty>})."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
   exit 1
 fi
 
