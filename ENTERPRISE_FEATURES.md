@@ -135,6 +135,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - workspace:chat key denial checks include access attempts to admin-read routes (scope boundary validation)
 # - API key lifecycle checks include explicit expired-key and revoked-key denial assertions
 # - API key lifecycle checks include malformed `expiresAt`/`revokedAt` payload rejection assertions with explicit validation messages
+# - effective usage-policy endpoints (`/admin` and `/v1/admin`) are validated against malformed `teamIds` query payloads and must resolve identically to clean team-id inputs
 
 # convenience script aliases from repo root
 yarn test:enterprise
