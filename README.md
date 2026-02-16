@@ -212,6 +212,7 @@ Mintplex Labs & the community maintain a number of deployment methods, scripts, 
 - `yarn validate:enterprise:ci-local` Run the CI-equivalent enterprise pipeline locally (tests + OpenAPI drift check + frontend build + deterministic smoke).
   - Optional for quicker local debugging: `SKIP_OPENAPI_CHECK=1 SKIP_FRONTEND_BUILD=1 SKIP_USAGE_CLEANUP_CHECK=1 SKIP_BOOTSTRAP_CHECK=1 yarn validate:enterprise:ci-local`.
   - Optional smoke port override (default is `3101`): `CI_PORT=3201 yarn validate:enterprise:ci-local`.
+  - Optional bootstrap-validation base port override (defaults to deterministic `4201`): `CI_BOOTSTRAP_VALIDATION_BASE_PORT=4301 yarn validate:enterprise:ci-local`.
   - Optional to mirror fresh CI dependency installation: `RUN_INSTALL=1 yarn validate:enterprise:ci-local`.
   - Optional cleanup-check retention override: `CI_USAGE_RETENTION_DAYS_CHECK=30 yarn validate:enterprise:ci-local`.
   - Optional to skip retention-disabled cleanup no-op validation: `CI_VALIDATE_USAGE_CLEANUP_NOOP=0 yarn validate:enterprise:ci-local`.

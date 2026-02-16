@@ -40,12 +40,15 @@ jobs:
 
       - name: Run enterprise validation pipeline
         run: |
-          CI_PORT=3001 \
+          CI_PORT=3101 \
+          CI_BOOTSTRAP_VALIDATION_BASE_PORT=4201 \
           CI_AUTH_TOKEN="ci-single-user-token" \
+          CI_SINGLE_USER_TOKEN="ci-single-user-token" \
           CI_JWT_SECRET="ci-enterprise-secret" \
           CI_ADMIN_USERNAME="ADMIN+++CI_BOOTSTRAP_USERNAME" \
           CI_ADMIN_PASSWORD="EnterprisePass123!" \
           CI_RUN_ID="ci-run-id-with-symbols-@@@-ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" \
+          SKIP_BOOTSTRAP_CHECK="0" \
           CI_USAGE_RETENTION_DAYS_CHECK="1" \
           CI_VALIDATE_USAGE_CLEANUP_NOOP="1" \
           CI_LOG_PATH="/tmp/anythingllm-server.log" \

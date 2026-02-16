@@ -246,6 +246,7 @@ CI-local runner environment controls:
 
 - `RUN_INSTALL=1` → install root/server/frontend dependencies before validation.
 - `CI_PORT=<port>` → override CI-local smoke server port (defaults to `3101` locally).
+- `CI_BOOTSTRAP_VALIDATION_BASE_PORT=<port>` → set deterministic base port for bootstrap validator scenarios (defaults to `4201`; uses `base`, `base+1`, `base+2`, `base+3`).
 - `SKIP_OPENAPI_CHECK=1` → skip OpenAPI regeneration drift gate.
 - `SKIP_FRONTEND_BUILD=1` → skip frontend production build step.
 - `SKIP_USAGE_CLEANUP_CHECK=1` → skip one-off usage cleanup command validation.
