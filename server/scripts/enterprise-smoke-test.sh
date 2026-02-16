@@ -322,6 +322,9 @@ cleanup() {
   if [[ -n "${AUTH_READ_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${AUTH_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${WILDCARD_KEY_ID:-}" ]]; then
+    request "DELETE" "/admin/delete-api-key/${WILDCARD_KEY_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${EXPIRED_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${EXPIRED_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -1210,6 +1213,12 @@ assert_status "200" "create auth-read key"
 AUTH_READ_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
 AUTH_READ_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
 
+log "Creating wildcard API key"
+request "POST" "/admin/generate-api-key" "{\"name\":\"qa-wildcard-${RUN_ID}\",\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
+assert_status "200" "create wildcard key"
+WILDCARD_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
+WILDCARD_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
+
 request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"revokedAt\":\"invalid-revoked-at\"}" "${ADMIN_TOKEN}"
 assert_status "200" "invalid api key revokedAt payload rejected"
 if ! contains_text "$HTTP_BODY" "Invalid revokedAt datetime."; then
@@ -1243,6 +1252,15 @@ if ! contains_text "$HTTP_BODY" "admin:read"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "GET" "/v1/auth" "" "${WILDCARD_KEY}"
+assert_status "200" "wildcard key auth endpoint access"
+if ! contains_text "$HTTP_BODY" "\"authenticated\":true"; then
+  log "FAILED: wildcard key auth response missing authenticated=true payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/v1/admin/teams" "" "${WILDCARD_KEY}"
+assert_status "200" "wildcard key admin teams access"
 
 request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage overview"
