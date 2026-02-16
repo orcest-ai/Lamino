@@ -116,6 +116,7 @@ if ! RESET_DB=1 \
   cat "${CI_LOG_PATH}" || true
   exit 1
 fi
+dump_json_file "${CI_SMOKE_SUMMARY_PATH}" "Smoke summary"
 
 if [[ "${SKIP_BOOTSTRAP_CHECK}" == "1" ]]; then
   echo "[enterprise-ci-local] Skipping deployment bootstrap validation (SKIP_BOOTSTRAP_CHECK=1)."

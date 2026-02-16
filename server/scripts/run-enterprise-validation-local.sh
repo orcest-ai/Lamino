@@ -188,4 +188,40 @@ console.log(JSON.stringify(payload, null, 2));
   exit 1
 fi
 
+SMOKE_SUMMARY_CURRENT_PHASE="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(payload.currentPhase || "");
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+if [[ "${SMOKE_SUMMARY_CURRENT_PHASE}" != "completed" ]]; then
+  echo "[enterprise-local-validation] Smoke summary currentPhase is not completed (got: ${SMOKE_SUMMARY_CURRENT_PHASE:-<empty>})."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+SMOKE_SUMMARY_REQUEST_COUNT="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+process.stdout.write(String(payload.requestCount ?? ""));
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+if [[ ! "${SMOKE_SUMMARY_REQUEST_COUNT}" =~ ^[0-9]+$ ]] || (( SMOKE_SUMMARY_REQUEST_COUNT <= 0 )); then
+  echo "[enterprise-local-validation] Smoke summary requestCount is invalid (got: ${SMOKE_SUMMARY_REQUEST_COUNT:-<empty>})."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT})."
+
 echo "[enterprise-local-validation] Enterprise local validation succeeded."
