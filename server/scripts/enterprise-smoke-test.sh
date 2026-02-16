@@ -548,6 +548,8 @@ request "POST" "/admin/teams/${TEAM_ID}" "{\"name\":\"qa-default-denied-team-upd
 assert_status "401" "default user denied team admin update"
 request "DELETE" "/admin/teams/${TEAM_ID}" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team admin delete"
+request "GET" "/admin/teams/${TEAM_ID}/access-map" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied team access-map reads"
 request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied system preference reads"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
@@ -571,6 +573,37 @@ request "GET" "/admin/teams" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can list teams"
 if ! contains_text "$HTTP_BODY" "$TEAM_NAME"; then
   log "FAILED: manager team list did not include expected team."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/admin/teams/${TEAM_ID}" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read team detail"
+if ! contains_text "$HTTP_BODY" "$TEAM_NAME"; then
+  log "FAILED: manager team detail did not include expected team name."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "GET" "/admin/teams/${TEAM_ID}/members" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read team members"
+if ! contains_text "$HTTP_BODY" "\"userId\":${USER_ID}"; then
+  log "FAILED: manager team members response missing expected default user assignment."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "GET" "/admin/teams/${TEAM_ID}/workspaces" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read team workspaces"
+if ! contains_text "$HTTP_BODY" "\"workspaceId\":${WORKSPACE_ID}"; then
+  log "FAILED: manager team workspaces response missing expected workspace assignment."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
+request "GET" "/admin/teams/${TEAM_ID}/access-map" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read team access map"
+if ! contains_text "$HTTP_BODY" "\"teamId\":${TEAM_ID}" || ! contains_text "$HTTP_BODY" "\"workspaceId\":${WORKSPACE_ID}"; then
+  log "FAILED: manager team access map response missing expected team/workspace linkage."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
