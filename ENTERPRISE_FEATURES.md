@@ -34,7 +34,7 @@ This repository includes an additive enterprise layer for team and commercial op
 
 4. **Usage Policy Engine**
    - Scoped policy CRUD (`system`, `team`, `workspace`, `user`)
-   - Policy payload normalization sanitizes malformed/decimal/non-positive ids and malformed priority/boolean fields to stable safe defaults
+   - Policy payload normalization sanitizes malformed/decimal/non-positive ids and malformed/decimal priority + boolean fields to stable safe defaults
    - Unrecognized string values for `enabled` now fall back to safe defaults instead of being coerced truthy
    - Effective-policy queries sanitize `userId`, `workspaceId`, and `teamIds` inputs (drops invalid/decimal/non-positive values) and dedupe normalized team IDs at resolver boundaries
    - Chat-policy limit parsing now enforces only strict positive integer limits (invalid/blank/decimal/zero/negative values are ignored instead of causing accidental quota locks)
