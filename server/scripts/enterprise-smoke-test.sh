@@ -512,6 +512,18 @@ fi
 
 request "POST" "/admin/system-preferences" "{\"custom_app_name\":${ORIGINAL_CUSTOM_APP_NAME_JSON}}" "${ADMIN_TOKEN}"
 assert_status "200" "restore original custom app name after manager preference test"
+request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${ADMIN_TOKEN}"
+assert_status "200" "verify original custom app name restored after manager preference test"
+RESTORED_CUSTOM_APP_NAME_JSON="$(json_get_json_value "$HTTP_BODY" "settings.custom_app_name")"
+if [[ -z "${RESTORED_CUSTOM_APP_NAME_JSON}" ]]; then
+  RESTORED_CUSTOM_APP_NAME_JSON="null"
+fi
+if [[ "${RESTORED_CUSTOM_APP_NAME_JSON}" != "${ORIGINAL_CUSTOM_APP_NAME_JSON}" ]]; then
+  log "FAILED: custom_app_name did not restore to original value after manager preference test."
+  log "Original: ${ORIGINAL_CUSTOM_APP_NAME_JSON} | Restored: ${RESTORED_CUSTOM_APP_NAME_JSON}"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"enabled\"}" "${MANAGER_TOKEN}"
 assert_status "403" "manager denied enterprise key system preference writes"

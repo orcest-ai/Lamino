@@ -135,7 +135,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - smoke fails fast with explicit credential guidance when multi-user mode is already enabled but admin login credentials are invalid
 # - default user denied /admin/teams
 # - manager user can list/create teams
-# - manager user can still update non-enterprise preferences (e.g., `custom_app_name`) and persistence is verified before restoring original value; enterprise flag writes are denied with explicit key-level error messages (including direct keys and `feature_flags` payload updates)
+# - manager user can still update non-enterprise preferences (e.g., `custom_app_name`), persistence is verified, and restoration to the original value is explicitly confirmed; enterprise flag writes are denied with explicit key-level error messages (including direct keys and `feature_flags` payload updates)
 # - default/team user visibility checks assert assigned workspaces are visible and isolated unassigned workspaces are hidden
 # - enterprise_teams feature gate disable => /admin/teams denied
 # - enterprise_teams flag restore => /admin/teams allowed again
