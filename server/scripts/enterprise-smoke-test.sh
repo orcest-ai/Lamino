@@ -723,7 +723,8 @@ assert_status "200" "manager can create prompt template"
 MANAGER_TEMPLATE_ID="$(json_get_or_empty "$HTTP_BODY" "template.id")"
 request "GET" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}/versions" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read prompt template versions"
-request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}/versions/new" "{\"prompt\":\"Manager template updated ${RUN_ID}\",\"changelog\":\"manager version update\"}" "${MANAGER_TOKEN}"
+MANAGER_TEMPLATE_PROMPT="Manager template updated ${RUN_ID}"
+request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}/versions/new" "{\"prompt\":$(json_quote "${MANAGER_TEMPLATE_PROMPT}"),\"changelog\":\"manager version update\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create prompt template version"
 MANAGER_TEMPLATE_VERSION_ID="$(json_get_or_empty "$HTTP_BODY" "version.id")"
 request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}/versions/${MANAGER_TEMPLATE_VERSION_ID}/approve" "{}" "${MANAGER_TOKEN}"
@@ -735,8 +736,17 @@ if ! contains_text "$HTTP_BODY" "\"success\":true"; then
 fi
 request "POST" "/admin/prompt-templates/${MANAGER_TEMPLATE_ID}/apply-to-workspace" "{\"workspaceId\":${WORKSPACE_ID},\"versionId\":${MANAGER_TEMPLATE_VERSION_ID}}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can apply prompt template version to workspace"
-if ! contains_text "$HTTP_BODY" "Manager template updated ${RUN_ID}"; then
+if ! contains_text "$HTTP_BODY" "${MANAGER_TEMPLATE_PROMPT}"; then
   log "FAILED: manager prompt template apply response missing updated prompt text."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/workspace/${WORKSPACE_SLUG}" "" "${ADMIN_TOKEN}"
+assert_status "200" "manager prompt template apply persisted to workspace"
+MANAGER_APPLIED_WORKSPACE_PROMPT="$(json_get_or_empty "$HTTP_BODY" "workspace.openAiPrompt")"
+if [[ "${MANAGER_APPLIED_WORKSPACE_PROMPT}" != "${MANAGER_TEMPLATE_PROMPT}" ]]; then
+  log "FAILED: manager prompt template apply did not persist to workspace prompt."
+  log "Expected: ${MANAGER_TEMPLATE_PROMPT} | Actual: ${MANAGER_APPLIED_WORKSPACE_PROMPT}"
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
