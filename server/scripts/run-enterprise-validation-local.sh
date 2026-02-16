@@ -255,7 +255,11 @@ EXPECTED_PHASES=(
 )
 
 if [[ "${EXPECT_SINGLE_USER_PRECHECK}" == "1" ]]; then
-  EXPECTED_PHASES=("single-user-preflight" "${EXPECTED_PHASES[@]}")
+  EXPECTED_PHASES=(
+    "readiness"
+    "single-user-preflight"
+    "${EXPECTED_PHASES[@]:1}"
+  )
 fi
 
 SMOKE_SUMMARY_MISSING_PHASES="$(
@@ -270,6 +274,58 @@ process.stdout.write(missing.join(","));
 )"
 if [[ -n "${SMOKE_SUMMARY_MISSING_PHASES}" ]]; then
   echo "[enterprise-local-validation] Smoke summary phaseHistory is missing required phases: ${SMOKE_SUMMARY_MISSING_PHASES}"
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+SMOKE_SUMMARY_PHASE_ORDER_CHECK="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const expected = process.argv.slice(2).filter(Boolean);
+const history = Array.isArray(payload.phaseHistory) ? payload.phaseHistory : [];
+let lastIndex = -1;
+for (const phase of expected) {
+  const index = history.indexOf(phase);
+  if (index === -1) continue;
+  if (index < lastIndex) {
+    process.stdout.write(`out-of-order:${phase}`);
+    process.exit(0);
+  }
+  lastIndex = index;
+}
+if (history.length > 0 && history[history.length - 1] !== "completed") {
+  process.stdout.write(`last-phase:${history[history.length - 1]}`);
+  process.exit(0);
+}
+process.stdout.write("ok");
+' "${SMOKE_SUMMARY_PATH}" "${EXPECTED_PHASES[@]}" 2>/dev/null || true
+)"
+if [[ "${SMOKE_SUMMARY_PHASE_ORDER_CHECK}" != "ok" ]]; then
+  echo "[enterprise-local-validation] Smoke summary phaseHistory order check failed (${SMOKE_SUMMARY_PHASE_ORDER_CHECK:-unknown})."
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+console.log(JSON.stringify(payload, null, 2));
+' "${SMOKE_SUMMARY_PATH}" || true
+  exit 1
+fi
+
+SMOKE_SUMMARY_PHASE_COUNT="$(
+  node -e '
+const fs = require("fs");
+const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+const history = Array.isArray(payload.phaseHistory) ? payload.phaseHistory : [];
+process.stdout.write(String(history.length));
+' "${SMOKE_SUMMARY_PATH}" 2>/dev/null || true
+)"
+EXPECTED_PHASE_COUNT="${#EXPECTED_PHASES[@]}"
+if [[ ! "${SMOKE_SUMMARY_PHASE_COUNT}" =~ ^[0-9]+$ ]] || (( SMOKE_SUMMARY_PHASE_COUNT < EXPECTED_PHASE_COUNT )); then
+  echo "[enterprise-local-validation] Smoke summary phaseHistory count is invalid (got: ${SMOKE_SUMMARY_PHASE_COUNT:-<empty>}, expected at least ${EXPECTED_PHASE_COUNT})."
   node -e '
 const fs = require("fs");
 const payload = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
@@ -378,6 +434,6 @@ console.log(JSON.stringify(payload, null, 2));
   exit 1
 fi
 
-echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok, matrixChecks=ok, matrixCounts=${SMOKE_SUMMARY_MATRIX_PASSED_COUNT}/${SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT})."
+echo "[enterprise-local-validation] Smoke summary validated (phase=${SMOKE_SUMMARY_CURRENT_PHASE}, requestCount=${SMOKE_SUMMARY_REQUEST_COUNT}, requiredPhases=ok, phaseOrder=ok, phaseCount=${SMOKE_SUMMARY_PHASE_COUNT}, matrixChecks=ok, matrixCounts=${SMOKE_SUMMARY_MATRIX_PASSED_COUNT}/${SMOKE_SUMMARY_MATRIX_REQUIRED_COUNT})."
 
 echo "[enterprise-local-validation] Enterprise local validation succeeded."
