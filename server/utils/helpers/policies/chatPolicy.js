@@ -27,6 +27,7 @@ function normalizeAllowedArray(value = null) {
 function parsePositiveLimit(value = null) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return null;
+  if (!Number.isInteger(parsed)) return null;
   if (parsed <= 0) return null;
   return parsed;
 }

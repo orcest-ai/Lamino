@@ -178,7 +178,7 @@ describe("Chat policy enforcement", () => {
     mockUsagePolicyResolveRulesFor.mockResolvedValue({
       rules: {
         maxPromptLength: "not-a-number",
-        maxChatsPerDay: " ",
+        maxChatsPerDay: "3.5",
         maxTokensPerDay: "0",
       },
       policies: [{ id: 66 }],
