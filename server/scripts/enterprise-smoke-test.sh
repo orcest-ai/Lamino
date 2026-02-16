@@ -389,6 +389,13 @@ else
 fi
 
 if [[ -z "${ADMIN_TOKEN}" ]]; then
+  if [[ "${CURRENT_MULTI_USER_MODE}" == "true" ]]; then
+    log "FAILED: admin login failed while multi-user mode is already enabled."
+    log "Ensure ADMIN_USERNAME and ADMIN_PASSWORD are valid for an existing admin account."
+    log "Response: ${HTTP_BODY}"
+    exit 1
+  fi
+
   log "Admin login unavailable, attempting multi-user bootstrap"
   BOOTSTRAP_USERNAME_SEED="$(normalize_username_seed "${ADMIN_USERNAME}" 24)"
   BOOTSTRAP_USERNAME="${BOOTSTRAP_USERNAME_SEED}"

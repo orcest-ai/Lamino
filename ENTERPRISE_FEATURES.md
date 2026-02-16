@@ -132,6 +132,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - admin credential payloads are JSON-escaped so special characters in usernames/passwords are handled safely during login/bootstrap requests
 # - bootstrap username seeds are normalized (lowercased, sanitized, length-bounded) before `enable-multi-user` retries to avoid invalid-username edge cases
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
+# - smoke fails fast with explicit credential guidance when multi-user mode is already enabled but admin login credentials are invalid
 # - default user denied /admin/teams
 # - manager user can list/create teams
 # - manager user can still update non-enterprise preferences (e.g., `custom_app_name`) and persistence is verified before restoring original value; enterprise flag writes are denied with explicit key-level error messages (including direct keys and `feature_flags` payload updates)
