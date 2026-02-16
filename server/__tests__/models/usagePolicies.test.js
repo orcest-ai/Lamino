@@ -89,6 +89,26 @@ describe("UsagePolicies precedence resolution", () => {
     });
   });
 
+  it("normalizes boolean-like fields and drops malformed relation identifiers", () => {
+    const validated = UsagePolicies.validateFields({
+      enabled: "false",
+      teamId: "bad-team-id",
+      workspaceId: -7,
+      userId: "0",
+      priority: "not-a-number",
+      rules: "{}",
+    });
+
+    expect(validated).toEqual({
+      enabled: false,
+      teamId: null,
+      workspaceId: null,
+      userId: null,
+      priority: 100,
+      rules: "{}",
+    });
+  });
+
   it("builds effective policy clause with descending priority ordering", async () => {
     prisma.usage_policies.findMany.mockResolvedValueOnce([
       { id: 3, priority: 100, scope: "system" },
@@ -111,6 +131,62 @@ describe("UsagePolicies precedence resolution", () => {
         ],
       },
       orderBy: [{ priority: "desc" }, { id: "asc" }],
+    });
+  });
+
+  it("sanitizes malformed ids before building effective policy clause", async () => {
+    prisma.usage_policies.findMany.mockResolvedValueOnce([]);
+
+    await UsagePolicies.effectiveFor({
+      userId: "bad-user",
+      workspaceId: "-2",
+      teamIds: [5, "0", "foo", -3, "8.9"],
+    });
+
+    expect(prisma.usage_policies.findMany).toHaveBeenCalledWith({
+      where: {
+        enabled: true,
+        OR: [
+          { scope: "system" },
+          { scope: "team", teamId: { in: [5, 8] } },
+        ],
+      },
+      orderBy: [{ priority: "desc" }, { id: "asc" }],
+    });
+  });
+
+  it("sanitizes create payload fields before persisting", async () => {
+    prisma.usage_policies.create.mockResolvedValueOnce({
+      id: 91,
+      name: "new-policy",
+    });
+
+    const result = await UsagePolicies.new({
+      name: "new-policy",
+      enabled: "false",
+      teamId: "bad-id",
+      workspaceId: "4.8",
+      userId: 0,
+      priority: "NaN-ish",
+      rules: { maxPromptLength: 99 },
+      createdBy: "creator-bad",
+    });
+
+    expect(result).toEqual({
+      policy: { id: 91, name: "new-policy" },
+      error: null,
+    });
+    expect(prisma.usage_policies.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        name: "new-policy",
+        enabled: false,
+        teamId: null,
+        workspaceId: 4,
+        userId: null,
+        priority: 100,
+        rules: JSON.stringify({ maxPromptLength: 99 }),
+        createdBy: null,
+      }),
     });
   });
 });

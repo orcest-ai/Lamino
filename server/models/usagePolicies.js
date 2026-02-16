@@ -22,6 +22,32 @@ const UsagePolicies = {
       : "system";
   },
 
+  toPositiveIntOrNull: function (value) {
+    if (value === null || value === undefined || value === "") return null;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return null;
+    const normalized = Math.trunc(parsed);
+    return normalized > 0 ? normalized : null;
+  },
+
+  toPriority: function (value, fallback = 100) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.max(0, Math.trunc(parsed));
+  },
+
+  toBoolean: function (value, fallback = false) {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+    if (typeof value === "string") {
+      const normalized = value.trim().toLowerCase();
+      if (["true", "1", "yes", "on"].includes(normalized)) return true;
+      if (["false", "0", "no", "off"].includes(normalized)) return false;
+    }
+    return Boolean(value);
+  },
+
   validateFields: function (updates = {}) {
     const validated = {};
     for (const [key, value] of Object.entries(updates)) {
@@ -34,22 +60,22 @@ const UsagePolicies = {
           validated.description = value ? String(value).slice(0, 2000) : null;
           break;
         case "enabled":
-          validated.enabled = Boolean(value);
+          validated.enabled = this.toBoolean(value, false);
           break;
         case "scope":
           validated.scope = this.validateScope(value);
           break;
         case "teamId":
-          validated.teamId = value ? Number(value) : null;
+          validated.teamId = this.toPositiveIntOrNull(value);
           break;
         case "workspaceId":
-          validated.workspaceId = value ? Number(value) : null;
+          validated.workspaceId = this.toPositiveIntOrNull(value);
           break;
         case "userId":
-          validated.userId = value ? Number(value) : null;
+          validated.userId = this.toPositiveIntOrNull(value);
           break;
         case "priority":
-          validated.priority = Number(value || 100);
+          validated.priority = this.toPriority(value, 100);
           break;
         case "rules":
           validated.rules =
@@ -78,19 +104,23 @@ const UsagePolicies = {
   }) {
     if (!name || typeof name !== "string")
       return { policy: null, error: "Policy name is required." };
+    const data = this.validateFields({
+      name,
+      description,
+      enabled,
+      scope,
+      teamId,
+      workspaceId,
+      userId,
+      priority,
+      rules,
+    });
+
     try {
       const policy = await prisma.usage_policies.create({
         data: {
-          name: String(name).slice(0, 255),
-          description: description ? String(description).slice(0, 2000) : null,
-          enabled: Boolean(enabled),
-          scope: this.validateScope(scope),
-          teamId: teamId ? Number(teamId) : null,
-          workspaceId: workspaceId ? Number(workspaceId) : null,
-          userId: userId ? Number(userId) : null,
-          priority: Number(priority || 100),
-          rules: typeof rules === "string" ? rules : JSON.stringify(rules),
-          createdBy: createdBy ? Number(createdBy) : null,
+          ...data,
+          createdBy: this.toPositiveIntOrNull(createdBy),
         },
       });
       return { policy, error: null };
@@ -175,16 +205,26 @@ const UsagePolicies = {
     workspaceId = null,
     teamIds = [],
   }) {
+    const normalizedUserId = this.toPositiveIntOrNull(userId);
+    const normalizedWorkspaceId = this.toPositiveIntOrNull(workspaceId);
+    const normalizedTeamIds = Array.isArray(teamIds)
+      ? teamIds
+          .map((teamId) => this.toPositiveIntOrNull(teamId))
+          .filter((teamId) => teamId !== null)
+      : [];
+
     const where = {
       enabled: true,
       OR: [
         { scope: "system" },
-        ...(workspaceId
-          ? [{ scope: "workspace", workspaceId: Number(workspaceId) }]
+        ...(normalizedWorkspaceId
+          ? [{ scope: "workspace", workspaceId: normalizedWorkspaceId }]
           : []),
-        ...(userId ? [{ scope: "user", userId: Number(userId) }] : []),
-        ...(teamIds.length > 0
-          ? [{ scope: "team", teamId: { in: teamIds.map(Number) } }]
+        ...(normalizedUserId
+          ? [{ scope: "user", userId: normalizedUserId }]
+          : []),
+        ...(normalizedTeamIds.length > 0
+          ? [{ scope: "team", teamId: { in: normalizedTeamIds } }]
           : []),
       ],
     };
