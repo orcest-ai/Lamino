@@ -18,7 +18,15 @@ function managerRestrictedSystemPreferenceKey(updates = {}) {
   );
 }
 
+function systemPreferenceAccessError(userRole = null, updates = {}) {
+  if (userRole !== "manager") return null;
+  const blockedKey = managerRestrictedSystemPreferenceKey(updates);
+  if (!blockedKey) return null;
+  return `Managers cannot update ${blockedKey}.`;
+}
+
 module.exports = {
   MANAGER_RESTRICTED_SYSTEM_PREFERENCE_KEYS,
   managerRestrictedSystemPreferenceKey,
+  systemPreferenceAccessError,
 };

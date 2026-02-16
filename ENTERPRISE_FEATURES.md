@@ -109,6 +109,7 @@ yarn test \
 # - response locals propagation for multi-user mode + api key context
 # systemPreferenceAccess helper suite includes:
 # - manager enterprise-flag restricted key detection
+# - manager-only access error generation for restricted keys
 # - malformed payload handling and restricted-key matrix stability checks
 # chatPolicy suite includes:
 # - provider/model denylist enforcement

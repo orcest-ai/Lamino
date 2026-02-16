@@ -1,6 +1,7 @@
 const {
   MANAGER_RESTRICTED_SYSTEM_PREFERENCE_KEYS,
   managerRestrictedSystemPreferenceKey,
+  systemPreferenceAccessError,
 } = require("../../../utils/helpers/systemPreferenceAccess");
 
 describe("systemPreferenceAccess helper", () => {
@@ -47,5 +48,37 @@ describe("systemPreferenceAccess helper", () => {
       "enterprise_usage_monitoring",
       "enterprise_usage_policies",
     ]);
+  });
+
+  it("returns manager-only access error for restricted updates", () => {
+    expect(
+      systemPreferenceAccessError("manager", {
+        enterprise_usage_policies: "disabled",
+      })
+    ).toBe("Managers cannot update enterprise_usage_policies.");
+    expect(
+      systemPreferenceAccessError("manager", {
+        feature_flags: { enterprise_teams: "disabled" },
+      })
+    ).toBe("Managers cannot update feature_flags.");
+  });
+
+  it("returns null access error for non-manager roles or safe payloads", () => {
+    expect(
+      systemPreferenceAccessError("admin", {
+        enterprise_teams: "disabled",
+      })
+    ).toBeNull();
+    expect(
+      systemPreferenceAccessError("default", {
+        enterprise_teams: "disabled",
+      })
+    ).toBeNull();
+    expect(
+      systemPreferenceAccessError("manager", {
+        custom_app_name: "AnythingLLM",
+      })
+    ).toBeNull();
+    expect(systemPreferenceAccessError("manager", null)).toBeNull();
   });
 });

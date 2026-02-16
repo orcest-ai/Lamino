@@ -26,7 +26,7 @@ const {
   timeSeriesBucket,
 } = require("../utils/helpers/usageFilters");
 const {
-  managerRestrictedSystemPreferenceKey,
+  systemPreferenceAccessError,
 } = require("../utils/helpers/systemPreferenceAccess");
 const {
   validRoleSelection,
@@ -1454,15 +1454,15 @@ function adminEndpoints(app) {
     async (request, response) => {
       try {
         const updates = reqBody(request) || {};
-        if (response?.locals?.user?.role === ROLES.manager) {
-          const blockedKey = managerRestrictedSystemPreferenceKey(updates);
-          if (blockedKey) {
-            return response.status(403).json({
-              success: false,
-              error: `Managers cannot update ${blockedKey}.`,
-            });
-          }
-        }
+        const accessError = systemPreferenceAccessError(
+          response?.locals?.user?.role || null,
+          updates
+        );
+        if (accessError)
+          return response.status(403).json({
+            success: false,
+            error: accessError,
+          });
         await SystemSettings.updateSettings(updates);
         response.status(200).json({ success: true, error: null });
       } catch (e) {
