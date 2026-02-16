@@ -142,7 +142,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - smoke fails fast with explicit credential guidance when multi-user mode is already enabled but admin login credentials are invalid
 # - bootstrap `enable-multi-user` 400 payload rejections now fail immediately with explicit diagnostics unless the error is a handled username-collision retry
-# - default user denied /admin/teams list/create
+# - default user denied /admin/teams list/create/update/delete
 # - default user denied `/admin/system-preferences` reads/writes
 # - default user denied admin API-key routes with strict role-auth status checks (`401`) (e.g., `/admin/api-keys`, `/admin/generate-api-key`, `/admin/api-keys/:id` update, and `/admin/delete-api-key/:id` delete)
 # - manager user can list/create/update teams and read system preferences
