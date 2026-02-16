@@ -208,9 +208,13 @@ const UsagePolicies = {
     const normalizedUserId = this.toPositiveIntOrNull(userId);
     const normalizedWorkspaceId = this.toPositiveIntOrNull(workspaceId);
     const normalizedTeamIds = Array.isArray(teamIds)
-      ? teamIds
-          .map((teamId) => this.toPositiveIntOrNull(teamId))
-          .filter((teamId) => teamId !== null)
+      ? Array.from(
+          new Set(
+            teamIds
+              .map((teamId) => this.toPositiveIntOrNull(teamId))
+              .filter((teamId) => teamId !== null)
+          )
+        )
       : [];
 
     const where = {

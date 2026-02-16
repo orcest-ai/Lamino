@@ -140,7 +140,7 @@ describe("UsagePolicies precedence resolution", () => {
     await UsagePolicies.effectiveFor({
       userId: "bad-user",
       workspaceId: "-2",
-      teamIds: [5, "0", "foo", -3, "8.9"],
+      teamIds: [5, "5", "0", "foo", -3, "8.9"],
     });
 
     expect(prisma.usage_policies.findMany).toHaveBeenCalledWith({
