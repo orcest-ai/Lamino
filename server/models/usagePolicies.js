@@ -33,7 +33,8 @@ const UsagePolicies = {
   toPriority: function (value, fallback = 100) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) return fallback;
-    return Math.max(0, Math.trunc(parsed));
+    if (!Number.isInteger(parsed)) return fallback;
+    return Math.max(0, parsed);
   },
 
   toBoolean: function (value, fallback = false) {

@@ -120,6 +120,13 @@ describe("UsagePolicies precedence resolution", () => {
     expect(validated).toEqual({ enabled: false });
   });
 
+  it("falls back priority to default when given decimal values", () => {
+    const validated = UsagePolicies.validateFields({
+      priority: "15.8",
+    });
+    expect(validated).toEqual({ priority: 100 });
+  });
+
   it("builds effective policy clause with descending priority ordering", async () => {
     prisma.usage_policies.findMany.mockResolvedValueOnce([
       { id: 3, priority: 100, scope: "system" },
