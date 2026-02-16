@@ -316,6 +316,9 @@ cleanup() {
   if [[ -n "${MANAGER_TEAM_ID:-}" ]]; then
     request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
   fi
+  if [[ -n "${WILDCARD_TEAM_ID:-}" ]]; then
+    request "DELETE" "/admin/teams/${WILDCARD_TEAM_ID}" "" "${ADMIN_TOKEN:-}"
+  fi
   if [[ -n "${ADMIN_READ_KEY_ID:-}" ]]; then
     request "DELETE" "/admin/delete-api-key/${ADMIN_READ_KEY_ID}" "" "${ADMIN_TOKEN:-}"
   fi
@@ -1261,6 +1264,19 @@ if ! contains_text "$HTTP_BODY" "\"authenticated\":true"; then
 fi
 request "GET" "/v1/admin/teams" "" "${WILDCARD_KEY}"
 assert_status "200" "wildcard key admin teams access"
+request "POST" "/v1/admin/teams/new" "{\"name\":\"qa-wildcard-team-${RUN_ID}\"}" "${WILDCARD_KEY}"
+assert_status "200" "wildcard key admin write access"
+WILDCARD_TEAM_ID="$(json_get_or_empty "$HTTP_BODY" "team.id")"
+if [[ -z "${WILDCARD_TEAM_ID}" ]]; then
+  log "FAILED: wildcard key team create response missing team.id."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "DELETE" "/v1/admin/teams/${WILDCARD_TEAM_ID}" "" "${WILDCARD_KEY}"
+assert_status "200" "wildcard key admin delete access"
+request "GET" "/v1/admin/teams/${WILDCARD_TEAM_ID}" "" "${WILDCARD_KEY}"
+assert_status "404" "wildcard key delete persisted"
+WILDCARD_TEAM_ID=""
 
 request "GET" "/v1/admin/usage/overview" "" "${ADMIN_READ_KEY}"
 assert_status "200" "admin:read key usage overview"
