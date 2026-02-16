@@ -16,6 +16,7 @@
     "test:enterprise": "jest server/__tests__/models/teamMembers.test.js server/__tests__/models/promptTemplateVersion.test.js server/__tests__/models/usagePolicies.test.js server/__tests__/models/usageEvents.test.js server/__tests__/models/apiKeys.enterprise.test.js server/__tests__/models/workspace.enterprise.test.js server/__tests__/models/systemSettings.enterprise.test.js server/__tests__/utils/helpers/usageFilters.test.js server/__tests__/utils/helpers/systemPreferenceAccess.test.js server/__tests__/utils/policies/chatPolicy.test.js server/__tests__/utils/middleware/featureGate.test.js server/__tests__/utils/middleware/validApiKey.enterprise.test.js server/__tests__/utils/middleware/multiUserProtected.enterprise.test.js",
     "smoke:enterprise": "cd server && yarn enterprise:smoke",
     "validate:enterprise:local": "cd server && ./scripts/run-enterprise-validation-local.sh",
+    "validate:enterprise:ci-local": "cd server && ./scripts/run-enterprise-ci-local.sh",
     "setup:envs": "cp -n ./frontend/.env.example ./frontend/.env && cp -n ./server/.env.example ./server/.env.development && cp -n ./collector/.env.example ./collector/.env && cp -n ./docker/.env.example ./docker/.env && echo \"All ENV files copied!\n\"",
     "dev:server": "cd server && yarn dev",
     "dev:collector": "cd collector && yarn dev",

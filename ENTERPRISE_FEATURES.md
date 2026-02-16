@@ -182,6 +182,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 yarn test:enterprise
 yarn smoke:enterprise
 yarn validate:enterprise:local
+yarn validate:enterprise:ci-local
 ```
 
 ## Manual verification matrix (phase-9 closure)
@@ -201,6 +202,12 @@ Recommended deterministic execution command (clean-db):
 
 ```bash
 yarn validate:enterprise:local
+```
+
+CI-equivalent end-to-end local replay:
+
+```bash
+yarn validate:enterprise:ci-local
 ```
 
 ## CI validation workflow
