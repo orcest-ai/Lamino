@@ -542,6 +542,16 @@ request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
 assert_status_any "default user denied team admin list" "401" "403"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
 assert_status_any "default user denied system preference updates" "401" "403"
+request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
+assert_status_any "default user denied api key listing" "401" "403"
+request "POST" "/admin/generate-api-key" "{\"name\":\"qa-default-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${TEAM_USER_TOKEN}"
+if [[ "$HTTP_STATUS" == "200" ]]; then
+  UNEXPECTED_DEFAULT_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
+  if [[ -n "$UNEXPECTED_DEFAULT_KEY_ID" ]]; then
+    API_KEY_IDS+=("$UNEXPECTED_DEFAULT_KEY_ID")
+  fi
+fi
+assert_status_any "default user denied api key creation" "401" "403"
 
 log "Logging in as manager and validating team admin access"
 request "POST" "/request-token" "{\"username\":\"${MANAGER_USER_NAME}\",\"password\":\"ManagerUser123!\"}"
