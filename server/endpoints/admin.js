@@ -26,6 +26,9 @@ const {
   timeSeriesBucket,
 } = require("../utils/helpers/usageFilters");
 const {
+  managerRestrictedSystemPreferenceKey,
+} = require("../utils/helpers/systemPreferenceAccess");
+const {
   validRoleSelection,
   canModifyAdmin,
   validCanModify,
@@ -1451,18 +1454,8 @@ function adminEndpoints(app) {
     async (request, response) => {
       try {
         const updates = reqBody(request) || {};
-        const updateKeys = Object.keys(updates);
-        const managerRestrictedKeys = new Set([
-          "feature_flags",
-          "enterprise_teams",
-          "enterprise_prompt_library",
-          "enterprise_usage_monitoring",
-          "enterprise_usage_policies",
-        ]);
         if (response?.locals?.user?.role === ROLES.manager) {
-          const blockedKey = updateKeys.find((key) =>
-            managerRestrictedKeys.has(key)
-          );
+          const blockedKey = managerRestrictedSystemPreferenceKey(updates);
           if (blockedKey) {
             return response.status(403).json({
               success: false,

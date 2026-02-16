@@ -93,6 +93,7 @@ yarn test \
   server/__tests__/models/usageEvents.test.js \
   server/__tests__/models/apiKeys.enterprise.test.js \
   server/__tests__/utils/helpers/usageFilters.test.js \
+  server/__tests__/utils/helpers/systemPreferenceAccess.test.js \
   server/__tests__/utils/policies/chatPolicy.test.js \
   server/__tests__/utils/middleware/featureGate.test.js \
   server/__tests__/utils/middleware/validApiKey.enterprise.test.js
@@ -106,6 +107,9 @@ yarn test \
 # - revoked/expired/missing-scope denial paths
 # - no-required-scope pass-through
 # - response locals propagation for multi-user mode + api key context
+# systemPreferenceAccess helper suite includes:
+# - manager enterprise-flag restricted key detection
+# - malformed payload handling and restricted-key matrix stability checks
 # chatPolicy suite includes:
 # - provider/model denylist enforcement
 # - prompt-length, max-chats/day, max-tokens/day enforcement paths
