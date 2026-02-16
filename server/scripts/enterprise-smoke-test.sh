@@ -661,6 +661,11 @@ if [[ "${MANAGER_UPDATED_TEAM_NAME}" != "${MANAGER_TEAM_UPDATED_NAME}" ]]; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "DELETE" "/admin/teams/${MANAGER_TEAM_ID}" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can delete team"
+request "GET" "/admin/teams/${MANAGER_TEAM_ID}" "" "${MANAGER_TOKEN}"
+assert_status "404" "deleted manager team no longer available"
+MANAGER_TEAM_ID=""
 
 request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read system preferences"
