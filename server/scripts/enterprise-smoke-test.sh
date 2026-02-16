@@ -572,6 +572,12 @@ request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}"
 assert_status "401" "default user denied system preference updates"
 request "GET" "/admin/usage/overview" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage overview reads"
+request "GET" "/admin/usage/timeseries?interval=day" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage timeseries reads"
+request "GET" "/admin/usage/breakdown?by=eventType" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage breakdown reads"
+request "GET" "/admin/usage/export.csv" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage csv export reads"
 request "GET" "/admin/usage-policies" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied usage policy reads"
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-default-denied-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${TEAM_USER_TOKEN}"
@@ -579,6 +585,8 @@ if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_DEFAULT_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
 fi
 assert_status "401" "default user denied usage policy writes"
+request "GET" "/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied effective usage policy reads"
 request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied api key listing"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-default-denied-key-${RUN_ID}\",\"scopes\":[\"admin:read\"]}" "${TEAM_USER_TOKEN}"
@@ -659,10 +667,23 @@ if ! contains_text "$HTTP_BODY" "summary"; then
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
+request "GET" "/admin/usage/timeseries?interval=day" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read usage timeseries"
+request "GET" "/admin/usage/breakdown?by=eventType" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read usage breakdown"
+request "GET" "/admin/usage/export.csv" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read usage csv export"
 request "GET" "/admin/usage-policies" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read usage policies"
 if ! contains_text "$HTTP_BODY" "policies"; then
   log "FAILED: manager usage policy response missing policies payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+request "GET" "/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${MANAGER_TOKEN}"
+assert_status "200" "manager can read effective usage policies"
+if ! contains_text "$HTTP_BODY" "rules"; then
+  log "FAILED: manager effective usage policy response missing rules payload."
   log "Response: ${HTTP_BODY}"
   exit 1
 fi
