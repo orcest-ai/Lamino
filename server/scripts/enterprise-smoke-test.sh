@@ -355,6 +355,7 @@ fi
 
 TEAM_NAME="$(compose_name "qa-team-" 64 "${RUN_SUFFIX}")"
 MANAGER_TEAM_NAME="$(compose_name "qa-manager-team-" 64 "${RUN_SUFFIX}")"
+MANAGER_TEAM_UPDATED_NAME="$(compose_name "qa-manager-team-updated-" 64 "${RUN_SUFFIX}")"
 WORKSPACE_NAME="$(compose_name "qa-workspace-" 64 "${RUN_SUFFIX}")"
 ISOLATED_WORKSPACE_NAME="$(compose_name "qa-isolated-workspace-" 64 "${RUN_SUFFIX}")"
 USER_NAME="$(compose_name "qa-user-" 32 "${RUN_SUFFIX}")"
@@ -363,6 +364,7 @@ TEMPLATE_PROMPT="You are $(compose_name "qa-template-" 64 "${RUN_SUFFIX}")."
 
 assert_max_length "TEAM_NAME" "${TEAM_NAME}" 64
 assert_max_length "MANAGER_TEAM_NAME" "${MANAGER_TEAM_NAME}" 64
+assert_max_length "MANAGER_TEAM_UPDATED_NAME" "${MANAGER_TEAM_UPDATED_NAME}" 64
 assert_max_length "WORKSPACE_NAME" "${WORKSPACE_NAME}" 64
 assert_max_length "ISOLATED_WORKSPACE_NAME" "${ISOLATED_WORKSPACE_NAME}" 64
 assert_max_length "USER_NAME" "${USER_NAME}" 32
@@ -540,6 +542,8 @@ fi
 log "Asserting default users cannot access team admin routes"
 request "GET" "/admin/teams" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied team admin list"
+request "POST" "/admin/teams/new" "{\"name\":\"qa-default-denied-team-${RUN_ID}\"}" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied team admin create"
 request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied system preference reads"
 request "POST" "/admin/system-preferences" "{\"enterprise_teams\":\"disabled\"}" "${TEAM_USER_TOKEN}"
@@ -581,6 +585,15 @@ assert_status "401" "manager denied admin api key creation"
 request "POST" "/admin/teams/new" "{\"name\":\"${MANAGER_TEAM_NAME}\"}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create team"
 MANAGER_TEAM_ID="$(json_get "$HTTP_BODY" "team.id")"
+request "POST" "/admin/teams/${MANAGER_TEAM_ID}" "{\"name\":\"${MANAGER_TEAM_UPDATED_NAME}\"}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can update team"
+MANAGER_UPDATED_TEAM_NAME="$(json_get_or_empty "$HTTP_BODY" "team.name")"
+if [[ "${MANAGER_UPDATED_TEAM_NAME}" != "${MANAGER_TEAM_UPDATED_NAME}" ]]; then
+  log "FAILED: manager team update did not persist expected name."
+  log "Expected: ${MANAGER_TEAM_UPDATED_NAME} | Actual: ${MANAGER_UPDATED_TEAM_NAME}"
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 request "GET" "/admin/system-preferences-for?labels=custom_app_name" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can read system preferences"
