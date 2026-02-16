@@ -585,6 +585,10 @@ if [[ "$HTTP_STATUS" == "200" ]]; then
   UNEXPECTED_DEFAULT_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
 fi
 assert_status "401" "default user denied usage policy writes"
+request "POST" "/admin/usage-policies/999999" "{\"name\":\"qa-default-denied-policy-update-${RUN_ID}\"}" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage policy update writes"
+request "DELETE" "/admin/usage-policies/999999" "" "${TEAM_USER_TOKEN}"
+assert_status "401" "default user denied usage policy deletion"
 request "GET" "/admin/usage-policies/effective?workspaceId=${WORKSPACE_ID}&teamIds=${TEAM_ID}" "" "${TEAM_USER_TOKEN}"
 assert_status "401" "default user denied effective usage policy reads"
 request "GET" "/admin/api-keys" "" "${TEAM_USER_TOKEN}"
@@ -690,6 +694,13 @@ fi
 request "POST" "/admin/usage-policies/new" "{\"name\":\"qa-manager-policy-${RUN_ID}\",\"scope\":\"workspace\",\"workspaceId\":${WORKSPACE_ID},\"enabled\":false,\"rules\":{}}" "${MANAGER_TOKEN}"
 assert_status "200" "manager can create usage policy"
 MANAGER_POLICY_ID="$(json_get_or_empty "$HTTP_BODY" "policy.id")"
+request "POST" "/admin/usage-policies/${MANAGER_POLICY_ID}" "{\"name\":\"qa-manager-policy-updated-${RUN_ID}\",\"enabled\":true}" "${MANAGER_TOKEN}"
+assert_status "200" "manager can update usage policy"
+if ! contains_text "$HTTP_BODY" "\"success\":true"; then
+  log "FAILED: manager usage policy update did not return success payload."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 request "DELETE" "/admin/usage-policies/${MANAGER_POLICY_ID}" "" "${MANAGER_TOKEN}"
 assert_status "200" "manager can delete usage policy"
 MANAGER_POLICY_ID=""
