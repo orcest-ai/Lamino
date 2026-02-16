@@ -431,35 +431,48 @@ if [[ -z "${ADMIN_TOKEN}" ]]; then
   BOOTSTRAP_USERNAME="${BOOTSTRAP_USERNAME_SEED}"
   assert_max_length "BOOTSTRAP_USERNAME_SEED" "${BOOTSTRAP_USERNAME_SEED}" 24
   assert_username_shape "BOOTSTRAP_USERNAME_SEED" "${BOOTSTRAP_USERNAME_SEED}"
-  request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+  BOOTSTRAP_RETRY_COUNT=0
+  BOOTSTRAP_MAX_RETRIES=6
+  while true; do
+    request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
 
-  if [[ "$HTTP_STATUS" == "400" ]]; then
-    if contains_text "$HTTP_BODY" "already exists"; then
-      BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
-      assert_max_length "BOOTSTRAP_USERNAME_RETRY" "${BOOTSTRAP_USERNAME}" 32
-      assert_username_shape "BOOTSTRAP_USERNAME_RETRY" "${BOOTSTRAP_USERNAME}"
-      log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME}"
-      request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
-      if [[ "$HTTP_STATUS" == "400" ]] && contains_text "$HTTP_BODY" "already exists"; then
-        BOOTSTRAP_FALLBACK_SUFFIX="$(printf '%s' "$(date +%s)-$RANDOM" | tr -cd '[:alnum:]' | cut -c1-12)"
-        BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${BOOTSTRAP_FALLBACK_SUFFIX}")"
-        assert_max_length "BOOTSTRAP_USERNAME_FALLBACK" "${BOOTSTRAP_USERNAME}" 32
-        assert_username_shape "BOOTSTRAP_USERNAME_FALLBACK" "${BOOTSTRAP_USERNAME}"
-        log "Bootstrap retry username already exists; retrying as ${BOOTSTRAP_USERNAME}"
-        request "POST" "/system/enable-multi-user" "{\"username\":$(json_quote "${BOOTSTRAP_USERNAME}"),\"password\":$(json_quote "${ADMIN_PASSWORD}")}"
+    if [[ "$HTTP_STATUS" == "200" ]]; then
+      break
+    fi
+
+    if [[ "$HTTP_STATUS" == "400" ]]; then
+      if contains_text "$HTTP_BODY" "already exists"; then
+        BOOTSTRAP_RETRY_COUNT=$((BOOTSTRAP_RETRY_COUNT + 1))
+        if [[ "${BOOTSTRAP_RETRY_COUNT}" -ge "${BOOTSTRAP_MAX_RETRIES}" ]]; then
+          log "FAILED: bootstrap enable-multi-user exhausted username collision retries."
+          log "Response: ${HTTP_BODY}"
+          exit 1
+        fi
+
+        if [[ "${BOOTSTRAP_RETRY_COUNT}" == "1" ]]; then
+          BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${RUN_SUFFIX}")"
+          assert_max_length "BOOTSTRAP_USERNAME_RETRY" "${BOOTSTRAP_USERNAME}" 32
+          assert_username_shape "BOOTSTRAP_USERNAME_RETRY" "${BOOTSTRAP_USERNAME}"
+        else
+          BOOTSTRAP_FALLBACK_SUFFIX="$(printf '%s' "$(date +%s%N)-$RANDOM-${BOOTSTRAP_RETRY_COUNT}" | tr -cd '[:alnum:]' | cut -c1-12)"
+          BOOTSTRAP_USERNAME="$(compose_name "${BOOTSTRAP_USERNAME_SEED}-" 32 "${BOOTSTRAP_FALLBACK_SUFFIX}")"
+          assert_max_length "BOOTSTRAP_USERNAME_FALLBACK" "${BOOTSTRAP_USERNAME}" 32
+          assert_username_shape "BOOTSTRAP_USERNAME_FALLBACK" "${BOOTSTRAP_USERNAME}"
+        fi
+
+        log "Bootstrap username already exists; retrying as ${BOOTSTRAP_USERNAME} (${BOOTSTRAP_RETRY_COUNT}/${BOOTSTRAP_MAX_RETRIES})"
+        continue
       fi
-    else
+
       log "FAILED: bootstrap enable-multi-user rejected payload."
       log "Response: ${HTTP_BODY}"
       exit 1
     fi
-  fi
 
-  if [[ "$HTTP_STATUS" == "400" ]]; then
-    log "FAILED: bootstrap enable-multi-user retry did not succeed."
+    log "FAILED: bootstrap multi-user mode (${HTTP_STATUS})"
     log "Response: ${HTTP_BODY}"
     exit 1
-  fi
+  done
 
   if [[ "$HTTP_STATUS" != "200" ]]; then
     log "FAILED: bootstrap multi-user mode (${HTTP_STATUS})"

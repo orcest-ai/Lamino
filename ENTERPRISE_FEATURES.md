@@ -133,6 +133,7 @@ cd server && ./scripts/enterprise-smoke-test.sh
 # - fixture-name invariant guards now assert max-length and username-shape constraints before API calls so regressions fail fast with clear diagnostics
 # - admin credential payloads are JSON-escaped so special characters in usernames/passwords are handled safely during login/bootstrap requests
 # - bootstrap username seeds are normalized (lowercased, sanitized, length-bounded) before `enable-multi-user` retries to avoid invalid-username edge cases
+# - bootstrap username collisions now retry through bounded fallback attempts (`RUN_ID` suffix, then timestamp/random suffixes) before fail-fast exit
 # - admin login bootstrap guard requires multi-user user context (`user.id`) to avoid treating single-user tokens as admin session tokens
 # - smoke fails fast with explicit credential guidance when multi-user mode is already enabled but admin login credentials are invalid
 # - bootstrap `enable-multi-user` 400 payload rejections now fail immediately with explicit diagnostics unless the error is a handled username-collision retry
