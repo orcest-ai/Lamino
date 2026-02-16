@@ -545,11 +545,28 @@ if ! contains_text "$HTTP_BODY" "admin:read"; then
   exit 1
 fi
 
+log "Verifying malformed API key datetime payloads are rejected"
+request "POST" "/admin/generate-api-key" "{\"name\":\"qa-invalid-expiry-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"not-a-date\"}" "${ADMIN_TOKEN}"
+assert_status "200" "invalid api key expiry payload rejected"
+if ! contains_text "$HTTP_BODY" "Invalid expiresAt datetime."; then
+  log "FAILED: invalid expiresAt payload response missing expected message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
+
 log "Creating admin read-only API key"
 request "POST" "/admin/generate-api-key" "{\"name\":\"qa-admin-read-${RUN_ID}\",\"scopes\":[\"admin:read\"],\"expiresAt\":\"2030-01-01T00:00:00.000Z\"}" "${ADMIN_TOKEN}"
 assert_status "200" "create admin read-only key"
 ADMIN_READ_KEY="$(json_get "$HTTP_BODY" "apiKey.secret")"
 ADMIN_READ_KEY_ID="$(json_get_or_empty "$HTTP_BODY" "apiKey.id")"
+
+request "POST" "/admin/api-keys/${ADMIN_READ_KEY_ID}" "{\"revokedAt\":\"invalid-revoked-at\"}" "${ADMIN_TOKEN}"
+assert_status "200" "invalid api key revokedAt payload rejected"
+if ! contains_text "$HTTP_BODY" "Invalid revokedAt datetime."; then
+  log "FAILED: invalid revokedAt payload response missing expected message."
+  log "Response: ${HTTP_BODY}"
+  exit 1
+fi
 
 log "Verifying admin:read key can read teams"
 request "GET" "/v1/admin/teams" "" "${ADMIN_READ_KEY}"
