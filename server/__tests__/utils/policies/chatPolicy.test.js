@@ -29,7 +29,9 @@ jest.mock("../../../../server/models/systemSettings", () => ({
   },
 }));
 
-const { enforceChatPolicies } = require("../../../../server/utils/helpers/policies/chatPolicy");
+const {
+  enforceChatPolicies,
+} = require("../../../../server/utils/helpers/policies/chatPolicy");
 
 describe("Chat policy enforcement", () => {
   beforeEach(() => {
@@ -100,5 +102,75 @@ describe("Chat policy enforcement", () => {
     });
     expect(result.allowed).toBe(false);
     expect(result.code).toBe("policy_daily_chat_limit");
+  });
+
+  it("blocks chats that use a model disallowed by policy", async () => {
+    mockUsagePolicyResolveRulesFor.mockResolvedValue({
+      rules: { allowedModels: ["claude-3-5-sonnet"] },
+      policies: [{ id: 44 }],
+    });
+    const result = await enforceChatPolicies({
+      user: { id: 1 },
+      workspace: { id: 2, chatProvider: "openai", chatModel: "gpt-4o" },
+      message: "Hello world",
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.code).toBe("policy_model_not_allowed");
+  });
+
+  it("blocks chats when daily token policy is exceeded", async () => {
+    mockUsagePolicyResolveRulesFor.mockResolvedValue({
+      rules: { maxTokensPerDay: 100 },
+      policies: [{ id: 55 }],
+    });
+    mockUsageEventsAggregate.mockResolvedValue({
+      _sum: { totalTokens: 100 },
+    });
+    const result = await enforceChatPolicies({
+      user: { id: 5 },
+      workspace: { id: 8, chatProvider: "openai", chatModel: "gpt-4o" },
+      message: "hello",
+    });
+    expect(result.allowed).toBe(false);
+    expect(result.code).toBe("policy_daily_token_limit");
+  });
+
+  it("uses deduplicated team ids while resolving effective policy context", async () => {
+    mockTeamMemberWhere.mockResolvedValue([
+      { teamId: 3 },
+      { teamId: 3 },
+      { teamId: 5 },
+    ]);
+    mockUsagePolicyResolveRulesFor.mockResolvedValue({
+      rules: {},
+      policies: [],
+    });
+
+    await enforceChatPolicies({
+      user: { id: 14 },
+      workspace: { id: 22, chatProvider: "openai", chatModel: "gpt-4o" },
+      message: "hello",
+    });
+
+    expect(mockUsagePolicyResolveRulesFor).toHaveBeenCalledWith({
+      userId: 14,
+      workspaceId: 22,
+      teamIds: [3, 5],
+    });
+  });
+
+  it("bypasses policy resolution when enterprise usage policies are disabled", async () => {
+    mockGetFeatureFlags.mockResolvedValue({
+      enterprise_usage_policies: false,
+    });
+    const result = await enforceChatPolicies({
+      user: { id: 1 },
+      workspace: { id: 2, chatProvider: "openai", chatModel: "gpt-4o" },
+      message: "Hello world",
+    });
+    expect(result.allowed).toBe(true);
+    expect(mockUsagePolicyResolveRulesFor).not.toHaveBeenCalled();
+    expect(mockUsageEventsCount).not.toHaveBeenCalled();
+    expect(mockUsageEventsAggregate).not.toHaveBeenCalled();
   });
 });
