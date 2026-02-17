@@ -47,22 +47,22 @@ export default {
     },
   },
   github: () => {
-    return "https://github.com/Mintplex-Labs/anything-llm";
+    return "https://github.com/danialsamiei/llm.orcest.ai";
   },
   discord: () => {
     return "https://discord.com/invite/6UyHPeGZAC";
   },
   docs: () => {
-    return "https://docs.anythingllm.com";
+    return "https://docs.lamino.orcest.ai";
   },
   chatModes: () => {
-    return "https://docs.anythingllm.com/features/chat-modes";
+    return "https://docs.lamino.orcest.ai/features/chat-modes";
   },
-  mailToMintplex: () => {
-    return "mailto:team@mintplexlabs.com";
+  mailToOrcest: () => {
+    return "mailto:team@orcest.ai";
   },
   hosting: () => {
-    return "https://my.mintplexlabs.com/aio-checkout?product=anythingllm";
+    return "https://lamino.orcest.ai";
   },
   workspace: {
     chat: (slug, options = {}) => {
@@ -183,7 +183,7 @@ export default {
     website: () => {
       return import.meta.env.DEV
         ? `http://localhost:5173`
-        : `https://hub.anythingllm.com`;
+        : `https://hub.lamino.orcest.ai`;
     },
     /**
      * View more items of a given type on the community hub.
@@ -210,17 +210,17 @@ export default {
       return `${this.website()}/me`;
     },
     noPrivateItems: () => {
-      return "https://docs.anythingllm.com/community-hub/faq#no-private-items";
+      return "https://docs.lamino.orcest.ai/community-hub/faq#no-private-items";
     },
   },
 
-  // TODO: Migrate all docs.anythingllm.com links to the new docs.
+  // TODO: Migrate all docs.lamino.orcest.ai links to the new docs.
   documentation: {
     mobileIntroduction: () => {
-      return "https://docs.anythingllm.com/mobile/overview";
+      return "https://docs.lamino.orcest.ai/mobile/overview";
     },
     contextWindows: () => {
-      return "https://docs.anythingllm.com/chatting-with-documents/introduction#you-exceed-the-context-window---what-now";
+      return "https://docs.lamino.orcest.ai/chatting-with-documents/introduction#you-exceed-the-context-window---what-now";
     },
   },
 

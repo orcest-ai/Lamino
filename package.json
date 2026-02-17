@@ -1,10 +1,10 @@
 {
-  "name": "anything-llm",
+  "name": "lamino",
   "version": "1.10.0",
-  "description": "The best solution for turning private documents into a chat bot using off-the-shelf tools and commercially viable AI technologies.",
+  "description": "Lamino: Layered Advanced Model Integration for Neural Orchestration — the ultimate self-hosted, modular LLM aggregator platform by Orcest.ai",
   "main": "index.js",
   "type": "module",
-  "author": "Timothy Carambat (Mintplex Labs)",
+  "author": "Orcest.ai Team",
   "license": "MIT",
   "engines": {
     "node": ">=18"
@@ -22,7 +22,7 @@
     "prisma:migrate": "cd server && npx prisma migrate dev --name init",
     "prisma:seed": "cd server && npx prisma db seed",
     "prisma:setup": "yarn prisma:generate && yarn prisma:migrate && yarn prisma:seed",
-    "prisma:reset": "truncate -s 0 server/storage/anythingllm.db && yarn prisma:migrate",
+    "prisma:reset": "truncate -s 0 server/storage/lamino.db && yarn prisma:migrate", 
     "prod:server": "cd server && yarn start",
     "prod:frontend": "cd frontend && yarn build",
     "generate:cloudformation": "node cloud-deployments/aws/cloudformation/generate.mjs",

@@ -1,16 +1,49 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
-export const ONBOARDING_SURVEY_URL = "https://onboarding.anythingllm.com";
+export const ONBOARDING_SURVEY_URL = "https://onboarding.lamino.orcest.ai";
 
-export const AUTH_USER = "anythingllm_user";
-export const AUTH_TOKEN = "anythingllm_authToken";
-export const AUTH_TIMESTAMP = "anythingllm_authTimestamp";
-export const COMPLETE_QUESTIONNAIRE = "anythingllm_completed_questionnaire";
-export const SEEN_DOC_PIN_ALERT = "anythingllm_pinned_document_alert";
-export const SEEN_WATCH_ALERT = "anythingllm_watched_document_alert";
-export const LAST_VISITED_WORKSPACE = "anythingllm_last_visited_workspace";
-export const USER_PROMPT_INPUT_MAP = "anythingllm_user_prompt_input_map";
+export const AUTH_USER = "lamino_user";
+export const AUTH_TOKEN = "lamino_authToken";
+export const AUTH_TIMESTAMP = "lamino_authTimestamp";
+export const COMPLETE_QUESTIONNAIRE = "lamino_completed_questionnaire";
+export const SEEN_DOC_PIN_ALERT = "lamino_pinned_document_alert";
+export const SEEN_WATCH_ALERT = "lamino_watched_document_alert";
+export const LAST_VISITED_WORKSPACE = "lamino_last_visited_workspace";
+export const USER_PROMPT_INPUT_MAP = "lamino_user_prompt_input_map";
 
-export const APPEARANCE_SETTINGS = "anythingllm_appearance_settings";
+export const APPEARANCE_SETTINGS = "lamino_appearance_settings";
+
+/**
+ * Migrate localStorage keys from legacy AnythingLLM to Lamino.
+ * Runs once on first load to preserve user sessions during rebrand.
+ */
+(function migrateLocalStorageKeys() {
+  const migrations = [
+    ["anythingllm_user", AUTH_USER],
+    ["anythingllm_authToken", AUTH_TOKEN],
+    ["anythingllm_authTimestamp", AUTH_TIMESTAMP],
+    ["anythingllm_completed_questionnaire", COMPLETE_QUESTIONNAIRE],
+    ["anythingllm_pinned_document_alert", SEEN_DOC_PIN_ALERT],
+    ["anythingllm_watched_document_alert", SEEN_WATCH_ALERT],
+    ["anythingllm_last_visited_workspace", LAST_VISITED_WORKSPACE],
+    ["anythingllm_user_prompt_input_map", USER_PROMPT_INPUT_MAP],
+    ["anythingllm_appearance_settings", APPEARANCE_SETTINGS],
+    ["anythingllm_sidebar_toggle", "lamino_sidebar_toggle"],
+    ["anythingllm_text_size", "lamino_text_size"],
+    ["anythingllm-chat-message-alignment", "lamino-chat-message-alignment"],
+  ];
+  try {
+    for (const [oldKey, newKey] of migrations) {
+      if (
+        localStorage.getItem(oldKey) !== null &&
+        localStorage.getItem(newKey) === null
+      ) {
+        localStorage.setItem(newKey, localStorage.getItem(oldKey));
+      }
+    }
+  } catch {
+    // localStorage may not be available
+  }
+})();
 
 export const OLLAMA_COMMON_URLS = [
   "http://127.0.0.1:11434",

@@ -8,7 +8,7 @@ const TRANSLATIONS = {
     llm: {
       title: "LLM-i eelistus",
       description:
-        "AnythingLLM töötab paljude LLM-teenusepakkujatega. See teenus haldab vestlust.",
+        "Lamino töötab paljude LLM-teenusepakkujatega. See teenus haldab vestlust.",
     },
     userSetup: {
       title: "Kasutaja seadistus",
@@ -34,15 +34,15 @@ const TRANSLATIONS = {
       settingsHint: "Neid sätteid saab igal ajal seadetes muuta.",
     },
     survey: {
-      title: "Tere tulemast AnythingLLM-i",
+      title: "Tere tulemast Lamino-i",
       description:
-        "Aita meil AnythingLLM sinu vajadustele vastavaks kujundada. Valikuline.",
+        "Aita meil Lamino sinu vajadustele vastavaks kujundada. Valikuline.",
       email: "Mis on su e-post?",
-      useCase: "Milleks kasutad AnythingLLM-i?",
+      useCase: "Milleks kasutad Lamino-i?",
       useCaseWork: "Töö jaoks",
       useCasePersonal: "Isiklikuks kasutuseks",
       useCaseOther: "Muu",
-      comment: "Kust kuulsid AnythingLLM-ist?",
+      comment: "Kust kuulsid Lamino-ist?",
       commentPlaceholder:
         "Reddit, Twitter, GitHub, YouTube jne – anna meile teada!",
       skip: "Jäta vahele",
@@ -50,7 +50,7 @@ const TRANSLATIONS = {
     },
     workspace: {
       title: "Loo oma esimene tööruum",
-      description: "Loo esimene tööruum ja alusta AnythingLLM-iga.",
+      description: "Loo esimene tööruum ja alusta Lamino-iga.",
     },
   },
   common: {
@@ -101,7 +101,7 @@ const TRANSLATIONS = {
     "experimental-features": "Eksperimentaalsed funktsioonid",
     contact: "Tugi",
     "browser-extension": "Brauserilaiend",
-    "mobile-app": "AnythingLLM mobiilversioon",
+    "mobile-app": "Lamino mobiilversioon",
   },
   login: {
     "multi-user": {
@@ -127,7 +127,7 @@ const TRANSLATIONS = {
     checklist: {
       title: "Alustamine",
       tasksLeft: "ülesannet jäänud",
-      completed: "Oled teel AnythingLLM-i eksperdiks saama!",
+      completed: "Oled teel Lamino-i eksperdiks saama!",
       dismiss: "sulge",
       tasks: {
         create_workspace: {
@@ -229,7 +229,7 @@ const TRANSLATIONS = {
       add: "Lisa uus sõnum",
       save: "Salvesta sõnumid",
       heading: "Selgita mulle",
-      body: "AnythingLLM eeliseid",
+      body: "Lamino eeliseid",
     },
     pfp: {
       title: "Abilise profiilipilt",
@@ -412,11 +412,11 @@ const TRANSLATIONS = {
   customization: {
     interface: {
       title: "Kasutajaliidese eelistused",
-      description: "Sea AnythingLLM-i UI eelistused.",
+      description: "Sea Lamino-i UI eelistused.",
     },
     branding: {
       title: "Bränding ja valgesildistamine",
-      description: "Valgesildista oma AnythingLLM kohandatud brändinguga.",
+      description: "Valgesildista oma Lamino kohandatud brändinguga.",
     },
     chat: {
       title: "Vestlus",
@@ -460,7 +460,7 @@ const TRANSLATIONS = {
       "display-language": {
         title: "Kuvakeel",
         description:
-          "Vali keel, milles AnythingLLM UI kuvatakse (kui tõlge on olemas).",
+          "Vali keel, milles Lamino UI kuvatakse (kui tõlge on olemas).",
       },
       logo: {
         title: "Brändi logo",
@@ -478,7 +478,7 @@ const TRANSLATIONS = {
         system: "süsteem",
         user: "kasutaja",
         message: "sõnum",
-        assistant: "AnythingLLM vestlusabi",
+        assistant: "Lamino vestlusabi",
         "double-click": "Topeltklõps muutmiseks…",
         save: "Salvesta sõnumid",
       },
@@ -511,7 +511,7 @@ const TRANSLATIONS = {
   api: {
     title: "API võtmed",
     description:
-      "API võtmed võimaldavad programmipõhiselt hallata seda AnythingLLM instantsi.",
+      "API võtmed võimaldavad programmipõhiselt hallata seda Lamino instantsi.",
     link: "Loe API dokumentatsiooni",
     generate: "Genereeri uus API võti",
     table: {
@@ -523,7 +523,7 @@ const TRANSLATIONS = {
   llm: {
     title: "LLM-i eelistus",
     description:
-      "Siin on sinu valitud LLM-teenusepakkuja võtmed ja seaded. Need peavad olema õiged, vastasel juhul AnythingLLM ei tööta.",
+      "Siin on sinu valitud LLM-teenusepakkuja võtmed ja seaded. Need peavad olema õiged, vastasel juhul Lamino ei tööta.",
     provider: "LLM-pakkuja",
     providers: {
       azure_openai: {
@@ -555,7 +555,7 @@ const TRANSLATIONS = {
     "desc-start":
       "Kui kasutad LLM-i, mis ei sisalda embedding-mootorit, tuleb määrata täiendavad võtmed.",
     "desc-end":
-      "Embedding muudab teksti vektoriteks. Need võtmed on vajalikud, et AnythingLLM saaks sinu failid ja päringud töödelda.",
+      "Embedding muudab teksti vektoriteks. Need võtmed on vajalikud, et Lamino saaks sinu failid ja päringud töödelda.",
     provider: {
       title: "Embedding-i pakkuja",
     },
@@ -578,7 +578,7 @@ const TRANSLATIONS = {
   vector: {
     title: "Vektoriandmebaas",
     description:
-      "Siin on seaded, kuidas AnythingLLM töötab. Vale seadistus võib põhjustada tõrkeid.",
+      "Siin on seaded, kuidas Lamino töötab. Vale seadistus võib põhjustada tõrkeid.",
     provider: {
       title: "Vektoriandmebaasi pakkuja",
       description: "LanceDB puhul seadistust pole vaja.",
@@ -621,7 +621,7 @@ const TRANSLATIONS = {
   privacy: {
     title: "Privaatsus ja andmetöötlus",
     description:
-      "Konfiguratsioon kolmandate osapoolte ja AnythingLLM-i andmekäitluse kohta.",
+      "Konfiguratsioon kolmandate osapoolte ja Lamino-i andmekäitluse kohta.",
     llm: "LLM-i valik",
     embedding: "Embedding-i eelistus",
     vector: "Vektoriandmebaas",

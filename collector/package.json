@@ -1,9 +1,9 @@
 {
-  "name": "anything-llm-document-collector",
+  "name": "lamino-document-collector",
   "version": "1.10.0",
   "description": "Document collector server endpoints",
   "main": "index.js",
-  "author": "Timothy Carambat (Mintplex Labs)",
+  "author": "Orcest.ai Team",
   "license": "MIT",
   "private": false,
   "engines": {

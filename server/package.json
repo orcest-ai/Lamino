@@ -1,9 +1,9 @@
 {
-  "name": "anything-llm-server",
+  "name": "lamino-server",
   "version": "1.10.0",
-  "description": "Server endpoints to process or create content for chatting",
+  "description": "Lamino server — endpoints for LLM orchestration, RAG, and document processing",
   "main": "index.js",
-  "author": "Timothy Carambat (Mintplex Labs)",
+  "author": "Orcest.ai Team",
   "license": "MIT",
   "private": false,
   "engines": {
