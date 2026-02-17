@@ -102,7 +102,7 @@ class MetaGenerator {
         props: {
           property: "og:image",
           content:
-            "https://raw.githubusercontent.com/Orcest-ai/lamino/master/images/promo.png",
+            "https://raw.githubusercontent.com/danialsamiei/llm.orcest.ai/master/images/promo.png",
         },
       },
 
@@ -134,7 +134,7 @@ class MetaGenerator {
         props: {
           property: "twitter:image",
           content:
-            "https://raw.githubusercontent.com/Orcest-ai/lamino/master/images/promo.png",
+            "https://raw.githubusercontent.com/danialsamiei/llm.orcest.ai/master/images/promo.png",
         },
       },
 

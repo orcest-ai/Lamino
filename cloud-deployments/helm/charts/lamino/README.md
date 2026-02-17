@@ -2,7 +2,7 @@
 
 ![Version: 1.0.0](https://img.shields.io/badge/Version-1.0.0-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.85.0](https://img.shields.io/badge/AppVersion-1.85.0-informational?style=flat-square)
 
-![Lamino](https://raw.githubusercontent.com/Orcest-ai/lamino/master/images/wordmark.png)
+![Lamino](https://raw.githubusercontent.com/danialsamiei/llm.orcest.ai/master/images/wordmark.png)
 
 [Lamino](https://github.com/danialsamiei/llm.orcest.ai)
 
