@@ -1,7 +1,7 @@
 <a name="readme-top"></a>
 
 <p align="center">
-  <a href="https://lamino.orcest.ai"><img src="https://github.com/Orcest-ai/lamino/blob/master/images/wordmark.png?raw=true" alt="Lamino logo"></a>
+  <a href="https://lamino.orcest.ai"><img src="https://github.com/danialsamiei/llm.orcest.ai/blob/master/images/wordmark.png?raw=true" alt="Lamino logo"></a>
 </p>
 
 <div align='center'>
@@ -17,7 +17,7 @@ Belgelerinizle sohbet edin, yapay zeka ajanlarını kullanın, son derece özell
   <a href="https://discord.gg/6UyHPeGZAC" target="_blank">
       <img src="https://img.shields.io/badge/chat-orcest_ai-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAH1UExURQAAAP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////r6+ubn5+7u7/3+/v39/enq6urq6/v7+97f39rb26eoqT1BQ0pOT4+Rkuzs7cnKykZKS0NHSHl8fdzd3ejo6UxPUUBDRdzc3RwgIh8jJSAkJm5xcvHx8aanqB4iJFBTVezt7V5hYlJVVuLj43p9fiImKCMnKZKUlaaoqSElJ21wcfT09O3u7uvr6zE0Nr6/wCUpK5qcnf7+/nh7fEdKTHx+f0tPUOTl5aipqiouMGtubz5CRDQ4OsTGxufn515hY7a3uH1/gXBydIOFhlVYWvX29qaoqCQoKs7Pz/Pz87/AwUtOUNfY2dHR0mhrbOvr7E5RUy8zNXR2d/f39+Xl5UZJSx0hIzQ3Odra2/z8/GlsbaGjpERHSezs7L/BwScrLTQ4Odna2zM3Obm7u3x/gKSmp9jZ2T1AQu/v71pdXkVISr2+vygsLiInKTg7PaOlpisvMcXGxzk8PldaXPLy8u7u7rm6u7S1tsDBwvj4+MPExbe4ueXm5s/Q0Kyf7ewAAAAodFJOUwAABClsrNjx/QM2l9/7lhmI6jTB/kA1GgKJN+nea6vy/MLZQYeVKK3rVA5tAAAAAWJLR0QB/wIt3gAAAAd0SU1FB+cKBAAmMZBHjXIAAAISSURBVDjLY2CAAkYmZhZWNnYODnY2VhZmJkYGVMDIycXNw6sBBbw8fFycyEoYGfkFBDVQgKAAPyMjQl5IWEQDDYgIC8FUMDKKsmlgAWyiEBWMjGJY5YEqxMAqGMWFNXAAYXGgAkYJSQ2cQFKCkYFRShq3AmkpRgYJbghbU0tbB0Tr6ukbgGhDI10gySfBwCwDUWBsYmpmDqQtLK2sbTQ0bO3sHYA8GWYGWWj4WTs6Obu4ami4OTm7exhqeHp5+4DCVJZBDmqdr7ufn3+ArkZgkJ+fU3CIRmgYWFiOARYGvo5OQUHhEUAFTkF+kVHRsLBgkIeyYmLjwoOc4hMSk5JTnINS06DC8gwcEEZ6RqZGlpOfc3ZObl5+gZ+TR2ERWFyBQQFMF5eklmqUpQb5+ReU61ZUOvkFVVXXQBSAraitq29o1GiKcfLzc29u0mjxBzq0tQ0kww5xZHtHUGeXhkZhdxBYgZ4d0LI6c4gjwd7siQQraOp1AivQ6CuAKZCDBBRQQQNQgUb/BGf3cqCCiZOcnCe3QQIKHNRTpk6bDgpZjRkzg3pBQTBrdtCcuZCgluAD0vPmL1gIdvSixUuWgqNs2YJ+DUhkEYxuggkGmOQUcckrioPTJCOXEnZ5JS5YslbGnuyVERlDDFvGEUPOWvwqaH6RVkHKeuDMK6SKnHlVhTgx8jeTmqy6Eij7K6nLqiGyPwChsa1MUrnq1wAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMy0xMC0wNFQwMDozODo0OSswMDowMB9V0a8AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjMtMTAtMDRUMDA6Mzg6NDkrMDA6MDBuCGkTAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDIzLTEwLTA0VDAwOjM4OjQ5KzAwOjAwOR1IzAAAAABJRU5ErkJggg==" alt="Discord">
   </a> |
-  <a href="https://github.com/Orcest-ai/lamino/blob/master/LICENSE" target="_blank">
+  <a href="https://github.com/danialsamiei/llm.orcest.ai/blob/master/LICENSE" target="_blank">
       <img src="https://img.shields.io/static/v1?label=license&message=MIT&color=white" alt="License">
   </a> |
   <a href="https://docs.lamino.orcest.ai" target="_blank">
@@ -38,7 +38,7 @@ Belgelerinizle sohbet edin, yapay zeka ajanlarını kullanın, son derece özell
 
 Herhangi bir belgeyi, kaynağı veya içeriği sohbet sırasında herhangi bir büyük dil modelinin referans olarak kullanabileceği bir bağlama dönüştürmenizi sağlayan tam kapsamlı bir uygulama. Bu uygulama, kullanmak istediğiniz LLM veya Vektör Veritabanını seçmenize olanak tanırken, çok kullanıcılı yönetim ve yetkilendirme desteği de sunar.
 
-![Mesajlaşma](https://github.com/Orcest-ai/lamino/assets/16845892/cfc5f47c-bd91-4067-986c-f3f49621a859)
+![Mesajlaşma](https://github.com/danialsamiei/llm.orcest.ai/assets/16845892/cfc5f47c-bd91-4067-986c-f3f49621a859)
 
 <details>
 <summary><kbd>Demoyu izle!</kbd></summary>
@@ -60,7 +60,7 @@ Lamino, belgelerinizi **"çalışma alanları" (workspaces)** adı verilen nesne
 - 🖼️ **Çoklu-mod desteği (hem kapalı kaynak hem de açık kaynak LLM'ler!)**
 - 👤 Çok kullanıcılı destek ve yetkilendirme _(Yalnızca Docker sürümünde)_
 - 🦾 Çalışma alanı içinde ajanlar (web'de gezinme vb.)
-- 💬 [Web sitenize gömülebilir özel sohbet aracı](https://github.com/Orcest-ai/lamino-embed/blob/main/README.md) _(Yalnızca Docker sürümünde)_
+- 💬 [Web sitenize gömülebilir özel sohbet aracı](https://github.com/danialsamiei/llm.orcest.ai-embed/blob/main/README.md) _(Yalnızca Docker sürümünde)_
 - 📖 Çoklu belge türü desteği (PDF, TXT, DOCX vb.)
 - Sade ve kullanışlı sohbet arayüzü, sürükle-bırak özelliği ve net kaynak gösterimi.
 - %100 bulut konuşlandırmaya hazır.
@@ -117,7 +117,7 @@ Lamino, belgelerinizi **"çalışma alanları" (workspaces)** adı verilen nesne
 
 **Ses Transkripsiyon Modelleri:**
 
-- [Lamino Built-in](https://github.com/Orcest-ai/lamino/tree/master/server/storage/models#audiovideo-transcription) (default)
+- [Lamino Built-in](https://github.com/danialsamiei/llm.orcest.ai/tree/master/server/storage/models#audiovideo-transcription) (default)
 - [OpenAI](https://openai.com/)
 
 **TTS (text-to-speech) desteği:**
@@ -152,8 +152,8 @@ Bu monorepo üç ana bölümden oluşmaktadır:
 - **`server`**: NodeJS ve Express tabanlı bir sunucu, tüm etkileşimleri yönetir ve vektör veritabanı işlemleri ile LLM entegrasyonlarını gerçekleştirir.
 - **`collector`**: Kullanıcı arayüzünden gelen belgeleri işleyen ve ayrıştıran NodeJS Express tabanlı bir sunucu.
 - **`docker`**: Docker kurulum talimatları, derleme süreci ve kaynak koddan nasıl derleneceğine dair bilgiler içerir.
-- **`embed`**: [Web gömme widget’ı](https://github.com/Orcest-ai/lamino-embed) oluşturma ve entegrasyonu için alt modül.
-- **`browser-extension`**: [Chrome tarayıcı eklentisi](https://github.com/Orcest-ai/lamino-extension) için alt modül.
+- **`embed`**: [Web gömme widget’ı](https://github.com/danialsamiei/llm.orcest.ai-embed) oluşturma ve entegrasyonu için alt modül.
+- **`browser-extension`**: [Chrome tarayıcı eklentisi](https://github.com/danialsamiei/llm.orcest.ai-extension) için alt modül.
 
 ## 🛳 Kendi Sunucunuzda Barındırma
 
@@ -227,7 +227,7 @@ Bu verileri doğrulamak için kod içinde **`Telemetry.sendTelemetry` çağrıla
 
 ## 🌟 Katkıda Bulunanlar
 
-[![lamino contributors](https://contrib.rocks/image?repo=orcest-ai/lamino)](https://github.com/orcest-ai/lamino/graphs/contributors)
+[![lamino contributors](https://contrib.rocks/image?repo=orcest-ai/lamino)](https://github.com/danialsamiei/llm.orcest.ai/graphs/contributors)
 
 [![Star History Chart](https://api.star-history.com/svg?repos=orcest-ai/lamino&type=Timeline)](https://star-history.com/#orcest-ai/lamino&Date)
 
@@ -262,9 +262,9 @@ Bu proje [MIT](../LICENSE) lisansı ile lisanslanmıştır.
 [do-btn]: https://www.deploytodo.com/do-btn-blue.svg
 [do-deploy]: ./cloud-deployments/digitalocean/terraform/DEPLOY.md
 [render-btn]: https://render.com/images/deploy-to-render-button.svg
-[render-deploy]: https://render.com/deploy?repo=https://github.com/Orcest-ai/lamino&branch=render
+[render-deploy]: https://render.com/deploy?repo=https://github.com/danialsamiei/llm.orcest.ai&branch=render
 [render-btn]: https://render.com/images/deploy-to-render-button.svg
-[render-deploy]: https://render.com/deploy?repo=https://github.com/Orcest-ai/lamino&branch=render
+[render-deploy]: https://render.com/deploy?repo=https://github.com/danialsamiei/llm.orcest.ai&branch=render
 [railway-btn]: https://railway.app/button.svg
 [railway-deploy]: https://railway.app/template/HNSCS1?referralCode=WFgJkn
 [repocloud-btn]: https://d16t0pc4846x52.cloudfront.net/deploylobe.svg

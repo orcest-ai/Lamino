@@ -4,7 +4,7 @@
 
 ![Lamino](https://raw.githubusercontent.com/Orcest-ai/lamino/master/images/wordmark.png)
 
-[Lamino](https://github.com/Orcest-ai/lamino)
+[Lamino](https://github.com/danialsamiei/llm.orcest.ai)
 
 The all-in-one Desktop & Docker AI application with built-in RAG, AI agents, No-code agent builder, MCP compatibility, and more.
 

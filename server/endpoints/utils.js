@@ -67,7 +67,7 @@ async function getDiskStorage() {
  * so that we can prioritize the correct model and types for future updates
  * as well as build features in Lamino directly for a specific model or capabilities.
  *
- * Disable with  {@link https://github.com/Orcest-ai/lamino?tab=readme-ov-file#telemetry--privacy|Disable Telemetry}
+ * Disable with  {@link https://github.com/danialsamiei/llm.orcest.ai?tab=readme-ov-file#telemetry--privacy|Disable Telemetry}
  * @returns {string} The model tag.
  */
 function getModelTag() {

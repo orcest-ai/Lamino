@@ -12,6 +12,39 @@ export const USER_PROMPT_INPUT_MAP = "lamino_user_prompt_input_map";
 
 export const APPEARANCE_SETTINGS = "lamino_appearance_settings";
 
+/**
+ * Migrate localStorage keys from legacy AnythingLLM to Lamino.
+ * Runs once on first load to preserve user sessions during rebrand.
+ */
+(function migrateLocalStorageKeys() {
+  const migrations = [
+    ["anythingllm_user", AUTH_USER],
+    ["anythingllm_authToken", AUTH_TOKEN],
+    ["anythingllm_authTimestamp", AUTH_TIMESTAMP],
+    ["anythingllm_completed_questionnaire", COMPLETE_QUESTIONNAIRE],
+    ["anythingllm_pinned_document_alert", SEEN_DOC_PIN_ALERT],
+    ["anythingllm_watched_document_alert", SEEN_WATCH_ALERT],
+    ["anythingllm_last_visited_workspace", LAST_VISITED_WORKSPACE],
+    ["anythingllm_user_prompt_input_map", USER_PROMPT_INPUT_MAP],
+    ["anythingllm_appearance_settings", APPEARANCE_SETTINGS],
+    ["anythingllm_sidebar_toggle", "lamino_sidebar_toggle"],
+    ["anythingllm_text_size", "lamino_text_size"],
+    ["anythingllm-chat-message-alignment", "lamino-chat-message-alignment"],
+  ];
+  try {
+    for (const [oldKey, newKey] of migrations) {
+      if (
+        localStorage.getItem(oldKey) !== null &&
+        localStorage.getItem(newKey) === null
+      ) {
+        localStorage.setItem(newKey, localStorage.getItem(oldKey));
+      }
+    }
+  } catch {
+    // localStorage may not be available
+  }
+})();
+
 export const OLLAMA_COMMON_URLS = [
   "http://127.0.0.1:11434",
   "http://host.docker.internal:11434",

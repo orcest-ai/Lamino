@@ -1,7 +1,7 @@
 <a name="readme-top"></a>
 
 <p align="center">
-  <a href="https://lamino.orcest.ai"><img src="https://github.com/Orcest-ai/lamino/blob/master/images/wordmark.png?raw=true" alt="Lamino logo"></a>
+  <a href="https://lamino.orcest.ai"><img src="https://github.com/danialsamiei/llm.orcest.ai/blob/master/images/wordmark.png?raw=true" alt="Lamino logo"></a>
 </p>
 
 <div align='center'>
@@ -17,7 +17,7 @@
 	<a href="https://discord.gg/6UyHPeGZAC" target="_blank">
       <img src="https://img.shields.io/badge/chat-orcest_ai-blue.svg?style=flat&logo=data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAAIGNIUk0AAHomAACAhAAA+gAAAIDoAAB1MAAA6mAAADqYAAAXcJy6UTwAAAH1UExURQAAAP////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////r6+ubn5+7u7/3+/v39/enq6urq6/v7+97f39rb26eoqT1BQ0pOT4+Rkuzs7cnKykZKS0NHSHl8fdzd3ejo6UxPUUBDRdzc3RwgIh8jJSAkJm5xcvHx8aanqB4iJFBTVezt7V5hYlJVVuLj43p9fiImKCMnKZKUlaaoqSElJ21wcfT09O3u7uvr6zE0Nr6/wCUpK5qcnf7+/nh7fEdKTHx+f0tPUOTl5aipqiouMGtubz5CRDQ4OsTGxufn515hY7a3uH1/gXBydIOFhlVYWvX29qaoqCQoKs7Pz/Pz87/AwUtOUNfY2dHR0mhrbOvr7E5RUy8zNXR2d/f39+Xl5UZJSx0hIzQ3Odra2/z8/GlsbaGjpERHSezs7L/BwScrLTQ4Odna2zM3Obm7u3x/gKSmp9jZ2T1AQu/v71pdXkVISr2+vygsLiInKTg7PaOlpisvMcXGxzk8PldaXPLy8u7u7rm6u7S1tsDBwvj4+MPExbe4ueXm5s/Q0Kyf7ewAAAAodFJOUwAABClsrNjx/QM2l9/7lhmI6jTB/kA1GgKJN+nea6vy/MLZQYeVKK3rVA5tAAAAAWJLR0QB/wIt3gAAAAd0SU1FB+cKBAAmMZBHjXIAAAISSURBVDjLY2CAAkYmZhZWNnYODnY2VhZmJkYGVMDIycXNw6sBBbw8fFycyEoYGfkFBDVQgKAAPyMjQl5IWEQDDYgIC8FUMDKKsmlgAWyiEBWMjGJY5YEqxMAqGMWFNXAAYXGgAkYJSQ2cQFKCkYFRShq3AmkpRgYJbghbU0tbB0Tr6ukbgGhDI10gySfBwCwDUWBsYmpmDqQtLK2sbTQ0bO3sHYA8GWYGWWj4WTs6Obu4ami4OTm7exhqeHp5+4DCVJZBDmqdr7ufn3+ArkZgkJ+fU3CIRmgYWFiOARYGvo5OQUHhEUAFTkF+kVHRsLBgkIeyYmLjwoOc4hMSk5JTnINS06DC8gwcEEZ6RqZGlpOfc3ZObl5+gZ+TR2ERWFyBQQFMF5eklmqUpQb5+ReU61ZUOvkFVVXXQBSAraitq29o1GiKcfLzc29u0mjxBzq0tQ0kww5xZHtHUGeXhkZhdxBYgZ4d0LI6c4gjwd7siQQraOp1AivQ6CuAKZCDBBRQQQNQgUb/BGf3cqCCiZOcnCe3QQIKHNRTpk6bDgpZjRkzg3pBQTBrdtCcuZCgluAD0vPmL1gIdvSixUuWgqNs2YJ+DUhkEYxuggkGmOQUcckrioPTJCOXEnZ5JS5YslbGnuyVERlDDFvGEUPOWvwqaH6RVkHKeuDMK6SKnHlVhTgx8jeTmqy6Eij7K6nLqiGyPwChsa1MUrnq1wAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMy0xMC0wNFQwMDozODo0OSswMDowMB9V0a8AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjMtMTAtMDRUMDA6Mzg6NDkrMDA6MDBuCGkTAAAAKHRFWHRkYXRlOnRpbWVzdGFtcAAyMDIzLTEwLTA0VDAwOjM4OjQ5KzAwOjAwOR1IzAAAAABJRU5ErkJggg==" alt="Discord">
   </a> |
-  <a href="https://github.com/Orcest-ai/lamino/blob/master/LICENSE" target="_blank">
+  <a href="https://github.com/danialsamiei/llm.orcest.ai/blob/master/LICENSE" target="_blank">
       <img src="https://img.shields.io/static/v1?label=license&message=MIT&color=white" alt="许可证">
   </a> |
   <a href="https://docs.lamino.orcest.ai" target="_blank">
@@ -38,7 +38,7 @@
 
 这是一个全栈应用程序，可以将任何文档、资源（如网址链接、音频、视频）或内容片段转换为上下文，以便任何大语言模型（LLM）在聊天期间作为参考使用。此应用程序允许您选择使用哪个LLM或向量数据库，同时支持多用户管理并设置不同权限。
 
-![聊天](https://github.com/Orcest-ai/lamino/assets/16845892/cfc5f47c-bd91-4067-986c-f3f49621a859)
+![聊天](https://github.com/danialsamiei/llm.orcest.ai/assets/16845892/cfc5f47c-bd91-4067-986c-f3f49621a859)
 
 <details>
 <summary><kbd>观看演示视频！</kbd></summary>
@@ -61,7 +61,7 @@ Lamino将您的文档划分为称为`workspaces` (工作区)的对象。工作�
 - [**自定义人工智能代理**](https://docs.lamino.orcest.ai/agent/custom/introduction)
 - 👤 多用户实例支持和权限管理 _仅限Docker版本_
 - 🦾 工作区内的智能体（浏览网页、运行代码等）
-- 💬 [为您的网站定制的可嵌入聊天窗口](https://github.com/Orcest-ai/lamino-embed/blob/main/README.md)
+- 💬 [为您的网站定制的可嵌入聊天窗口](https://github.com/danialsamiei/llm.orcest.ai-embed/blob/main/README.md)
 - 📖 支持多种文档类型（PDF、TXT、DOCX等）
 - 带有拖放功能和清晰引用的简洁聊天界面。
 - 100%云部署就绪。
@@ -119,7 +119,7 @@ Lamino将您的文档划分为称为`workspaces` (工作区)的对象。工作�
 
 **支持的转录模型：**
 
-- [Lamino内置](https://github.com/Orcest-ai/lamino/tree/master/server/storage/models#audiovideo-transcription) （默认）
+- [Lamino内置](https://github.com/danialsamiei/llm.orcest.ai/tree/master/server/storage/models#audiovideo-transcription) （默认）
 - [OpenAI](https://openai.com/)
 
 **TTS (文本转语音) 支持：**
@@ -154,8 +154,8 @@ Lamino将您的文档划分为称为`workspaces` (工作区)的对象。工作�
 - `server`: 一个 NodeJS express 服务器，用于处理所有交互并进行所有向量数据库管理和 LLM 交互。
 - `collector`: NodeJS express 服务器，用于从UI处理和解析文档。
 - `docker`: Docker 指令和构建过程 + 从源代码构建的信息。
-- `embed`: 用于生成和创建[网页嵌入组件](https://github.com/Orcest-ai/lamino-embed)的子模块.
-- `browser-extension`: 用于[Chrome 浏览器扩展](https://github.com/Orcest-ai/lamino-extension)的子模块.
+- `embed`: 用于生成和创建[网页嵌入组件](https://github.com/danialsamiei/llm.orcest.ai-embed)的子模块.
+- `browser-extension`: 用于[Chrome 浏览器扩展](https://github.com/danialsamiei/llm.orcest.ai-extension)的子模块.
 
 ## 🛳 自托管
 
@@ -245,7 +245,7 @@ _以下是一些与 Lamino 兼容的应用程序，但并非由 Orcest.ai 维护
 
 ## 🌟 贡献者们
 
-[![lamino 的贡献者们](https://contrib.rocks/image?repo=orcest-ai/lamino)](https://github.com/orcest-ai/lamino/graphs/contributors)
+[![lamino 的贡献者们](https://contrib.rocks/image?repo=orcest-ai/lamino)](https://github.com/danialsamiei/llm.orcest.ai/graphs/contributors)
 
 [![Star 历史图](https://api.star-history.com/svg?repos=orcest-ai/lamino&type=Timeline)](https://star-history.com/#orcest-ai/lamino&Date)
 
@@ -263,7 +263,7 @@ _以下是一些与 Lamino 兼容的应用程序，但并非由 Orcest.ai 维护
 ---
 
 版权所有 © 2025 [Orcest.ai][profile-link]。<br />
-本项目采用[MIT](https://github.com/Orcest-ai/lamino/blob/master/LICENSE)许可证。
+本项目采用[MIT](https://github.com/danialsamiei/llm.orcest.ai/blob/master/LICENSE)许可证。
 
 <!-- LINK GROUP -->
 
@@ -280,9 +280,9 @@ _以下是一些与 Lamino 兼容的应用程序，但并非由 Orcest.ai 维护
 [do-btn]: https://www.deploytodo.com/do-btn-blue.svg
 [do-deploy]: ../cloud-deployments/digitalocean/terraform/DEPLOY.md
 [render-btn]: https://render.com/images/deploy-to-render-button.svg
-[render-deploy]: https://render.com/deploy?repo=https://github.com/Orcest-ai/lamino&branch=render
+[render-deploy]: https://render.com/deploy?repo=https://github.com/danialsamiei/llm.orcest.ai&branch=render
 [render-btn]: https://render.com/images/deploy-to-render-button.svg
-[render-deploy]: https://render.com/deploy?repo=https://github.com/Orcest-ai/lamino&branch=render
+[render-deploy]: https://render.com/deploy?repo=https://github.com/danialsamiei/llm.orcest.ai&branch=render
 [railway-btn]: https://railway.app/button.svg
 [railway-deploy]: https://railway.app/template/HNSCS1?referralCode=WFgJkn
 [repocloud-btn]: https://d16t0pc4846x52.cloudfront.net/deploylobe.svg

@@ -47,7 +47,7 @@ export default {
     },
   },
   github: () => {
-    return "https://github.com/Orcest-ai/lamino";
+    return "https://github.com/danialsamiei/llm.orcest.ai";
   },
   discord: () => {
     return "https://discord.com/invite/6UyHPeGZAC";
@@ -58,7 +58,7 @@ export default {
   chatModes: () => {
     return "https://docs.lamino.orcest.ai/features/chat-modes";
   },
-  mailToOrcest.ai: () => {
+  mailToOrcest: () => {
     return "mailto:team@orcest.ai";
   },
   hosting: () => {
@@ -214,7 +214,7 @@ export default {
     },
   },
 
-  // TODO: Migrate all docs.lamino.com links to the new docs.
+  // TODO: Migrate all docs.lamino.orcest.ai links to the new docs.
   documentation: {
     mobileIntroduction: () => {
       return "https://docs.lamino.orcest.ai/mobile/overview";

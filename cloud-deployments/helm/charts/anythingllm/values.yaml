@@ -111,7 +111,7 @@ securityContext: {}
 
 # Lamino configuration options, these are stored in a ConfigMap and passed
 # to the container as environment variables.
-# See https://github.com/Orcest-ai/lamino/blob/render/docker/.env.example
+# See https://github.com/danialsamiei/llm.orcest.ai/blob/render/docker/.env.example
 # for all available environment variables to use as configuration options
 #
 config:
