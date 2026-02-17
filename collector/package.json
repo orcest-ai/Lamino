@@ -1,9 +1,9 @@
 {
-  "name": "anything-llm-document-collector",
+  "name": "lamino-document-collector",
   "version": "1.10.0",
   "description": "Document collector server endpoints",
   "main": "index.js",
-  "author": "Timothy Carambat (Mintplex Labs)",
+  "author": "Orcest.ai Team",
   "license": "MIT",
   "private": false,
   "engines": {
@@ -20,7 +20,7 @@
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
-    "epub2": "git+https://github.com/Mintplex-Labs/epub2-static.git#main",
+    "epub2": "git+https://github.com/Orcest-ai/epub2-static.git#main",
     "express": "^4.21.2",
     "fix-path": "^4.0.0",
     "html-to-text": "^9.0.5",

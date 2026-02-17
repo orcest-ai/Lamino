@@ -1,16 +1,16 @@
 export const API_BASE = import.meta.env.VITE_API_BASE || "/api";
-export const ONBOARDING_SURVEY_URL = "https://onboarding.anythingllm.com";
+export const ONBOARDING_SURVEY_URL = "https://onboarding.lamino.orcest.ai";
 
-export const AUTH_USER = "anythingllm_user";
-export const AUTH_TOKEN = "anythingllm_authToken";
-export const AUTH_TIMESTAMP = "anythingllm_authTimestamp";
-export const COMPLETE_QUESTIONNAIRE = "anythingllm_completed_questionnaire";
-export const SEEN_DOC_PIN_ALERT = "anythingllm_pinned_document_alert";
-export const SEEN_WATCH_ALERT = "anythingllm_watched_document_alert";
-export const LAST_VISITED_WORKSPACE = "anythingllm_last_visited_workspace";
-export const USER_PROMPT_INPUT_MAP = "anythingllm_user_prompt_input_map";
+export const AUTH_USER = "lamino_user";
+export const AUTH_TOKEN = "lamino_authToken";
+export const AUTH_TIMESTAMP = "lamino_authTimestamp";
+export const COMPLETE_QUESTIONNAIRE = "lamino_completed_questionnaire";
+export const SEEN_DOC_PIN_ALERT = "lamino_pinned_document_alert";
+export const SEEN_WATCH_ALERT = "lamino_watched_document_alert";
+export const LAST_VISITED_WORKSPACE = "lamino_last_visited_workspace";
+export const USER_PROMPT_INPUT_MAP = "lamino_user_prompt_input_map";
 
-export const APPEARANCE_SETTINGS = "anythingllm_appearance_settings";
+export const APPEARANCE_SETTINGS = "lamino_appearance_settings";
 
 export const OLLAMA_COMMON_URLS = [
   "http://127.0.0.1:11434",

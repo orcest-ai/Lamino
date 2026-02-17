@@ -12,7 +12,7 @@ const SUPPORTED_NATIVE_EMBEDDING_MODELS = {
       id: "Xenova/all-MiniLM-L6-v2",
       name: "all-MiniLM-L6-v2",
       description:
-        "A lightweight and fast model for embedding text. The default model for AnythingLLM.",
+        "A lightweight and fast model for embedding text. The default model for Lamino.",
       lang: "English",
       size: "23MB",
       modelCard: "https://huggingface.co/Xenova/all-MiniLM-L6-v2",
@@ -37,7 +37,7 @@ const SUPPORTED_NATIVE_EMBEDDING_MODELS = {
       modelCard: "https://huggingface.co/Xenova/nomic-embed-text-v1",
     },
   },
-  "MintplexLabs/multilingual-e5-small": {
+  "Orcest.aiLabs/multilingual-e5-small": {
     maxConcurrentChunks: 5,
     // Right now, this is NOT the token length, and is instead the number of characters
     // that can be processed in a single pass. So we override to 1,000 characters.
@@ -47,7 +47,7 @@ const SUPPORTED_NATIVE_EMBEDDING_MODELS = {
     chunkPrefix: "passage: ",
     queryPrefix: "query: ",
     apiInfo: {
-      id: "MintplexLabs/multilingual-e5-small",
+      id: "Orcest.aiLabs/multilingual-e5-small",
       name: "multilingual-e5-small",
       description:
         "A larger multilingual embedding model that supports 100+ languages. Requires more processing power and memory.",
