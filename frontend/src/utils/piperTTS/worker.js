@@ -1,4 +1,4 @@
-import * as TTS from "@orcest-labs/piper-tts-web";
+import * as TTS from "@mintplex-labs/piper-tts-web";
 
 /** @type {import("@orcestai/piper-web-tts").TtsSession | null} */
 let PIPER_SESSION = null;
@@ -24,7 +24,7 @@ let PIPER_SESSION = null;
 /**
  * @typedef VoicesRequestResponse
  * @property {('voices')} type
- * @property {[import("@orcest-labs/piper-tts-web/dist/types")['Voice']]} voices - available voices in array
+ * @property {[import("@mintplex-labs/piper-tts-web/dist/types")['Voice']]} voices - available voices in array
  */
 
 /**

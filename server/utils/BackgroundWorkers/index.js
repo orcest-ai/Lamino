@@ -1,6 +1,6 @@
 const path = require("path");
 const Graceful = require("@ladjs/graceful");
-const Bree = require("@orcest-labs/bree");
+const Bree = require("@mintplex-labs/bree");
 const setLogger = require("../logger");
 
 class BackgroundService {
@@ -71,7 +71,7 @@ class BackgroundService {
     this.#log("Service stopped");
   }
 
-  /** @returns {import("@orcest-labs/bree").Job[]} */
+  /** @returns {import("@mintplex-labs/bree").Job[]} */
   jobs() {
     const activeJobs = [...this.#alwaysRunJobs];
     if (this.documentSyncEnabled) activeJobs.push(...this.#documentSyncJobs);

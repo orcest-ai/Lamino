@@ -26,7 +26,7 @@ export default class PiperTTSClient {
 
   /**
    * Get all available voices for a client
-   * @returns {Promise<import("@orcest-labs/piper-tts-web/dist/types").Voice[]}>}
+   * @returns {Promise<import("@mintplex-labs/piper-tts-web/dist/types").Voice[]}>}
    */
   static async voices() {
     const tmpWorker = new Worker(new URL("./worker.js", import.meta.url), {
