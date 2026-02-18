@@ -1,13 +1,13 @@
-import * as TTS from "@mintplex-labs/piper-tts-web";
+import * as TTS from "@orcest-labs/piper-tts-web";
 
-/** @type {import("@mintplexlabs/piper-web-tts").TtsSession | null} */
+/** @type {import("@orcestai/piper-web-tts").TtsSession | null} */
 let PIPER_SESSION = null;
 
 /**
  * @typedef PredictionRequest
  * @property {('init')} type
  * @property {string} text - the text to inference on
- * @property {import('@mintplexlabs/piper-web-tts').VoiceId} voiceId - the voiceID key to use.
+ * @property {import('@orcestai/piper-web-tts').VoiceId} voiceId - the voiceID key to use.
  * @property {string|null} baseUrl - the base URL to fetch WASMs from.
  */
 /**
@@ -24,7 +24,7 @@ let PIPER_SESSION = null;
 /**
  * @typedef VoicesRequestResponse
  * @property {('voices')} type
- * @property {[import("@mintplex-labs/piper-tts-web/dist/types")['Voice']]} voices - available voices in array
+ * @property {[import("@orcest-labs/piper-tts-web/dist/types")['Voice']]} voices - available voices in array
  */
 
 /**

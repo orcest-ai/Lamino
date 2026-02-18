@@ -1,9 +1,9 @@
 {
-  "name": "anything-llm-server",
+  "name": "lamino-server",
   "version": "1.10.0",
   "description": "Server endpoints to process or create content for chatting",
   "main": "index.js",
-  "author": "Timothy Carambat (Mintplex Labs)",
+  "author": "Timothy Carambat (Orcest AI)",
   "license": "MIT",
   "private": false,
   "engines": {
@@ -31,8 +31,8 @@
     "@langchain/core": "0.1.61",
     "@langchain/openai": "0.0.28",
     "@langchain/textsplitters": "0.0.0",
-    "@mintplex-labs/bree": "^9.2.5",
-    "@mintplex-labs/express-ws": "^5.0.7",
+    "@orcest-labs/bree": "^9.2.5",
+    "@orcest-labs/express-ws": "^5.0.7",
     "@modelcontextprotocol/sdk": "^1.24.3",
     "@pinecone-database/pinecone": "^2.0.1",
     "@prisma/client": "5.3.1",

@@ -122,8 +122,8 @@ class Provider {
           configuration: {
             baseURL: "https://openrouter.ai/api/v1",
             defaultHeaders: {
-              "HTTP-Referer": "https://anythingllm.com",
-              "X-Title": "AnythingLLM",
+              "HTTP-Referer": "https://lamino.com",
+              "X-Title": "Lamino",
             },
           },
           apiKey: process.env.OPENROUTER_API_KEY ?? null,
@@ -266,7 +266,7 @@ class Provider {
           ...config,
         });
       // OSS Model Runners
-      // case "anythingllm_ollama":
+      // case "lamino_ollama":
       //   return new ChatOllama({
       //     baseUrl: process.env.PLACEHOLDER,
       //     ...config,
