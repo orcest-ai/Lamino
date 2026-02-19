@@ -17,9 +17,9 @@ import { useTranslation } from "react-i18next";
  */
 
 const NEWS_CACHE_CONFIG = {
-  articles: "https://cdn.anythingllm.com/support/announcements/list.txt",
-  announcementsDir: "https://cdn.anythingllm.com/support/announcements",
-  cacheKey: "anythingllm_announcements",
+  articles: "https://cdn.lamino.com/support/announcements/list.txt",
+  announcementsDir: "https://cdn.lamino.com/support/announcements",
+  cacheKey: "lamino_announcements",
   ttl: 7 * 24 * 60 * 60 * 1000, // 1 week
 };
 
@@ -66,7 +66,7 @@ function AnnouncementCard({
   thumbnail_url = null,
   title = "",
   subtitle = "",
-  author = "AnythingLLM",
+  author = "Lamino",
   date = null,
   goto = "#",
 }) {
