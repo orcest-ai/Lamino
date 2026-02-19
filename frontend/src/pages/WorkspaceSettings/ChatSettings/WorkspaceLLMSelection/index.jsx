@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import LaminoIcon from "@/media/logo/lamino-icon.png";
+import LaminoIcon from "@/media/logo/anything-llm-icon.png";
 import WorkspaceLLMItem from "./WorkspaceLLMItem";
 import { AVAILABLE_LLM_PROVIDERS } from "@/pages/GeneralSettings/LLMPreference";
 import { CaretUpDown, MagnifyingGlass, X } from "@phosphor-icons/react";
