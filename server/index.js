@@ -33,7 +33,7 @@ const { webPushEndpoints } = require("./endpoints/webPush");
 const { httpLogger } = require("./middleware/httpLogger");
 const cookieParser = require("cookie-parser");
 const orcestSSOMiddleware = require("./middleware/orcestSSO");
-const { authEndpoints } = require("./endpoints/auth");
+const { authEndpoints, authApiEndpoints } = require("./endpoints/auth");
 const app = express();
 const apiRouter = express.Router();
 const FILE_LIMIT = "3GB";
@@ -54,6 +54,7 @@ app.use(cors({ origin: true, credentials: true }));
 app.use(bodyParser.text({ limit: FILE_LIMIT }));
 authEndpoints(app);
 app.use(orcestSSOMiddleware);
+authApiEndpoints(apiRouter);
 app.use(bodyParser.json({ limit: FILE_LIMIT }));
 app.use(
   bodyParser.urlencoded({

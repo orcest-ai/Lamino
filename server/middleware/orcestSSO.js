@@ -26,7 +26,8 @@ const SSO_BYPASS_PATHS = [
   "/favicon.png",
 ];
 
-const SSO_BYPASS_PREFIXES = ["/api/health", "/api/onboarding", "/api/system/"];
+const SSO_BYPASS_PREFIXES = ["/api/health", "/api/onboarding"];
+// /api/system/check used by health checks - add to explicit list above, not prefix
 
 function shouldBypassSSO(path) {
   if (!ORCEST_SSO_ENABLED || !SSO_CLIENT_SECRET) return true;

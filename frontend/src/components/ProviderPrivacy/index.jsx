@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import System from "@/models/system";
 import { PROVIDER_PRIVACY_MAP } from "./constants";
 import { ArrowSquareOut } from "@phosphor-icons/react";
-import LaminoIcon from "@/media/logo/anything-llm-icon.png";
+import LaminoIcon from "@/media/logo/lamino-icon.svg";
 import { Link } from "react-router-dom";
 import { titleCase, sentenceCase } from "text-case";
 

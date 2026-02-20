@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import { List, Plus } from "@phosphor-icons/react";
+import { List, Plus, User } from "@phosphor-icons/react";
 import NewWorkspaceModal, {
   useNewWorkspaceModal,
 } from "../Modals/NewWorkspace";
 import ActiveWorkspaces from "./ActiveWorkspaces";
 import useLogo from "@/hooks/useLogo";
 import useUser from "@/hooks/useUser";
+import useSSOUser from "@/hooks/useSSOUser";
 import Footer from "../Footer";
 import SettingsButton from "../SettingsButton";
 import { Link } from "react-router-dom";
@@ -18,7 +19,9 @@ import { createPortal } from "react-dom";
 
 export default function Sidebar() {
   const { user } = useUser();
+  const { user: ssoUser } = useSSOUser();
   const { logo } = useLogo();
+  const displayUser = ssoUser || user;
   const sidebarRef = useRef(null);
   const { showSidebar, setShowSidebar, canToggleSidebar } = useSidebarToggle();
   const {
@@ -62,6 +65,12 @@ export default function Sidebar() {
               <div className="flex-grow flex flex-col min-w-[235px] min-h-0">
                 <div className="relative h-[calc(100%-60px)] flex flex-col w-full justify-between pt-[10px] overflow-y-scroll no-scroll">
                   <div className="flex flex-col gap-y-[14px]">
+                    {displayUser?.name && (
+                      <div className="flex items-center gap-2 px-2 py-1.5 text-theme-text-secondary text-sm">
+                        <User className="w-4 h-4 shrink-0" weight="fill" />
+                        <span className="truncate">{displayUser.name}</span>
+                      </div>
+                    )}
                     <SearchBox user={user} showNewWsModal={showNewWsModal} />
                     <ActiveWorkspaces />
                   </div>

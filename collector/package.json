@@ -1,5 +1,5 @@
 {
-  "name": "anything-llm-document-collector",
+  "name": "lamino-document-collector",
   "version": "1.10.0",
   "description": "Document collector server endpoints",
   "main": "index.js",

@@ -4,6 +4,21 @@
  */
 
 const SSO_ISSUER = process.env.SSO_ISSUER || "https://login.orcest.ai";
+
+function authApiEndpoints(router) {
+  if (!router) return;
+  router.get("/auth/me", (req, res) => {
+    const user = req.orcestSSOUser;
+    if (!user) return res.status(401).json({ user: null });
+    res.json({
+      user: {
+        email: user.email || user.sub,
+        name: user.name || user.email || user.sub || "User",
+        sub: user.sub,
+      },
+    });
+  });
+}
 const SSO_CLIENT_ID = process.env.SSO_CLIENT_ID || "lamino";
 const SSO_CLIENT_SECRET = process.env.SSO_CLIENT_SECRET;
 const SSO_CALLBACK_URL =
@@ -73,4 +88,4 @@ function authEndpoints(app) {
   });
 }
 
-module.exports = { authEndpoints };
+module.exports = { authEndpoints, authApiEndpoints };

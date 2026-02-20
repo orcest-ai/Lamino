@@ -5,7 +5,7 @@ import System from "@/models/system";
 import showToast from "@/utils/toast";
 import PreLoader from "@/components/Preloader";
 import OpenAiLogo from "@/media/llmprovider/openai.png";
-import LaminoIcon from "@/media/logo/anything-llm-icon.png";
+import LaminoIcon from "@/media/logo/lamino-icon.svg";
 import OpenAiWhisperOptions from "@/components/TranscriptionSelection/OpenAiOptions";
 import NativeTranscriptionOptions from "@/components/TranscriptionSelection/NativeTranscriptionOptions";
 import LLMItem from "@/components/LLMSelection/LLMItem";
