@@ -1,0 +1,46 @@
+# Lamino - Render Blueprint
+# Deploy: orcest-ai/Lamino on llm.orcest.ai
+# AI chat with RAG & workspace, powered by RainyModel proxy
+
+services:
+  - type: web
+    runtime: docker
+    name: lamino
+    plan: starter
+    repo: https://github.com/orcest-ai/Lamino
+    branch: main
+    rootDir: /
+    dockerfilePath: ./docker/Dockerfile
+    dockerContext: .
+    numInstances: 1
+    domains:
+      - llm.orcest.ai
+    healthCheckPath: /api/health
+    envVars:
+      - fromGroup: orcest-ai-shared-apis
+      - key: SERVER_PORT
+        value: "3001"
+      - key: STORAGE_DIR
+        value: "/app/server/storage"
+      - key: LLM_PROVIDER
+        value: "generic-openai"
+      - key: GENERIC_OPEN_AI_BASE_PATH
+        value: "https://rm.orcest.ai/v1"
+      - key: GENERIC_OPEN_AI_MODEL_PREF
+        value: "rainymodel/auto"
+      - key: GENERIC_OPEN_AI_MODEL_TOKEN_LIMIT
+        value: "32768"
+      - key: GENERIC_OPEN_AI_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SIG_KEY
+        generateValue: true
+      - key: SIG_SALT
+        generateValue: true
+      - key: VECTOR_DB
+        value: "lancedb"
+      - key: WHISPER_PROVIDER
+        value: "local"
+      - key: TTS_PROVIDER
+        value: "native"
