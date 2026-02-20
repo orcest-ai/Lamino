@@ -82,6 +82,19 @@ function systemEndpoints(app) {
 
   app.get("/onboarding", async (_, response) => {
     try {
+      // Orcest AI: Skip onboarding when LLM is pre-configured via env vars
+      const hasPreconfiguredLLM =
+        process.env.LLM_PROVIDER &&
+        process.env.GENERIC_OPEN_AI_API_KEY &&
+        process.env.GENERIC_OPEN_AI_BASE_PATH;
+      if (hasPreconfiguredLLM) {
+        const dbComplete = await SystemSettings.isOnboardingComplete();
+        if (!dbComplete) {
+          await SystemSettings.markOnboardingComplete();
+        }
+        return response.status(200).json({ onboardingComplete: true });
+      }
+
       const results = await SystemSettings.isOnboardingComplete();
       response.status(200).json({ onboardingComplete: results });
     } catch (e) {

@@ -1,7 +1,7 @@
 const TRANSLATIONS = {
   onboarding: {
     home: {
-      title: "Welcome to",
+      title: "Welcome to Lamino",
       getStarted: "Get Started",
     },
     llm: {
