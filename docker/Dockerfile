@@ -154,12 +154,12 @@ WORKDIR /app/server
 RUN yarn install --production --network-timeout 100000 && yarn cache clean
 WORKDIR /app
 
-# Install collector dependencies (retry on transient 502 from registry)
+# Install collector dependencies (use npm registry + retry to avoid 502 from yarn registry)
 COPY --chown=lamino:lamino ./collector/ ./collector/
 WORKDIR /app/collector
 ENV PUPPETEER_DOWNLOAD_BASE_URL=https://storage.googleapis.com/chrome-for-testing-public
-# Retry on transient 502 Bad Gateway from yarn registry
-RUN (for i in 1 2 3; do yarn install --production --network-timeout 120000 && yarn cache clean && exit 0; sleep 45; done; exit 1)
+RUN yarn config set registry https://registry.npmjs.org/ && \
+    (for i in 1 2 3; do yarn install --production --network-timeout 120000 && yarn cache clean && exit 0; sleep 45; done; exit 1)
 
 WORKDIR /app
 USER lamino
