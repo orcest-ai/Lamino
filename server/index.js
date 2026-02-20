@@ -34,6 +34,7 @@ const { httpLogger } = require("./middleware/httpLogger");
 const cookieParser = require("cookie-parser");
 const orcestSSOMiddleware = require("./middleware/orcestSSO");
 const { authEndpoints, authApiEndpoints } = require("./endpoints/auth");
+const { ssoAuthEndpoints } = require("./endpoints/auth/sso");
 const app = express();
 const apiRouter = express.Router();
 const FILE_LIMIT = "3GB";
@@ -55,6 +56,7 @@ app.use(bodyParser.text({ limit: FILE_LIMIT }));
 authEndpoints(app);
 app.use(orcestSSOMiddleware);
 authApiEndpoints(apiRouter);
+ssoAuthEndpoints(apiRouter);
 app.use(bodyParser.json({ limit: FILE_LIMIT }));
 app.use(
   bodyParser.urlencoded({

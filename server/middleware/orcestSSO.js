@@ -1,18 +1,24 @@
 /**
- * Orcest AI SSO Middleware
+ * Orcest AI SSO Global Middleware
  * Enforces SSO login via login.orcest.ai before allowing access to Lamino.
  * Enable with: ORCEST_SSO_ENABLED=true, SSO_ISSUER, SSO_CLIENT_ID, SSO_CLIENT_SECRET
+ *
+ * Delegates token verification to the canonical SSO middleware in
+ * server/utils/middleware/orcestSSO.js for consistent cookie handling
+ * and token caching.
  */
 
-const SSO_ISSUER = process.env.SSO_ISSUER || "https://login.orcest.ai";
-const SSO_CLIENT_ID = process.env.SSO_CLIENT_ID || "lamino";
-const SSO_CLIENT_SECRET = process.env.SSO_CLIENT_SECRET;
-const SSO_CALLBACK_URL =
-  process.env.SSO_CALLBACK_URL || "https://llm.orcest.ai/auth/callback";
-const ORCEST_SSO_ENABLED = process.env.ORCEST_SSO_ENABLED === "true";
-const ORCEST_SSO_TOKEN_COOKIE = "orcest_sso_token";
+const {
+  requireOrcestSSO,
+  getAuthRedirectUrl,
+  ORCEST_SSO_TOKEN_COOKIE,
+  SSO_ISSUER,
+} = require("../utils/middleware/orcestSSO");
 
-// Paths that bypass SSO check
+const SSO_CLIENT_SECRET = process.env.SSO_CLIENT_SECRET;
+const ORCEST_SSO_ENABLED = process.env.ORCEST_SSO_ENABLED === "true";
+
+// Paths that bypass SSO check (auth flow and health endpoints)
 const SSO_BYPASS_PATHS = [
   "/auth/callback",
   "/auth/logout",
@@ -27,7 +33,6 @@ const SSO_BYPASS_PATHS = [
 ];
 
 const SSO_BYPASS_PREFIXES = ["/api/health", "/api/onboarding"];
-// /api/system/check used by health checks - add to explicit list above, not prefix
 
 function shouldBypassSSO(path) {
   if (!ORCEST_SSO_ENABLED || !SSO_CLIENT_SECRET) return true;
@@ -49,35 +54,11 @@ function isStaticAsset(path) {
   );
 }
 
-async function verifyToken(token) {
-  try {
-    const res = await fetch(`${SSO_ISSUER}/api/token/verify`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
-    if (!res.ok) return null;
-    const data = await res.json();
-    return data.valid ? data : null;
-  } catch (e) {
-    console.error("[OrcestSSO] Token verify error:", e.message);
-    return null;
-  }
-}
-
-function getAuthRedirectUrl(returnTo = "/") {
-  const params = new URLSearchParams({
-    client_id: SSO_CLIENT_ID,
-    redirect_uri: SSO_CALLBACK_URL,
-    response_type: "code",
-    scope: "openid profile email",
-    state: Buffer.from(JSON.stringify({ returnTo })).toString("base64url"),
-  });
-  return `${SSO_ISSUER}/oauth2/authorize?${params.toString()}`;
-}
-
+/**
+ * Global SSO middleware applied to all routes.
+ * Bypasses SSO for static assets, health checks, and the auth callback/logout routes.
+ * For all other routes, delegates to requireOrcestSSO for token verification.
+ */
 module.exports = function orcestSSOMiddleware(req, res, next) {
   if (!ORCEST_SSO_ENABLED || !SSO_CLIENT_SECRET) {
     return next();
@@ -88,42 +69,10 @@ module.exports = function orcestSSOMiddleware(req, res, next) {
     return next();
   }
 
-  const token =
-    (req.cookies && req.cookies[ORCEST_SSO_TOKEN_COOKIE]) ||
-    req.headers.authorization?.replace(/^Bearer\s+/i, "") ||
-    req.query?.token;
-
-  if (!token) {
-    const redirectUrl = getAuthRedirectUrl(path);
-    if (req.xhr || req.headers["accept"]?.includes("application/json")) {
-      return res.status(401).json({
-        error: "auth_required",
-        redirect_url: redirectUrl,
-        message: "SSO authentication required",
-      });
-    }
-    return res.redirect(redirectUrl);
-  }
-
-  verifyToken(token)
-    .then((user) => {
-      if (user) {
-        req.orcestSSOUser = user;
-        return next();
-      }
-      const redirectUrl = getAuthRedirectUrl(path);
-      if (req.xhr || req.headers["accept"]?.includes("application/json")) {
-        return res.status(401).json({
-          error: "auth_required",
-          redirect_url: redirectUrl,
-        });
-      }
-      res.redirect(redirectUrl);
-    })
-    .catch((err) => {
-      console.error("[OrcestSSO] Error:", err);
-      next();
-    });
+  // Delegate to the canonical requireOrcestSSO middleware
+  // which handles cookie/header extraction, cached verification,
+  // and proper 401/redirect responses.
+  return requireOrcestSSO(req, res, next);
 };
 
 module.exports.getAuthRedirectUrl = getAuthRedirectUrl;

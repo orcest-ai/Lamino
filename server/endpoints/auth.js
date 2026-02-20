@@ -1,90 +1,52 @@
 /**
- * Orcest AI SSO Auth callback endpoint
- * Exchanges OAuth code for token and sets session cookie
+ * Orcest AI SSO Auth endpoints
+ * Handles OAuth2 callback, logout, and user info via the canonical SSO middleware.
  */
 
-const SSO_ISSUER = process.env.SSO_ISSUER || "https://login.orcest.ai";
+const {
+  ssoAuthCallback,
+  ssoLogout,
+  requireOrcestSSO,
+  ORCEST_SSO_TOKEN_COOKIE,
+} = require("../utils/middleware/orcestSSO");
 
+/**
+ * Auth endpoints mounted directly on the Express app (not behind /api prefix).
+ * These handle the OAuth2 flow which must be accessible without prior auth.
+ * @param {import("express").Express} app
+ */
+function authEndpoints(app) {
+  if (!app) return;
+
+  // OAuth2 authorization code callback
+  app.get("/auth/callback", ssoAuthCallback);
+
+  // SSO logout - clears cookie and redirects to SSO provider logout
+  app.get("/auth/logout", ssoLogout);
+}
+
+/**
+ * Auth API endpoints mounted on the API router (behind /api prefix).
+ * These require a valid SSO session.
+ * @param {import("express").Router} router
+ */
 function authApiEndpoints(router) {
   if (!router) return;
+
+  // Return the current SSO user info
   router.get("/auth/me", (req, res) => {
-    const user = req.orcestSSOUser;
+    // The global orcestSSOMiddleware runs before this route,
+    // so req.orcestSSOUser / res.locals.ssoUser should be populated.
+    const user = res.locals.ssoUser || req.orcestSSOUser;
     if (!user) return res.status(401).json({ user: null });
     res.json({
       user: {
         email: user.email || user.sub,
         name: user.name || user.email || user.sub || "User",
         sub: user.sub,
+        role: user.role || "default",
       },
     });
-  });
-}
-const SSO_CLIENT_ID = process.env.SSO_CLIENT_ID || "lamino";
-const SSO_CLIENT_SECRET = process.env.SSO_CLIENT_SECRET;
-const SSO_CALLBACK_URL =
-  process.env.SSO_CALLBACK_URL || "https://llm.orcest.ai/auth/callback";
-const ORCEST_SSO_TOKEN_COOKIE = "orcest_sso_token";
-
-function authEndpoints(app) {
-  if (!app) return;
-
-  app.get("/auth/callback", async (request, response) => {
-    if (!SSO_CLIENT_SECRET) {
-      return response.redirect("/");
-    }
-
-    const { code, state } = request.query;
-    if (!code) {
-      return response.redirect("/");
-    }
-
-    try {
-      const returnTo = state
-        ? JSON.parse(Buffer.from(state, "base64url").toString())?.returnTo || "/"
-        : "/";
-
-      const tokenRes = await fetch(`${SSO_ISSUER}/oauth2/token`, {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: new URLSearchParams({
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: SSO_CALLBACK_URL,
-          client_id: SSO_CLIENT_ID,
-          client_secret: SSO_CLIENT_SECRET,
-        }),
-      });
-
-      if (!tokenRes.ok) {
-        console.error("[OrcestSSO] Token exchange failed:", await tokenRes.text());
-        return response.redirect(`${SSO_ISSUER}?error=token_exchange_failed`);
-      }
-
-      const tokenData = await tokenRes.json();
-      const accessToken = tokenData.access_token;
-      if (!accessToken) {
-        return response.redirect(`${SSO_ISSUER}?error=no_token`);
-      }
-
-      response.cookie(ORCEST_SSO_TOKEN_COOKIE, accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 15 * 60 * 1000,
-      });
-      return response.redirect(returnTo);
-    } catch (e) {
-      console.error("[OrcestSSO] Auth callback error:", e);
-      return response.redirect(`${SSO_ISSUER}?error=auth_failed`);
-    }
-  });
-
-  app.get("/auth/logout", (_, response) => {
-    response.clearCookie(ORCEST_SSO_TOKEN_COOKIE);
-    const ssoLogout = process.env.SSO_ISSUER
-      ? `${process.env.SSO_ISSUER}/logout`
-      : "https://login.orcest.ai/logout";
-    return response.redirect(ssoLogout);
   });
 }
 
