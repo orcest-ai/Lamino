@@ -186,7 +186,7 @@ export default function SettingsSidebar() {
 }
 
 function SupportEmail() {
-  const [supportEmail, setSupportEmail] = useState(paths.mailToOrcest());
+  const [supportEmail, setSupportEmail] = useState(paths.mailToSupport());
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -195,7 +195,7 @@ function SupportEmail() {
       setSupportEmail(
         supportEmail?.email
           ? `mailto:${supportEmail.email}`
-          : paths.mailToOrcest()
+          : paths.mailToSupport()
       );
     };
     fetchSupportEmail();

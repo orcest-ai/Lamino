@@ -1,0 +1,283 @@
+###############################################################################
+# Orcest AI Enterprise Stack - Docker Compose
+# All-in-one deployment: Lamino + RainyModel + Login SSO + Status + VectorDB
+#
+# Usage:
+#   cp .env.example .env  # Then fill in secrets
+#   docker compose -f docker-compose.enterprise.yml up -d
+#
+# Services:
+#   - lamino (port 3001) — AI Chat Frontend + Backend
+#   - rainymodel (port 8080) — LLM Routing Proxy
+#   - login (port 10001) — SSO Identity Provider
+#   - status (port 10000) — Monitoring Dashboard
+#   - orcest-web (port 8000) — Landing Page + LangChain APIs
+#   - ollama (port 11434) — Local Ollama LLM Server (GPU)
+#   - chromadb (port 8100) — Vector Database
+#   - redis (port 6379) — Cache/Session Store
+###############################################################################
+
+name: orcest-enterprise
+
+networks:
+  orcest:
+    driver: bridge
+
+volumes:
+  lamino-storage:
+  lamino-hotdir:
+  lamino-outputs:
+  ollama-data:
+  chromadb-data:
+  redis-data:
+  login-db:
+
+services:
+  # ─── Lamino: AI Chat Platform ────────────────────────────────────────
+  lamino:
+    container_name: lamino
+    build:
+      context: ../.
+      dockerfile: ./docker/Dockerfile
+      args:
+        ARG_UID: ${UID:-1000}
+        ARG_GID: ${GID:-1000}
+    cap_add:
+      - SYS_ADMIN
+    volumes:
+      - lamino-storage:/app/server/storage
+      - lamino-hotdir:/app/collector/hotdir
+      - lamino-outputs:/app/collector/outputs
+    user: "${UID:-1000}:${GID:-1000}"
+    ports:
+      - "${LAMINO_PORT:-3001}:3001"
+    environment:
+      - SERVER_PORT=3001
+      - LLM_PROVIDER=genericOpenAi
+      - GENERIC_OPEN_AI_BASE_PATH=http://rainymodel:8080/v1
+      - GENERIC_OPEN_AI_MODEL_PREF=rainymodel/auto
+      - GENERIC_OPEN_AI_API_KEY=${RAINYMODEL_MASTER_KEY:-}
+      - EMBEDDING_ENGINE=native
+      - VECTOR_DB=${VECTOR_DB:-lancedb}
+      - CHROMA_ENDPOINT=http://chromadb:8000
+      - ORCEST_SSO_ENABLED=${ORCEST_SSO_ENABLED:-true}
+      - SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET:-}
+      - SSO_ISSUER=${SSO_ISSUER:-http://login:10001}
+      - SSO_CLIENT_ID=lamino
+      - SSO_CALLBACK_URL=${SSO_CALLBACK_URL:-http://localhost:3001/auth/callback}
+      - DISABLE_TELEMETRY=true
+    networks:
+      - orcest
+    depends_on:
+      rainymodel:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2"
+
+  # ─── RainyModel: LLM Routing Proxy ──────────────────────────────────
+  rainymodel:
+    container_name: rainymodel
+    build:
+      context: ../../rainymodel
+      dockerfile: Dockerfile
+    ports:
+      - "${RAINYMODEL_PORT:-8080}:8080"
+    environment:
+      - PORT=8080
+      - RAINYMODEL_MASTER_KEY=${RAINYMODEL_MASTER_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_API_KEY=ollama
+      - OLLAMAFREE_API_BASE=${OLLAMAFREE_API_BASE:-}
+      - OLLAMAFREE_API_KEY=${OLLAMAFREE_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - XAI_API_KEY=${XAI_API_KEY:-}
+      - LITELLM_CONFIG_PATH=config/litellm_config.yaml
+    networks:
+      - orcest
+    depends_on:
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+
+  # ─── Login: SSO Identity Provider ───────────────────────────────────
+  login:
+    container_name: login-sso
+    build:
+      context: ../../login
+      dockerfile: Dockerfile
+    ports:
+      - "${LOGIN_PORT:-10001}:10001"
+    environment:
+      - PORT=10001
+      - SSO_SECRET_KEY=${SSO_SECRET_KEY:-}
+      - SSO_ADMIN_EMAIL=${SSO_ADMIN_EMAIL:-admin@orcest.ai}
+      - SSO_ADMIN_PASSWORD=${SSO_ADMIN_PASSWORD:-}
+      - OIDC_LAMINO_SECRET=${SSO_CLIENT_SECRET:-}
+    volumes:
+      - login-db:/app/data
+    networks:
+      - orcest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ─── Status: Monitoring Dashboard ───────────────────────────────────
+  status:
+    container_name: status-dashboard
+    build:
+      context: ../../status
+      dockerfile: Dockerfile
+    ports:
+      - "${STATUS_PORT:-10000}:10000"
+    networks:
+      - orcest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:10000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+
+  # ─── Orcest Web: Landing + LangChain APIs ──────────────────────────
+  orcest-web:
+    container_name: orcest-web
+    build:
+      context: ../../orcest.ai
+      dockerfile: Dockerfile
+    ports:
+      - "${ORCEST_WEB_PORT:-8000}:8000"
+    environment:
+      - PORT=8000
+      - RAINYMODEL_BASE_URL=http://rainymodel:8080/v1
+      - SSO_ISSUER=http://login:10001
+      - SSO_CLIENT_ID=orcest
+      - SSO_CLIENT_SECRET=${SSO_CLIENT_SECRET:-}
+      - SSO_CALLBACK_URL=${ORCEST_CALLBACK_URL:-http://localhost:8000/auth/callback}
+      - ORCEST_MASTER_API_KEY=${ORCEST_MASTER_API_KEY:-}
+    networks:
+      - orcest
+    depends_on:
+      rainymodel:
+        condition: service_healthy
+      login:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
+  # ─── Ollama: Local LLM Server ──────────────────────────────────────
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    ports:
+      - "${OLLAMA_PORT:-11434}:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    networks:
+      - orcest
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  # ─── ChromaDB: Vector Database ─────────────────────────────────────
+  chromadb:
+    container_name: chromadb
+    image: chromadb/chroma:latest
+    ports:
+      - "${CHROMA_PORT:-8100}:8000"
+    volumes:
+      - chromadb-data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - ANONYMIZED_TELEMETRY=FALSE
+    networks:
+      - orcest
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "1"
+
+  # ─── Redis: Cache & Sessions ───────────────────────────────────────
+  redis:
+    container_name: redis
+    image: redis:7-alpine
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    networks:
+      - orcest
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"

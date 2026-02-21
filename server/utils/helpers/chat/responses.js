@@ -105,17 +105,33 @@ function handleDefaultStreamResponseV2(response, stream, responseProps) {
         }
       }
     } catch (e) {
-      console.log(`\x1b[43m\x1b[34m[STREAMING ERROR]\x1b[0m ${e.message}`);
-      writeResponseChunk(response, {
-        uuid,
-        type: "abort",
-        textResponse: null,
-        sources: [],
-        close: true,
-        error: e.message,
-      });
+      const isTransientError = ['ECONNRESET', 'ETIMEDOUT', 'ECONNABORTED', 'UND_ERR_CONNECT_TIMEOUT'].some(
+        code => e.message?.includes(code) || e.code === code
+      );
+
+      if (isTransientError && fullText.length > 0) {
+        console.log(`\x1b[43m\x1b[34m[STREAMING RECOVERY]\x1b[0m Transient error after receiving partial response. Preserving ${fullText.length} chars.`);
+        writeResponseChunk(response, {
+          uuid,
+          sources,
+          type: "textResponseChunk",
+          textResponse: "",
+          close: true,
+          error: false,
+        });
+      } else {
+        console.log(`\x1b[43m\x1b[34m[STREAMING ERROR]\x1b[0m ${e.message}`);
+        writeResponseChunk(response, {
+          uuid,
+          type: "abort",
+          textResponse: null,
+          sources: [],
+          close: true,
+          error: e.message,
+        });
+      }
       stream?.endMeasurement(usage);
-      resolve(fullText); // Return what we currently have - if anything.
+      resolve(fullText);
     }
   });
 }

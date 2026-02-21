@@ -140,6 +140,7 @@ function RenderAssistantChatContent({ message, messageId }) {
       )}
       <span
         className="break-words"
+        dir="auto"
         dangerouslySetInnerHTML={{ __html: renderMarkdown(contentRef.current) }}
       />
     </div>

@@ -78,6 +78,14 @@ export default function PromptInput({
     resetTextAreaHeight();
   }, [isStreaming]);
 
+  // Auto-resize textarea when promptInput changes programmatically
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [promptInput]);
+
   /**
    * Save the current state before changes
    * @param {number} adjustment
@@ -278,6 +286,7 @@ export default function PromptInput({
                   handlePasteEvent(e);
                 }}
                 required={true}
+                dir="auto"
                 onFocus={() => setFocused(true)}
                 onBlur={(e) => {
                   setFocused(false);

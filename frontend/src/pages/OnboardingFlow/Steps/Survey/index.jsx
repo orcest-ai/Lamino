@@ -129,7 +129,7 @@ export default function Survey({ setHeader, setForwardBtn, setBackBtn }) {
               {t("onboarding.survey.thankYou")}
             </p>
             <a
-              href={paths.mailToOrcest()}
+              href={paths.mailToSupport()}
               className="text-sky-400 underline text-xs"
             >
               support@orcest.ai

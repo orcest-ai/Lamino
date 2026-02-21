@@ -1135,3 +1135,20 @@ does not extend the close button beyond the viewport. */
   -webkit-animation: fadein 0.3s linear forwards;
   animation: fadein 0.3s linear forwards;
 }
+
+/* RTL/Bidirectional text support for Persian, Arabic, Hebrew */
+[dir="auto"] {
+  text-align: start;
+  unicode-bidi: plaintext;
+}
+
+.chat-message-content {
+  unicode-bidi: plaintext;
+  direction: inherit;
+}
+
+/* Ensure mixed LTR/RTL content renders correctly */
+.break-words {
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}

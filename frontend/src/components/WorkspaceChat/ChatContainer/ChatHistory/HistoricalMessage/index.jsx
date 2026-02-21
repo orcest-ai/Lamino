@@ -112,7 +112,7 @@ const HistoricalMessage = ({
               saveChanges={saveEditedMessage}
             />
           ) : (
-            <div className="break-words">
+            <div className="break-words" dir="auto">
               <RenderChatContent
                 role={role}
                 message={message}

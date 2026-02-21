@@ -84,6 +84,15 @@ import CTAButton from "@/components/lib/CTAButton";
 
 export const AVAILABLE_LLM_PROVIDERS = [
   {
+    name: "RainyModel (Orcest AI)",
+    value: "generic-openai",
+    logo: GenericOpenAiLogo,
+    options: (settings) => <GenericOpenAiOptions settings={settings} />,
+    description:
+      "Orcest AI's intelligent LLM router — auto-routes across free, internal, and premium models. Recommended default.",
+    requiredConfig: [],
+  },
+  {
     name: "OpenAI",
     value: "openai",
     logo: OpenAiLogo,

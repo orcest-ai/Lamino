@@ -8,6 +8,8 @@ const {
   normalizePersianText,
   tokenizePersianText,
   hasPersianScript,
+  getPersianSystemPromptSuffix,
+  buildPersianSearchQuery,
 } = require("../helpers/chat/language");
 const { grepAgents } = require("./agents");
 const {
@@ -215,8 +217,7 @@ async function streamChatWithWorkspace(
           namespace: workspace.slug,
           input:
             hasPersianScript(normalizedMessage) && persianQueryTokens.length > 0
-              ? `${normalizedMessage}
-${persianQueryTokens.join(" ")}`
+              ? buildPersianSearchQuery(updatedMessage)
               : normalizedMessage,
           LLMConnector,
           similarityThreshold: workspace?.similarityThreshold,
@@ -296,11 +297,7 @@ ${persianQueryTokens.join(" ")}`
   // and build system messages based on inputs and history.
   const messages = await LLMConnector.compressMessages(
     {
-      systemPrompt: `${await chatPrompt(workspace, user)}${
-        hasPersianScript(normalizedMessage)
-          ? "\n\nIf the user writes in Persian (Farsi), preserve Persian meaning and answer naturally in Persian unless explicitly asked otherwise."
-          : ""
-      }`,
+      systemPrompt: `${await chatPrompt(workspace, user)}${getPersianSystemPromptSuffix(normalizedMessage)}`,
       userPrompt: normalizedMessage,
       contextTexts,
       chatHistory,
