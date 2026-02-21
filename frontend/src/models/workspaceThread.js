@@ -97,6 +97,7 @@ const WorkspaceThread = {
     let finalized = false;
     let receivedChunks = false;
     const maxRetries = 2;
+    let lastError = null;
 
     // Listen for the ABORT_STREAM_EVENT key to be emitted by the client
     // to early abort the streaming response. On abort we send a special `stopGeneration`
@@ -149,6 +150,7 @@ const WorkspaceThread = {
                 handleChat(chatResult);
               },
               onerror(err) {
+                lastError = err;
                 if (finalized) {
                   ctrl.abort();
                   return;
@@ -164,7 +166,12 @@ const WorkspaceThread = {
             !finalized &&
             !receivedChunks &&
             attempt < maxRetries;
-          if (shouldRetry) continue;
+          if (shouldRetry) {
+            await new Promise((resolve) => setTimeout(resolve, 450 * (attempt + 1)));
+            continue;
+          }
+
+          if (error?.name === "AbortError") return;
 
           handleChat({
             id: v4(),
@@ -173,7 +180,7 @@ const WorkspaceThread = {
             sources: [],
             close: true,
             error:
-              "Connection dropped while streaming. You can continue from the partial response.",
+              `Connection dropped while streaming${lastError?.message ? ` (${lastError.message})` : ""}. You can continue from the partial response.`,
           });
           ctrl.abort();
           return;
