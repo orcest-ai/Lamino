@@ -96,6 +96,7 @@ const WorkspaceThread = {
     attachments = []
   ) {
     const ctrl = new AbortController();
+    let finalized = false;
 
     // Listen for the ABORT_STREAM_EVENT key to be emitted by the client
     // to early abort the streaming response. On abort we send a special `stopGeneration`
