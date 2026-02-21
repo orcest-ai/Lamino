@@ -21,6 +21,21 @@ const { getModelTag } = require("./utils");
 function chatEndpoints(app) {
   if (!app) return;
 
+  const attachStreamHeartbeat = (response, intervalMs = 15000) => {
+    const timer = setInterval(() => {
+      if (response.writableEnded || response.destroyed) {
+        clearInterval(timer);
+        return;
+      }
+      response.write(":keepalive\n\n");
+    }, intervalMs);
+
+    const clearHeartbeat = () => clearInterval(timer);
+    response.on("close", clearHeartbeat);
+    response.on("finish", clearHeartbeat);
+    return clearHeartbeat;
+  };
+
   app.post(
     "/workspace/:slug/stream-chat",
     [validatedRequest, flexUserRoleValid([ROLES.all]), validWorkspaceSlug],
@@ -47,6 +62,7 @@ function chatEndpoints(app) {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Connection", "keep-alive");
         response.flushHeaders();
+        const clearHeartbeat = attachStreamHeartbeat(response);
 
         if (multiUserMode(response) && !(await User.canSendChat(user))) {
           writeResponseChunk(response, {
@@ -87,6 +103,7 @@ function chatEndpoints(app) {
           },
           user?.id
         );
+        clearHeartbeat?.();
         response.end();
       } catch (e) {
         console.error(e);
@@ -134,6 +151,7 @@ function chatEndpoints(app) {
         response.setHeader("Access-Control-Allow-Origin", "*");
         response.setHeader("Connection", "keep-alive");
         response.flushHeaders();
+        const clearHeartbeat = attachStreamHeartbeat(response);
 
         if (multiUserMode(response) && !(await User.canSendChat(user))) {
           writeResponseChunk(response, {
@@ -193,6 +211,7 @@ function chatEndpoints(app) {
           },
           user?.id
         );
+        clearHeartbeat?.();
         response.end();
       } catch (e) {
         console.error(e);

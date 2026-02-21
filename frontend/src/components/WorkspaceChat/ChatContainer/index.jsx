@@ -102,6 +102,13 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
       .catch((e) => console.error(e));
   };
 
+  const continueAssistantMessage = () => {
+    sendCommand({
+      text: "Please continue from where you stopped and finish the answer.",
+      autoSubmit: true,
+    });
+  };
+
   /**
    * Send a command to the LLM prompt input.
    * @param {Object} options - Arguments to send to the LLM
@@ -309,6 +316,7 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
             sendCommand={sendCommand}
             updateHistory={setChatHistory}
             regenerateAssistantMessage={regenerateAssistantMessage}
+            continueAssistantMessage={continueAssistantMessage}
             hasAttachments={files.length > 0}
           />
         </MetricsProvider>

@@ -2,6 +2,16 @@ const fs = require("fs");
 const path = require("path");
 const { MimeDetector } = require("./mime");
 
+function resolveStorageRoot() {
+  // In production we prefer STORAGE_DIR. If it is missing (misconfigured deploy),
+  // fall back to the repo/server storage path instead of crashing at module load.
+  if (typeof process.env.STORAGE_DIR === "string" && process.env.STORAGE_DIR) {
+    return path.resolve(process.env.STORAGE_DIR);
+  }
+
+  return path.resolve(__dirname, `../../../server/storage`);
+}
+
 /**
  * The folder where documents are stored to be stored when
  * processed by the collector.
@@ -9,7 +19,7 @@ const { MimeDetector } = require("./mime");
 const documentsFolder =
   process.env.NODE_ENV === "development"
     ? path.resolve(__dirname, `../../../server/storage/documents`)
-    : path.resolve(process.env.STORAGE_DIR, `documents`);
+    : path.resolve(resolveStorageRoot(), `documents`);
 
 /**
  * The folder where direct uploads are stored to be stored when
@@ -19,7 +29,7 @@ const documentsFolder =
 const directUploadsFolder =
   process.env.NODE_ENV === "development"
     ? path.resolve(__dirname, `../../../server/storage/direct-uploads`)
-    : path.resolve(process.env.STORAGE_DIR, `direct-uploads`);
+    : path.resolve(resolveStorageRoot(), `direct-uploads`);
 
 /**
  * Checks if a file is text by checking the mime type and then falling back to buffer inspection.
@@ -225,4 +235,5 @@ module.exports = {
   sanitizeFileName,
   documentsFolder,
   directUploadsFolder,
+  resolveStorageRoot,
 };

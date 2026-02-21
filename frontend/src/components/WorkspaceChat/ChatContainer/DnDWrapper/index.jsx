@@ -16,6 +16,14 @@ export const ATTACHMENTS_PROCESSING_EVENT = "ATTACHMENTS_PROCESSING";
 export const ATTACHMENTS_PROCESSED_EVENT = "ATTACHMENTS_PROCESSED";
 export const PARSED_FILE_ATTACHMENT_REMOVED_EVENT =
   "PARSED_FILE_ATTACHMENT_REMOVED";
+const MAX_IMAGE_UPLOAD_BYTES = 10 * 1024 * 1024;
+const SUPPORTED_IMAGE_MIME = [
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
+];
 
 /**
  * File Attachment for automatic upload on the chat container page.
@@ -147,6 +155,18 @@ export function DnDFileUploaderProvider({
     const newAccepted = [];
     for (const file of files) {
       if (file.type.startsWith("image/")) {
+        const validationError = validateImageAttachment(file);
+        if (validationError) {
+          newAccepted.push({
+            uid: v4(),
+            file,
+            contentString: null,
+            status: "failed",
+            error: validationError,
+            type: "attachment",
+          });
+          continue;
+        }
         newAccepted.push({
           uid: v4(),
           file,
@@ -182,6 +202,18 @@ export function DnDFileUploaderProvider({
     const newAccepted = [];
     for (const file of acceptedFiles) {
       if (file.type.startsWith("image/")) {
+        const validationError = validateImageAttachment(file);
+        if (validationError) {
+          newAccepted.push({
+            uid: v4(),
+            file,
+            contentString: null,
+            status: "failed",
+            error: validationError,
+            type: "attachment",
+          });
+          continue;
+        }
         newAccepted.push({
           uid: v4(),
           file,
@@ -476,4 +508,16 @@ async function toBase64(file) {
     reader.onerror = (error) => reject(error);
     reader.readAsDataURL(file);
   });
+}
+
+function validateImageAttachment(file) {
+  if (!SUPPORTED_IMAGE_MIME.includes(file.type)) {
+    return `Unsupported image format (${file.type || "unknown"}). Please upload PNG, JPEG, WEBP, or GIF.`;
+  }
+
+  if (file.size > MAX_IMAGE_UPLOAD_BYTES) {
+    return `Image is too large (${Math.ceil(file.size / (1024 * 1024))}MB). Maximum size is 10MB.`;
+  }
+
+  return null;
 }
