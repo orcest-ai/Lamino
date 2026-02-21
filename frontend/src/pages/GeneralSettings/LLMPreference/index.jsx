@@ -77,6 +77,7 @@ import GiteeAIOptions from "@/components/LLMSelection/GiteeAIOptions/index.jsx";
 import DockerModelRunnerOptions from "@/components/LLMSelection/DockerModelRunnerOptions";
 import PrivateModeOptions from "@/components/LLMSelection/PrivateModeOptions";
 import SambaNovaOptions from "@/components/LLMSelection/SambaNovaOptions";
+import RainyModelOptions from "@/components/LLMSelection/RainyModelOptions";
 
 import LLMItem from "@/components/LLMSelection/LLMItem";
 import { CaretUpDown, MagnifyingGlass, X } from "@phosphor-icons/react";
@@ -85,9 +86,9 @@ import CTAButton from "@/components/lib/CTAButton";
 export const AVAILABLE_LLM_PROVIDERS = [
   {
     name: "RainyModel (Orcest AI)",
-    value: "generic-openai",
-    logo: GenericOpenAiLogo,
-    options: (settings) => <GenericOpenAiOptions settings={settings} />,
+    value: "rainymodel",
+    logo: LaminoIcon,
+    options: (settings) => <RainyModelOptions settings={settings} />,
     description:
       "Orcest AI's intelligent LLM router — auto-routes across free, internal, and premium models. Recommended default.",
     requiredConfig: [],

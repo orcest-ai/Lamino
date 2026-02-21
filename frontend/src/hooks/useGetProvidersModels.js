@@ -9,6 +9,12 @@ export const DISABLED_PROVIDERS = [
   "bedrock",
 ];
 const PROVIDER_DEFAULT_MODELS = {
+  rainymodel: [
+    "rainymodel/auto",
+    "rainymodel/chat",
+    "rainymodel/code",
+    "rainymodel/agent",
+  ],
   openai: [],
   gemini: [],
   anthropic: [],

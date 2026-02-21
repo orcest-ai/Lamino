@@ -29,18 +29,17 @@
 
 مطمئن شوید در سرویس **login** متغیر `OIDC_LAMINO_SECRET` تنظیم شده و مقدار آن با `SSO_CLIENT_SECRET` Lamino یکسان است.
 
-### ۳. رفع خطای async_generator (در صورت بروز)
+### ۳. متغیرهای RainyModel (مدل پیش‌فرض)
 
-اگر هنوز با خطای زیر مواجه می‌شوید:
-```
-OpenrouterException - 'async_generator' object has no attribute '__next__'
-```
+Lamino از RainyModel به‌عنوان مدل پیش‌فرض استفاده می‌کند. متغیرهای زیر را تنظیم کنید:
 
-این متغیر را به Lamino در Render اضافه کنید:
-
-| متغیر | مقدار |
-|-------|------|
-| `GENERIC_OPENAI_STREAMING_DISABLED` | `true` |
+| متغیر | مقدار | توضیح |
+|-------|------|-------|
+| `LLM_PROVIDER` | `rainymodel` | پروایدر پیش‌فرض |
+| `RAINYMODEL_BASE_PATH` | `https://rm.orcest.ai/v1` | آدرس RainyModel |
+| `RAINYMODEL_MODEL_PREF` | `rainymodel/auto` | مدل پیش‌فرض |
+| `RAINYMODEL_API_KEY` | کلید API (اختیاری) | در صورت نیاز |
+| `RAINYMODEL_POLICY` | `auto` | سیاست مسیریابی |
 
 ### ۴. Manual Deploy
 

@@ -952,6 +952,8 @@ ${this.getHistory({ to: route.to })
         return new Providers.OpenRouterProvider({ model: config.model });
       case "mistral":
         return new Providers.MistralProvider({ model: config.model });
+      case "rainymodel":
+        return new Providers.GenericOpenAiProvider({ model: config.model });
       case "generic-openai":
         return new Providers.GenericOpenAiProvider({ model: config.model });
       case "perplexity":

@@ -16,6 +16,7 @@ const { parseFoundryBasePath } = require("../AiProviders/foundry");
 const { getDockerModels } = require("../AiProviders/dockerModelRunner");
 
 const SUPPORT_CUSTOM_MODELS = [
+  "rainymodel",
   "openai",
   "anthropic",
   "localai",
@@ -58,6 +59,8 @@ async function getCustomModels(provider = "", apiKey = null, basePath = null) {
     return { models: [], error: "Invalid provider for custom models" };
 
   switch (provider) {
+    case "rainymodel":
+      return await getRainyModelModels(basePath);
     case "openai":
       return await openAiModels(apiKey);
     case "anthropic":
@@ -984,6 +987,25 @@ async function getSambaNovaModels(_apiKey = null) {
   } catch (e) {
     console.error(`SambaNova:getSambaNovaModels`, e.message);
     return { models: [], error: "Could not fetch SambaNova Models" };
+  }
+}
+
+async function getRainyModelModels(basePath = null) {
+  const { fetchRainyModelModels } = require("../AiProviders/rainymodel");
+  try {
+    const models = await fetchRainyModelModels(basePath);
+    return { models, error: null };
+  } catch (e) {
+    console.error(`RainyModel:getRainyModelModels`, e.message);
+    return {
+      models: [
+        { id: "rainymodel/auto" },
+        { id: "rainymodel/chat" },
+        { id: "rainymodel/code" },
+        { id: "rainymodel/agent" },
+      ],
+      error: null,
+    };
   }
 }
 

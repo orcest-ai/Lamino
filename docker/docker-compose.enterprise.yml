@@ -53,10 +53,11 @@ services:
       - "${LAMINO_PORT:-3001}:3001"
     environment:
       - SERVER_PORT=3001
-      - LLM_PROVIDER=genericOpenAi
-      - GENERIC_OPEN_AI_BASE_PATH=http://rainymodel:8080/v1
-      - GENERIC_OPEN_AI_MODEL_PREF=rainymodel/auto
-      - GENERIC_OPEN_AI_API_KEY=${RAINYMODEL_MASTER_KEY:-}
+      - LLM_PROVIDER=rainymodel
+      - RAINYMODEL_BASE_PATH=http://rainymodel:8080/v1
+      - RAINYMODEL_MODEL_PREF=rainymodel/auto
+      - RAINYMODEL_API_KEY=${RAINYMODEL_MASTER_KEY:-}
+      - RAINYMODEL_POLICY=auto
       - EMBEDDING_ENGINE=native
       - VECTOR_DB=${VECTOR_DB:-lancedb}
       - CHROMA_ENDPOINT=http://chromadb:8000

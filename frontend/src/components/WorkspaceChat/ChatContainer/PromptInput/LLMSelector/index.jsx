@@ -51,13 +51,22 @@ export default function LLMSelectorModal() {
         setSelectedLLMProvider(selectedLLMProvider);
         autoScrollToSelectedLLMProvider(selectedLLMProvider);
         setSelectedLLMModel(selectedLLMModel);
+
+        // Filter out providers whose required config keys are not set
+        const configuredProviders = WORKSPACE_LLM_PROVIDERS.filter(
+          (provider) => !hasMissingCredentials(systemSettings, provider.value)
+        );
+        setAvailableProviders(configuredProviders);
       })
       .finally(() => setLoading(false));
   }, [slug]);
 
   function handleSearch(e) {
     const searchTerm = e.target.value.toLowerCase();
-    const filteredProviders = WORKSPACE_LLM_PROVIDERS.filter((provider) =>
+    const configuredProviders = WORKSPACE_LLM_PROVIDERS.filter(
+      (provider) => !hasMissingCredentials(settings, provider.value)
+    );
+    const filteredProviders = configuredProviders.filter((provider) =>
       provider.name.toLowerCase().includes(searchTerm)
     );
     setAvailableProviders(filteredProviders);
@@ -65,7 +74,10 @@ export default function LLMSelectorModal() {
 
   function handleProviderSelection(provider) {
     setSelectedLLMProvider(provider);
-    setAvailableProviders(WORKSPACE_LLM_PROVIDERS);
+    const configuredProviders = WORKSPACE_LLM_PROVIDERS.filter(
+      (p) => !hasMissingCredentials(settings, p.value)
+    );
+    setAvailableProviders(configuredProviders);
     autoScrollToSelectedLLMProvider(provider, 50);
     document.getElementById("llm-search-input").value = "";
     setHasChanges(true);

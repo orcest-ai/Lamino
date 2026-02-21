@@ -145,6 +145,14 @@ class Provider {
           apiKey: process.env.TOGETHER_AI_API_KEY ?? null,
           ...config,
         });
+      case "rainymodel":
+        return new ChatOpenAI({
+          configuration: {
+            baseURL: process.env.RAINYMODEL_BASE_PATH || "https://rm.orcest.ai/v1",
+          },
+          apiKey: process.env.RAINYMODEL_API_KEY || "rm-no-key",
+          ...config,
+        });
       case "generic-openai":
         return new ChatOpenAI({
           configuration: {

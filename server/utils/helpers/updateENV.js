@@ -212,6 +212,24 @@ const KEY_MAPPING = {
     checks: [],
   },
 
+  // RainyModel (Orcest AI) Settings
+  RainyModelBasePath: {
+    envKey: "RAINYMODEL_BASE_PATH",
+    checks: [],
+  },
+  RainyModelApiKey: {
+    envKey: "RAINYMODEL_API_KEY",
+    checks: [],
+  },
+  RainyModelModelPref: {
+    envKey: "RAINYMODEL_MODEL_PREF",
+    checks: [],
+  },
+  RainyModelPolicy: {
+    envKey: "RAINYMODEL_POLICY",
+    checks: [],
+  },
+
   // Generic OpenAI InferenceSettings
   GenericOpenAiBasePath: {
     envKey: "GENERIC_OPEN_AI_BASE_PATH",
@@ -908,6 +926,7 @@ function validLocalWhisper(input = "") {
 
 function supportedLLM(input = "") {
   const validSelection = [
+    "rainymodel",
     "openai",
     "azure",
     "anthropic",

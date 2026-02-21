@@ -124,6 +124,8 @@ class AgentHandler {
         if (!process.env.MISTRAL_API_KEY)
           throw new Error("Mistral API key must be provided to use agents.");
         break;
+      case "rainymodel":
+        break; // RainyModel works without API key
       case "generic-openai":
         if (!process.env.GENERIC_OPEN_AI_BASE_PATH)
           throw new Error("API base path must be provided to use agents.");
@@ -273,6 +275,8 @@ class AgentHandler {
         return process.env.OPENROUTER_MODEL_PREF ?? "openrouter/auto";
       case "mistral":
         return process.env.MISTRAL_MODEL_PREF ?? "mistral-medium";
+      case "rainymodel":
+        return process.env.RAINYMODEL_MODEL_PREF ?? "rainymodel/auto";
       case "generic-openai":
         return process.env.GENERIC_OPEN_AI_MODEL_PREF ?? null;
       case "perplexity":

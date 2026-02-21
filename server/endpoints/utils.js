@@ -108,6 +108,9 @@ function getModelTag() {
     case "mistral":
       model = process.env.MISTRAL_MODEL_PREF;
       break;
+    case "rainymodel":
+      model = process.env.RAINYMODEL_MODEL_PREF || "rainymodel/auto";
+      break;
     case "generic-openai":
       model = process.env.GENERIC_OPEN_AI_MODEL_PREF;
       break;
