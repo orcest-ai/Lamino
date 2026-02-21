@@ -21,6 +21,18 @@ function normalizePersianText(input = "") {
     .trim();
 }
 
+
+function tokenizePersianText(input = "") {
+  const normalized = normalizePersianText(input);
+  if (!normalized.length) return [];
+
+  return normalized
+    .replace(/[!?؟،,:;()\[\]{}"'`«»]/g, " ")
+    .split(/\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean);
+}
+
 function hasPersianScript(input = "") {
   if (typeof input !== "string") return false;
   return /[\u0600-\u06FF]/.test(input);
@@ -28,5 +40,6 @@ function hasPersianScript(input = "") {
 
 module.exports = {
   normalizePersianText,
+  tokenizePersianText,
   hasPersianScript,
 };

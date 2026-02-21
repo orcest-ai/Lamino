@@ -1,5 +1,6 @@
 const {
   normalizePersianText,
+  tokenizePersianText,
   hasPersianScript,
 } = require("../../../../utils/helpers/chat/language");
 
@@ -12,6 +13,19 @@ describe("Persian language normalization", () => {
   test("removes diacritics and trims whitespace", () => {
     const input = "  سَلام   دنیا  ";
     expect(normalizePersianText(input)).toBe("سلام دنیا");
+  });
+
+  test("tokenizes Persian text for retrieval enrichment", () => {
+    const input = "سلام، می‌خواهم درباره‌ی سرعتِ پاسخ توضیح بدهی؟";
+    expect(tokenizePersianText(input)).toEqual([
+      "سلام",
+      "می‌خواهم",
+      "درباره‌ی",
+      "سرعت",
+      "پاسخ",
+      "توضیح",
+      "بدهی",
+    ]);
   });
 
   test("detects Persian/Arabic script", () => {

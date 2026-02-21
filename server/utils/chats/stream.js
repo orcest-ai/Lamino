@@ -6,6 +6,7 @@ const { getVectorDbClass, getLLMProvider } = require("../helpers");
 const { writeResponseChunk } = require("../helpers/chat/responses");
 const {
   normalizePersianText,
+  tokenizePersianText,
   hasPersianScript,
 } = require("../helpers/chat/language");
 const { grepAgents } = require("./agents");
@@ -73,6 +74,7 @@ async function streamChatWithWorkspace(
   const uuid = uuidv4();
   const updatedMessage = await grepCommand(message, user);
   const normalizedMessage = normalizePersianText(updatedMessage);
+  const persianQueryTokens = tokenizePersianText(updatedMessage);
   const imageValidationError = validateImageAttachments(attachments);
 
   if (imageValidationError) {
@@ -211,7 +213,11 @@ async function streamChatWithWorkspace(
     embeddingsCount !== 0
       ? await VectorDb.performSimilaritySearch({
           namespace: workspace.slug,
-          input: normalizedMessage,
+          input:
+            hasPersianScript(normalizedMessage) && persianQueryTokens.length > 0
+              ? `${normalizedMessage}
+${persianQueryTokens.join(" ")}`
+              : normalizedMessage,
           LLMConnector,
           similarityThreshold: workspace?.similarityThreshold,
           topN: workspace?.topN,

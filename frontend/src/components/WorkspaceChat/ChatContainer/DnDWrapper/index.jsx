@@ -498,12 +498,33 @@ export default function DnDFileUploaderWrapper({ children }) {
  * @param {File} file
  * @returns {Promise<string>}
  */
+function inferImageMimeType(file) {
+  const normalizedType = String(file?.type || "").toLowerCase();
+  if (SUPPORTED_IMAGE_MIME.includes(normalizedType)) return normalizedType;
+
+  const extension = String(file?.name || "")
+    .toLowerCase()
+    .split(".")
+    .pop();
+
+  const mimeByExt = {
+    png: "image/png",
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    webp: "image/webp",
+    gif: "image/gif",
+  };
+
+  return mimeByExt[extension] || normalizedType;
+}
+
 async function toBase64(file) {
+  const mimeType = inferImageMimeType(file) || "image/png";
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
       const base64String = reader.result.split(",")[1];
-      resolve(`data:${file.type};base64,${base64String}`);
+      resolve(`data:${mimeType};base64,${base64String}`);
     };
     reader.onerror = (error) => reject(error);
     reader.readAsDataURL(file);
@@ -511,8 +532,9 @@ async function toBase64(file) {
 }
 
 function validateImageAttachment(file) {
-  if (!SUPPORTED_IMAGE_MIME.includes(file.type)) {
-    return `Unsupported image format (${file.type || "unknown"}). Please upload PNG, JPEG, WEBP, or GIF.`;
+  const mimeType = inferImageMimeType(file);
+  if (!SUPPORTED_IMAGE_MIME.includes(mimeType)) {
+    return `Unsupported image format (${mimeType || "unknown"}). Please upload PNG, JPEG, WEBP, or GIF.`;
   }
 
   if (file.size > MAX_IMAGE_UPLOAD_BYTES) {

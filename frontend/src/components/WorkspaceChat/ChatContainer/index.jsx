@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import ChatHistory from "./ChatHistory";
-import { CLEAR_ATTACHMENTS_EVENT, DndUploaderContext } from "./DnDWrapper";
+import { DndUploaderContext } from "./DnDWrapper";
 import PromptInput, {
   PROMPT_INPUT_EVENT,
   PROMPT_INPUT_ID,
@@ -32,6 +32,10 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
   const [websocket, setWebsocket] = useState(null);
   const { files, parseAttachments } = useContext(DndUploaderContext);
   const { chatHistoryRef } = useChatContainerQuickScroll();
+
+  useEffect(() => {
+    setChatHistory(knownHistory);
+  }, [knownHistory]);
 
   const { listening, resetTranscript } = useSpeechRecognition({
     clearTranscriptOnListen: true,
@@ -191,7 +195,6 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
       // Override hook for new messages to now go to agents until the connection closes
       if (!!websocket) {
         if (!promptMessage || !promptMessage?.userMessage) return false;
-        window.dispatchEvent(new CustomEvent(CLEAR_ATTACHMENTS_EVENT));
         websocket.send(
           JSON.stringify({
             type: "awaitingFeedback",
@@ -206,7 +209,6 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
       // If running and edit or regeneration, this history will already have attachments
       // so no need to parse the current state.
       const attachments = promptMessage?.attachments ?? parseAttachments();
-      window.dispatchEvent(new CustomEvent(CLEAR_ATTACHMENTS_EVENT));
 
       await Workspace.multiplexStream({
         workspaceSlug: workspace.slug,
@@ -277,7 +279,6 @@ export default function ChatContainer({ workspace, knownHistory = [] }) {
         });
         setWebsocket(socket);
         window.dispatchEvent(new CustomEvent(AGENT_SESSION_START));
-        window.dispatchEvent(new CustomEvent(CLEAR_ATTACHMENTS_EVENT));
       } catch (e) {
         setChatHistory((prev) => [
           ...prev.filter((msg) => !!msg.content),
