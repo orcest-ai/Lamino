@@ -4,6 +4,10 @@ const { WorkspaceChats } = require("../../models/workspaceChats");
 const { WorkspaceParsedFiles } = require("../../models/workspaceParsedFiles");
 const { getVectorDbClass, getLLMProvider } = require("../helpers");
 const { writeResponseChunk } = require("../helpers/chat/responses");
+const {
+  normalizePersianText,
+  hasPersianScript,
+} = require("../helpers/chat/language");
 const { grepAgents } = require("./agents");
 const {
   grepCommand,
@@ -14,6 +18,48 @@ const {
 } = require("./index");
 
 const VALID_CHAT_MODE = ["chat", "query"];
+const MAX_IMAGE_ATTACHMENT_BYTES =
+  Number(process.env.MAX_IMAGE_ATTACHMENT_BYTES) || 10 * 1024 * 1024;
+const SUPPORTED_IMAGE_MIMES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
+]);
+
+function base64ContentBytes(contentString = "") {
+  if (typeof contentString !== "string" || !contentString.length) return 0;
+  const base64Payload = contentString.includes(",")
+    ? contentString.split(",")[1]
+    : contentString;
+  try {
+    return Buffer.byteLength(base64Payload, "base64");
+  } catch {
+    return 0;
+  }
+}
+
+function validateImageAttachments(attachments = []) {
+  if (!Array.isArray(attachments) || !attachments.length) return null;
+
+  for (const attachment of attachments) {
+    const mime = String(attachment?.mime || "").toLowerCase();
+    const isImage = mime.startsWith("image/");
+    if (!isImage) continue;
+
+    if (!SUPPORTED_IMAGE_MIMES.has(mime)) {
+      return `Unsupported image format: ${mime || "unknown"}. Supported formats: PNG, JPEG, WEBP, GIF.`;
+    }
+
+    const byteLength = base64ContentBytes(attachment?.contentString);
+    if (byteLength > MAX_IMAGE_ATTACHMENT_BYTES) {
+      return `Image ${attachment?.name || "attachment"} exceeds max size of ${Math.floor(MAX_IMAGE_ATTACHMENT_BYTES / 1024 / 1024)}MB.`;
+    }
+  }
+
+  return null;
+}
 
 async function streamChatWithWorkspace(
   response,
@@ -26,6 +72,20 @@ async function streamChatWithWorkspace(
 ) {
   const uuid = uuidv4();
   const updatedMessage = await grepCommand(message, user);
+  const normalizedMessage = normalizePersianText(updatedMessage);
+  const imageValidationError = validateImageAttachments(attachments);
+
+  if (imageValidationError) {
+    writeResponseChunk(response, {
+      id: uuid,
+      type: "abort",
+      textResponse: null,
+      sources: [],
+      close: true,
+      error: imageValidationError,
+    });
+    return;
+  }
 
   if (Object.keys(VALID_COMMANDS).includes(updatedMessage)) {
     const data = await VALID_COMMANDS[updatedMessage](
@@ -151,7 +211,7 @@ async function streamChatWithWorkspace(
     embeddingsCount !== 0
       ? await VectorDb.performSimilaritySearch({
           namespace: workspace.slug,
-          input: updatedMessage,
+          input: normalizedMessage,
           LLMConnector,
           similarityThreshold: workspace?.similarityThreshold,
           topN: workspace?.topN,
@@ -230,8 +290,12 @@ async function streamChatWithWorkspace(
   // and build system messages based on inputs and history.
   const messages = await LLMConnector.compressMessages(
     {
-      systemPrompt: await chatPrompt(workspace, user),
-      userPrompt: updatedMessage,
+      systemPrompt: `${await chatPrompt(workspace, user)}${
+        hasPersianScript(normalizedMessage)
+          ? "\n\nIf the user writes in Persian (Farsi), preserve Persian meaning and answer naturally in Persian unless explicitly asked otherwise."
+          : ""
+      }`,
+      userPrompt: normalizedMessage,
       contextTexts,
       chatHistory,
       attachments,
