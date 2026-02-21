@@ -18,6 +18,11 @@ const { CollectorApi } = require("../collectorApi");
 const fs = require("fs");
 const path = require("path");
 const { hotdirPath, normalizePath, isWithin } = require("../files");
+const {
+  normalizePersianText,
+  tokenizePersianText,
+  hasPersianScript,
+} = require("../helpers/chat/language");
 /**
  * @typedef ResponseObject
  * @property {string} id - uuid of response
@@ -149,6 +154,8 @@ async function chatSync({
   // Since preset commands are not supported in API calls, we can just process the message here
   const processedMessage = await grepAllSlashCommands(message);
   message = processedMessage;
+  const normalizedMessage = normalizePersianText(message);
+  const persianQueryTokens = tokenizePersianText(message);
 
   if (EphemeralAgentHandler.isAgentInvocation({ message })) {
     await Telemetry.sendTelemetry("agent_chat_started");
@@ -296,7 +303,10 @@ async function chatSync({
     embeddingsCount !== 0
       ? await VectorDb.performSimilaritySearch({
           namespace: workspace.slug,
-          input: message,
+          input:
+            hasPersianScript(normalizedMessage) && persianQueryTokens.length > 0
+              ? `${normalizedMessage}\n${persianQueryTokens.join(" ")}`
+              : normalizedMessage,
           LLMConnector,
           similarityThreshold: workspace?.similarityThreshold,
           topN: workspace?.topN,
@@ -491,6 +501,8 @@ async function streamChat({
   // Since preset commands are not supported in API calls, we can just process the message here
   const processedMessage = await grepAllSlashCommands(message);
   message = processedMessage;
+  const normalizedMessage = normalizePersianText(message);
+  const persianQueryTokens = tokenizePersianText(message);
 
   if (EphemeralAgentHandler.isAgentInvocation({ message })) {
     await Telemetry.sendTelemetry("agent_chat_started");
@@ -648,7 +660,10 @@ async function streamChat({
     embeddingsCount !== 0
       ? await VectorDb.performSimilaritySearch({
           namespace: workspace.slug,
-          input: message,
+          input:
+            hasPersianScript(normalizedMessage) && persianQueryTokens.length > 0
+              ? `${normalizedMessage}\n${persianQueryTokens.join(" ")}`
+              : normalizedMessage,
           LLMConnector,
           similarityThreshold: workspace?.similarityThreshold,
           topN: workspace?.topN,

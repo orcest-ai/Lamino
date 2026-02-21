@@ -875,6 +875,17 @@ dialog::backdrop {
 
 .markdown {
   text-wrap: wrap;
+  direction: auto;
+  unicode-bidi: plaintext;
+}
+
+.markdown p,
+.markdown li,
+.markdown td,
+.markdown th,
+.markdown code,
+.markdown pre {
+  unicode-bidi: plaintext;
 }
 
 .markdown pre {

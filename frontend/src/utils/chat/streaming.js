@@ -71,14 +71,27 @@ export async function streamWithRetry({
 
       return;
     } catch (error) {
-      const shouldRetry =
-        !signal.aborted && !finalized && !receivedChunks && attempt < maxRetries;
+      const shouldRetry = !signal.aborted && !finalized && attempt < maxRetries;
       if (shouldRetry) {
         await retryBackoff(attempt);
         continue;
       }
 
       if (isAbortError(error)) return;
+
+      if (receivedChunks) {
+        handleChat({ id: String(Date.now()), type: "stopGeneration" });
+        handleChat({
+          id: String(Date.now() + 1),
+          type: "statusResponse",
+          textResponse: recoverableStreamErrorMessage(lastError),
+          sources: [],
+          close: true,
+          error: null,
+        });
+        return;
+      }
+
       handleChat({
         id: String(Date.now()),
         type: "abort",

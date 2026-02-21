@@ -34,7 +34,7 @@ export default function WorkspaceChat({ loading, workspace }) {
       setLoadingHistory(false);
     }
     getHistory();
-  }, [workspace, loading]);
+  }, [workspace, loading, threadSlug]);
 
   if (loadingHistory) return <LoadingChat />;
   if (!loading && !loadingHistory && !workspace) {

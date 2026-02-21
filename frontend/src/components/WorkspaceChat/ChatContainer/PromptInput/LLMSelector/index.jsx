@@ -16,6 +16,9 @@ import showToast from "@/utils/toast";
 import Workspace from "@/models/workspace";
 import System from "@/models/system";
 
+const SESSION_MODEL_KEY = "lamino-session-selected-model";
+const SESSION_PROVIDER_KEY = "lamino-session-selected-provider";
+
 export default function LLMSelectorModal() {
   const { slug } = useParams();
   const { t } = useTranslation();
@@ -35,9 +38,14 @@ export default function LLMSelectorModal() {
     setLoading(true);
     Promise.all([Workspace.bySlug(slug), System.keys()])
       .then(([workspace, systemSettings]) => {
+        const sessionProvider = sessionStorage.getItem(SESSION_PROVIDER_KEY);
+        const sessionModel = sessionStorage.getItem(SESSION_MODEL_KEY);
         const selectedLLMProvider =
-          workspace.chatProvider ?? systemSettings.LLMProvider;
-        const selectedLLMModel = workspace.chatModel ?? systemSettings.LLMModel;
+          workspace.chatProvider ??
+          sessionProvider ??
+          systemSettings.LLMProvider;
+        const selectedLLMModel =
+          workspace.chatModel ?? sessionModel ?? systemSettings.LLMModel;
 
         setSettings(systemSettings);
         setSelectedLLMProvider(selectedLLMProvider);
@@ -77,6 +85,8 @@ export default function LLMSelectorModal() {
       });
 
       if (!!message) throw new Error(message);
+      sessionStorage.setItem(SESSION_PROVIDER_KEY, selectedLLMProvider);
+      sessionStorage.setItem(SESSION_MODEL_KEY, validatedModel);
       window.dispatchEvent(new Event(SAVE_LLM_SELECTOR_EVENT));
     } catch (error) {
       console.error(error);
