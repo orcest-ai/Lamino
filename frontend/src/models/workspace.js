@@ -4,6 +4,11 @@ import { fetchEventSource } from "@microsoft/fetch-event-source";
 import WorkspaceThread from "@/models/workspaceThread";
 import { v4 } from "uuid";
 import { ABORT_STREAM_EVENT } from "@/utils/chat";
+import {
+  isAbortError,
+  recoverableStreamErrorMessage,
+  retryBackoff,
+} from "@/utils/chat/streaming";
 
 const Workspace = {
   workspaceOrderStorageKey: "lamino-workspace-order",
@@ -137,70 +142,99 @@ const Workspace = {
   },
   streamChat: async function ({ slug }, message, handleChat, attachments = []) {
     const ctrl = new AbortController();
+    let finalized = false;
+    let receivedChunks = false;
+    const maxRetries = 2;
+    let lastError = null;
 
     // Listen for the ABORT_STREAM_EVENT key to be emitted by the client
     // to early abort the streaming response. On abort we send a special `stopGeneration`
     // event to be handled which resets the UI for us to be able to send another message.
     // The backend response abort handling is done in each LLM's handleStreamResponse.
-    window.addEventListener(ABORT_STREAM_EVENT, () => {
+    const onAbort = () => {
       ctrl.abort();
       handleChat({ id: v4(), type: "stopGeneration" });
-    });
+    };
+    window.addEventListener(ABORT_STREAM_EVENT, onAbort);
 
-    await fetchEventSource(`${API_BASE}/workspace/${slug}/stream-chat`, {
-      method: "POST",
-      body: JSON.stringify({ message, attachments }),
-      headers: baseHeaders(),
-      signal: ctrl.signal,
-      openWhenHidden: true,
-      async onopen(response) {
-        if (response.ok) {
-          return; // everything's good
-        } else if (
-          response.status >= 400 &&
-          response.status < 500 &&
-          response.status !== 429
-        ) {
+    try {
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        try {
+          await fetchEventSource(`${API_BASE}/workspace/${slug}/stream-chat`, {
+            method: "POST",
+            body: JSON.stringify({ message, attachments }),
+            headers: baseHeaders(),
+            signal: ctrl.signal,
+            openWhenHidden: true,
+            async onopen(response) {
+              if (response.ok) {
+                return;
+              } else if (
+                response.status >= 400 &&
+                response.status < 500 &&
+                response.status !== 429
+              ) {
+                handleChat({
+                  id: v4(),
+                  type: "abort",
+                  textResponse: null,
+                  sources: [],
+                  close: true,
+                  error: `An error occurred while streaming response. Code ${response.status}`,
+                });
+                ctrl.abort();
+                throw new Error("Invalid Status code response.");
+              } else {
+                throw new Error("Transient stream open error");
+              }
+            },
+            async onmessage(msg) {
+              const chatResult = safeJsonParse(msg.data, null);
+              if (!chatResult) return;
+              receivedChunks = true;
+              if (chatResult?.type === "finalizeResponseStream") finalized = true;
+              handleChat(chatResult);
+            },
+            onerror(err) {
+              lastError = err;
+              if (finalized) {
+                ctrl.abort();
+                return;
+              }
+              throw err;
+            },
+          });
+
+          return;
+        } catch (error) {
+          const shouldRetry =
+            !ctrl.signal.aborted &&
+            !finalized &&
+            !receivedChunks &&
+            attempt < maxRetries;
+
+          if (shouldRetry) {
+            await retryBackoff(attempt);
+            continue;
+          }
+
+          if (isAbortError(error)) return;
           handleChat({
             id: v4(),
             type: "abort",
             textResponse: null,
             sources: [],
             close: true,
-            error: `An error occurred while streaming response. Code ${response.status}`,
+            error:
+              recoverableStreamErrorMessage(lastError),
           });
           ctrl.abort();
-          throw new Error("Invalid Status code response.");
-        } else {
-          handleChat({
-            id: v4(),
-            type: "abort",
-            textResponse: null,
-            sources: [],
-            close: true,
-            error: `An error occurred while streaming response. Unknown Error.`,
-          });
-          ctrl.abort();
-          throw new Error("Unknown error");
+          return;
         }
-      },
-      async onmessage(msg) {
-        const chatResult = safeJsonParse(msg.data, null);
-        if (chatResult) handleChat(chatResult);
-      },
-      onerror(err) {
-        handleChat({
-          id: v4(),
-          type: "abort",
-          textResponse: null,
-          sources: [],
-          close: true,
-          error: `An error occurred while streaming response. ${err.message}`,
-        });
-        ctrl.abort();
-        throw new Error();
-      },
-    });
+      }
+    } finally {
+      window.removeEventListener(ABORT_STREAM_EVENT, onAbort);
+    }
   },
   all: async function () {
     const workspaces = await fetch(`${API_BASE}/workspaces`, {

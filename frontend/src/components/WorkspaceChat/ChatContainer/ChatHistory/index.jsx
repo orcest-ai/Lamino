@@ -32,6 +32,7 @@ export default forwardRef(function (
     sendCommand,
     updateHistory,
     regenerateAssistantMessage,
+    continueAssistantMessage,
     hasAttachments = false,
   },
   ref
@@ -170,6 +171,7 @@ export default forwardRef(function (
         workspace,
         history,
         regenerateAssistantMessage,
+        continueAssistantMessage,
         saveEditedMessage,
         forkThread,
         getMessageAlignment,
@@ -178,6 +180,7 @@ export default forwardRef(function (
       workspace,
       history,
       regenerateAssistantMessage,
+      continueAssistantMessage,
       saveEditedMessage,
       forkThread,
     ]
@@ -319,6 +322,7 @@ function buildMessages({
   history,
   workspace,
   regenerateAssistantMessage,
+  continueAssistantMessage,
   saveEditedMessage,
   forkThread,
   getMessageAlignment,
@@ -367,6 +371,7 @@ function buildMessages({
           error={props.error}
           attachments={props.attachments}
           regenerateMessage={regenerateAssistantMessage}
+          continueMessage={continueAssistantMessage}
           isLastMessage={isLastBotReply}
           saveEditedMessage={saveEditedMessage}
           forkThread={forkThread}
