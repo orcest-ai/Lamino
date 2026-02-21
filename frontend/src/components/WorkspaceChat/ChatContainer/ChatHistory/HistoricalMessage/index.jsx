@@ -33,6 +33,7 @@ const HistoricalMessage = ({
   chatId = null,
   isLastMessage = false,
   regenerateMessage,
+  continueMessage,
   saveEditedMessage,
   forkThread,
   metrics = {},
@@ -145,6 +146,7 @@ const HistoricalMessage = ({
             slug={workspace?.slug}
             isLastMessage={isLastMessage}
             regenerateMessage={regenerateMessage}
+            continueMessage={continueMessage}
             isEditing={isEditing}
             role={role}
             forkThread={forkThread}
@@ -219,6 +221,8 @@ const RenderChatContent = memo(
       return (
         <span
           className="flex flex-col gap-y-1"
+          dir="auto"
+          style={{ unicodeBidi: "plaintext" }}
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize(renderMarkdown(message)),
           }}
@@ -253,6 +257,8 @@ const RenderChatContent = memo(
         )}
         <span
           className="flex flex-col gap-y-1"
+          dir="auto"
+          style={{ unicodeBidi: "plaintext" }}
           dangerouslySetInnerHTML={{
             __html: DOMPurify.sanitize(renderMarkdown(msgToRender)),
           }}
