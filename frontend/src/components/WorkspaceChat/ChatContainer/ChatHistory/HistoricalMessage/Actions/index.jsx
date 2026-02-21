@@ -1,6 +1,12 @@
 import React, { memo, useState } from "react";
 import useCopyText from "@/hooks/useCopyText";
-import { Check, ThumbsUp, ArrowsClockwise, Copy } from "@phosphor-icons/react";
+import {
+  Check,
+  ThumbsUp,
+  ArrowsClockwise,
+  Copy,
+  ArrowBendDownRight,
+} from "@phosphor-icons/react";
 import Workspace from "@/models/workspace";
 import { EditMessageAction } from "./EditMessage";
 import RenderMetrics from "./RenderMetrics";
@@ -14,6 +20,7 @@ const Actions = ({
   slug,
   isLastMessage,
   regenerateMessage,
+  continueMessage,
   forkThread,
   isEditing,
   role,
@@ -45,6 +52,9 @@ const Actions = ({
               slug={slug}
               chatId={chatId}
             />
+          )}
+          {isLastMessage && role === "assistant" && !isEditing && (
+            <ContinueMessage continueMessage={continueMessage} />
           )}
           {chatId && role !== "user" && !isEditing && (
             <FeedbackButton
@@ -140,6 +150,29 @@ function RegenerateMessage({ regenerateMessage, chatId }) {
         aria-label={t("chat_window.regenerate")}
       >
         <ArrowsClockwise
+          color="var(--theme-sidebar-footer-icon-fill)"
+          size={20}
+          className="mb-1"
+          weight="fill"
+        />
+      </button>
+    </div>
+  );
+}
+
+function ContinueMessage({ continueMessage }) {
+  const { t } = useTranslation();
+  if (!continueMessage) return null;
+  return (
+    <div className="mt-3 relative">
+      <button
+        onClick={continueMessage}
+        data-tooltip-id="continue-assistant-text"
+        data-tooltip-content={t("chat_window.continue_response", { defaultValue: "Continue" })}
+        className="border-none text-zinc-300"
+        aria-label={t("chat_window.continue_response", { defaultValue: "Continue" })}
+      >
+        <ArrowBendDownRight
           color="var(--theme-sidebar-footer-icon-fill)"
           size={20}
           className="mb-1"

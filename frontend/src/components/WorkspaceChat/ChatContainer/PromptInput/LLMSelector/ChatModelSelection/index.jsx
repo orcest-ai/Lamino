@@ -12,6 +12,11 @@ export default function ChatModelSelection({
   const { defaultModels, customModels, loading } =
     useGetProviderModels(provider);
   const { t } = useTranslation();
+  const hasGroupedCustomModels =
+    !Array.isArray(customModels) && Object.keys(customModels).length > 0;
+  const hasFlatCustomModels = Array.isArray(customModels) && customModels.length > 0;
+  const hasAnyModelOptions =
+    defaultModels.length > 0 || hasGroupedCustomModels || hasFlatCustomModels;
   if (DISABLED_PROVIDERS.includes(provider)) return null;
 
   if (loading) {
@@ -58,6 +63,7 @@ export default function ChatModelSelection({
       <select
         id="workspace-llm-model-select"
         required={true}
+        disabled={!hasAnyModelOptions}
         value={selectedLLMModel}
         onChange={(e) => {
           setHasChanges(true);
@@ -72,7 +78,6 @@ export default function ChatModelSelection({
                 <option
                   key={model}
                   value={model}
-                  selected={selectedLLMModel === model}
                 >
                   {model}
                 </option>
@@ -80,14 +85,13 @@ export default function ChatModelSelection({
             })}
           </optgroup>
         )}
-        {Array.isArray(customModels) && customModels.length > 0 && (
+        {hasFlatCustomModels && (
           <optgroup label="Discovered models">
             {customModels.map((model) => {
               return (
                 <option
                   key={model.id}
                   value={model.id}
-                  selected={selectedLLMModel === model.id}
                 >
                   {model.id}
                 </option>
@@ -96,17 +100,12 @@ export default function ChatModelSelection({
           </optgroup>
         )}
         {/* For providers like TogetherAi where we partition model by creator entity. */}
-        {!Array.isArray(customModels) &&
-          Object.keys(customModels).length > 0 && (
+        {hasGroupedCustomModels && (
             <>
               {Object.entries(customModels).map(([organization, models]) => (
                 <optgroup key={organization} label={organization}>
                   {models.map((model) => (
-                    <option
-                      key={model.id}
-                      value={model.id}
-                      selected={selectedLLMModel === model.id}
-                    >
+                    <option key={model.id} value={model.id}>
                       {model.name}
                     </option>
                   ))}
@@ -114,6 +113,9 @@ export default function ChatModelSelection({
               ))}
             </>
           )}
+        {!hasAnyModelOptions && !!selectedLLMModel && (
+          <option value={selectedLLMModel}>{selectedLLMModel}</option>
+        )}
       </select>
     </div>
   );

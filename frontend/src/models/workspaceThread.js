@@ -94,6 +94,7 @@ const WorkspaceThread = {
     attachments = []
   ) {
     const ctrl = new AbortController();
+    let finalized = false;
 
     // Listen for the ABORT_STREAM_EVENT key to be emitted by the client
     // to early abort the streaming response. On abort we send a special `stopGeneration`
@@ -145,19 +146,25 @@ const WorkspaceThread = {
         },
         async onmessage(msg) {
           const chatResult = safeJsonParse(msg.data, null);
+          if (chatResult?.type === "finalizeResponseStream") finalized = true;
           if (chatResult) handleChat(chatResult);
         },
         onerror(err) {
+          if (finalized) {
+            ctrl.abort();
+            return;
+          }
           handleChat({
             id: v4(),
             type: "abort",
             textResponse: null,
             sources: [],
             close: true,
-            error: `An error occurred while streaming response. ${err.message}`,
+            error:
+              "Connection dropped while streaming. You can continue from the partial response.",
           });
           ctrl.abort();
-          throw new Error();
+          throw err;
         },
       }
     );
