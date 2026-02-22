@@ -44,6 +44,7 @@ import GiteeAILogo from "@/media/llmprovider/giteeai.png";
 import DockerModelRunnerLogo from "@/media/llmprovider/docker-model-runner.png";
 import PrivateModeLogo from "@/media/llmprovider/privatemode.png";
 import SambaNovaLogo from "@/media/llmprovider/sambanova.png";
+import RainyModelLogo from "@/media/llmprovider/rainymodel.png";
 
 const LLM_PROVIDER_PRIVACY_MAP = {
   openai: {
@@ -243,6 +244,13 @@ const LLM_PROVIDER_PRIVACY_MAP = {
     name: "SambaNova",
     policyUrl: "https://sambanova.ai/privacy-policy",
     logo: SambaNovaLogo,
+  },
+  rainymodel: {
+    name: "RainyModel",
+    description: [
+      "Data is shared according to the terms of service applicable with Orcest AI.",
+    ],
+    logo: RainyModelLogo,
   },
 };
 

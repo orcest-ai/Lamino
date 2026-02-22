@@ -40,6 +40,7 @@ import GiteeAILogo from "@/media/llmprovider/giteeai.png";
 import DockerModelRunnerLogo from "@/media/llmprovider/docker-model-runner.png";
 import PrivateModeLogo from "@/media/llmprovider/privatemode.png";
 import SambaNovaLogo from "@/media/llmprovider/sambanova.png";
+import RainyModelLogo from "@/media/llmprovider/rainymodel.png";
 
 import PreLoader from "@/components/Preloader";
 import OpenAiOptions from "@/components/LLMSelection/OpenAiOptions";
@@ -77,6 +78,7 @@ import GiteeAIOptions from "@/components/LLMSelection/GiteeAIOptions/index.jsx";
 import DockerModelRunnerOptions from "@/components/LLMSelection/DockerModelRunnerOptions";
 import PrivateModeOptions from "@/components/LLMSelection/PrivateModeOptions";
 import SambaNovaOptions from "@/components/LLMSelection/SambaNovaOptions";
+import RainyModelOptions from "@/components/LLMSelection/RainyModelOptions";
 
 import LLMItem from "@/components/LLMSelection/LLMItem";
 import { CaretUpDown, MagnifyingGlass, X } from "@phosphor-icons/react";
@@ -186,6 +188,14 @@ export const AVAILABLE_LLM_PROVIDERS = [
     options: (settings) => <SambaNovaOptions settings={settings} />,
     description: "Run open source models from SambaNova.",
     requiredConfig: ["SambaNovaLLMApiKey"],
+  },
+  {
+    name: "RainyModel",
+    value: "rainymodel",
+    logo: RainyModelLogo,
+    options: (settings) => <RainyModelOptions settings={settings} />,
+    description: "Orcest AI unified LLM proxy. Routes FREE, INTERNAL, PREMIUM.",
+    requiredConfig: ["RainyModelBasePath"],
   },
   {
     name: "Local AI",

@@ -688,6 +688,13 @@ const SystemSettings = {
       // SambaNova Keys
       SambaNovaLLMApiKey: !!process.env.SAMBANOVA_LLM_API_KEY,
       SambaNovaLLMModelPref: process.env.SAMBANOVA_LLM_MODEL_PREF,
+
+      // RainyModel Keys
+      RainyModelBasePath: process.env.RAINYMODEL_BASE_PATH,
+      RainyModelModelPref: process.env.RAINYMODEL_MODEL_PREF,
+      RainyModelTokenLimit: process.env.RAINYMODEL_TOKEN_LIMIT,
+      RainyModelApiKey: !!process.env.RAINYMODEL_API_KEY,
+      RainyModelMaxTokens: process.env.RAINYMODEL_MAX_TOKENS,
     };
   },
 
