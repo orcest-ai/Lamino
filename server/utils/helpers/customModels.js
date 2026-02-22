@@ -1004,7 +1004,14 @@ async function getRainyModelModels(basePath = null, apiKey = null) {
       .list()
       .then((results) => results.data)
       .catch((e) => {
-        console.error(`RainyModel:listModels`, e.message);
+        const status = e?.status ?? e?.response?.status;
+        if (status === 401) {
+          console.error(
+            `RainyModel:listModels - Authentication failed (401). Check RAINYMODEL_API_KEY.`
+          );
+        } else {
+          console.error(`RainyModel:listModels`, e.message);
+        }
         return [];
       });
 

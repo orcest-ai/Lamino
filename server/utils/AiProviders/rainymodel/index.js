@@ -233,6 +233,30 @@ class RainyModelLLM {
     }
   }
 
+  /**
+   * Wraps provider errors with actionable messages for common failures.
+   */
+  #wrapProviderError(e) {
+    const status = e?.status ?? e?.response?.status;
+    if (status === 401) {
+      throw new Error(
+        "RainyModel authentication failed (401). Your RAINYMODEL_API_KEY is invalid or not set. " +
+          "Please update it in Settings > LLM Preference > RainyModel."
+      );
+    }
+    if (status === 403) {
+      throw new Error(
+        "RainyModel access denied (403). Your account may not have permission to use this model."
+      );
+    }
+    if (status === 502 || status === 503) {
+      throw new Error(
+        "RainyModel service is temporarily unavailable. All upstream providers may be down. Please try again shortly."
+      );
+    }
+    throw new Error(e.message);
+  }
+
   async getChatCompletion(messages = null, { temperature = 0.7 }) {
     const result = await LLMPerformanceMonitor.measureAsyncFunction(
       this.openai.chat.completions
@@ -242,9 +266,7 @@ class RainyModelLLM {
           temperature,
           max_tokens: this.maxTokens,
         })
-        .catch((e) => {
-          throw new Error(e.message);
-        })
+        .catch((e) => this.#wrapProviderError(e))
     );
 
     if (
@@ -283,13 +305,15 @@ class RainyModelLLM {
 
   async streamGetChatCompletion(messages = null, { temperature = 0.7 }) {
     const measuredStreamRequest = await LLMPerformanceMonitor.measureStream({
-      func: this.openai.chat.completions.create({
-        model: this.model,
-        stream: true,
-        messages,
-        temperature,
-        max_tokens: this.maxTokens,
-      }),
+      func: this.openai.chat.completions
+        .create({
+          model: this.model,
+          stream: true,
+          messages,
+          temperature,
+          max_tokens: this.maxTokens,
+        })
+        .catch((e) => this.#wrapProviderError(e)),
       messages,
       runPromptTokenCalculation: true,
       modelTag: this.model,
