@@ -129,7 +129,7 @@ function getVectorDbClass(getExactly = null) {
  * @returns {BaseLLMProvider}
  */
 function getLLMProvider({ provider = null, model = null } = {}) {
-  const LLMSelection = provider ?? process.env.LLM_PROVIDER ?? "openai";
+  const LLMSelection = provider ?? process.env.LLM_PROVIDER ?? "rainymodel";
   const embedder = getEmbeddingEngineSelection();
 
   switch (LLMSelection) {
