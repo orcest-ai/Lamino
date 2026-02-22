@@ -7,6 +7,7 @@ export const DISABLED_PROVIDERS = [
   "textgenwebui",
   "generic-openai",
   "bedrock",
+  "rainymodel",
 ];
 const PROVIDER_DEFAULT_MODELS = {
   openai: [],
@@ -30,6 +31,7 @@ const PROVIDER_DEFAULT_MODELS = {
   ],
   textgenwebui: [],
   "generic-openai": [],
+  rainymodel: [],
   bedrock: [],
   xai: ["grok-beta"],
 };

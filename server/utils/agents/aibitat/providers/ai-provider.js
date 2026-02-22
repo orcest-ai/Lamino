@@ -265,6 +265,18 @@ class Provider {
           apiKey: process.env.SAMBANOVA_LLM_API_KEY ?? null,
           ...config,
         });
+      case "rainymodel":
+        return new ChatOpenAI({
+          configuration: {
+            baseURL: process.env.RAINYMODEL_BASE_PATH,
+          },
+          apiKey: process.env.RAINYMODEL_API_KEY ?? null,
+          maxTokens: toValidNumber(
+            process.env.RAINYMODEL_MAX_TOKENS,
+            1024
+          ),
+          ...config,
+        });
       // OSS Model Runners
       // case "lamino_ollama":
       //   return new ChatOllama({

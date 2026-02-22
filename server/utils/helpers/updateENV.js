@@ -212,6 +212,28 @@ const KEY_MAPPING = {
     checks: [],
   },
 
+  // RainyModel Settings
+  RainyModelBasePath: {
+    envKey: "RAINYMODEL_BASE_PATH",
+    checks: [isValidURL],
+  },
+  RainyModelModelPref: {
+    envKey: "RAINYMODEL_MODEL_PREF",
+    checks: [isNotEmpty],
+  },
+  RainyModelTokenLimit: {
+    envKey: "RAINYMODEL_TOKEN_LIMIT",
+    checks: [nonZero],
+  },
+  RainyModelApiKey: {
+    envKey: "RAINYMODEL_API_KEY",
+    checks: [],
+  },
+  RainyModelMaxTokens: {
+    envKey: "RAINYMODEL_MAX_TOKENS",
+    checks: [nonZero],
+  },
+
   // Generic OpenAI InferenceSettings
   GenericOpenAiBasePath: {
     envKey: "GENERIC_OPEN_AI_BASE_PATH",
@@ -943,6 +965,7 @@ function supportedLLM(input = "") {
     "docker-model-runner",
     "privatemode",
     "sambanova",
+    "rainymodel",
   ].includes(input);
   return validSelection ? null : `${input} is not a valid LLM provider.`;
 }
