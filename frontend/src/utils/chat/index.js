@@ -83,6 +83,35 @@ export default function handleChat(
       metrics,
     });
     emitAssistantMessageCompleteEvent(chatId);
+  } else if (type === "routingInfo") {
+    // RainyModel routing chain info - attach to the current assistant message
+    const chatIdx = _chatHistory.findIndex((chat) => chat.uuid === uuid);
+    if (chatIdx !== -1) {
+      const existingHistory = { ..._chatHistory[chatIdx] };
+      _chatHistory[chatIdx] = {
+        ...existingHistory,
+        routingChain: chatResult.routingChain,
+        costTierSymbol: chatResult.costTierSymbol,
+        costTierLabel: chatResult.costTierLabel,
+        actualModel: chatResult.actualModel,
+      };
+    } else {
+      _chatHistory.push({
+        uuid,
+        sources: [],
+        error: null,
+        content: "",
+        role: "assistant",
+        closed: false,
+        animate: true,
+        pending: false,
+        routingChain: chatResult.routingChain,
+        costTierSymbol: chatResult.costTierSymbol,
+        costTierLabel: chatResult.costTierLabel,
+        actualModel: chatResult.actualModel,
+      });
+    }
+    setChatHistory([..._chatHistory]);
   } else if (
     type === "textResponseChunk" ||
     type === "finalizeResponseStream"

@@ -37,6 +37,9 @@ const HistoricalMessage = ({
   saveEditedMessage,
   forkThread,
   metrics = {},
+  routingChain = null,
+  costTierSymbol = null,
+  costTierLabel = null,
   alignmentCls = "",
 }) => {
   const { t } = useTranslation();
@@ -113,6 +116,17 @@ const HistoricalMessage = ({
             />
           ) : (
             <div className="break-words">
+              {role === "assistant" && routingChain && (
+                <div className="mb-1 text-xs font-mono text-theme-text-secondary opacity-60 flex items-center gap-x-1">
+                  <span>{costTierSymbol}</span>
+                  <span>{routingChain}</span>
+                  {costTierLabel && (
+                    <span className="ml-1 px-1.5 py-0.5 rounded bg-theme-bg-secondary text-[10px]">
+                      {costTierLabel}
+                    </span>
+                  )}
+                </div>
+              )}
               <RenderChatContent
                 role={role}
                 message={message}
@@ -193,7 +207,8 @@ export default memo(
     return (
       prevProps.message === nextProps.message &&
       prevProps.isLastMessage === nextProps.isLastMessage &&
-      prevProps.chatId === nextProps.chatId
+      prevProps.chatId === nextProps.chatId &&
+      prevProps.routingChain === nextProps.routingChain
     );
   }
 );

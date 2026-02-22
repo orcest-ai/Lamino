@@ -604,6 +604,14 @@ const SystemSettings = {
       MoonshotAiModelPref:
         process.env.MOONSHOT_AI_MODEL_PREF || "moonshot-v1-32k",
 
+      // RainyModel (Orcest AI unified LLM proxy)
+      RainyModelBasePath: process.env.RAINYMODEL_BASE_PATH,
+      RainyModelApiKey: !!process.env.RAINYMODEL_API_KEY,
+      RainyModelModelPref: process.env.RAINYMODEL_MODEL_PREF,
+      RainyModelTokenLimit: process.env.RAINYMODEL_TOKEN_LIMIT,
+      RainyModelMaxTokens: process.env.RAINYMODEL_MAX_TOKENS,
+      RainyModelPolicy: process.env.RAINYMODEL_POLICY || "auto",
+
       // Generic OpenAI Keys
       GenericOpenAiBasePath: process.env.GENERIC_OPEN_AI_BASE_PATH,
       GenericOpenAiModelPref: process.env.GENERIC_OPEN_AI_MODEL_PREF,

@@ -16,6 +16,7 @@ const { parseFoundryBasePath } = require("../AiProviders/foundry");
 const { getDockerModels } = require("../AiProviders/dockerModelRunner");
 
 const SUPPORT_CUSTOM_MODELS = [
+  "rainymodel",
   "openai",
   "anthropic",
   "localai",
@@ -58,6 +59,8 @@ async function getCustomModels(provider = "", apiKey = null, basePath = null) {
     return { models: [], error: "Invalid provider for custom models" };
 
   switch (provider) {
+    case "rainymodel":
+      return await getRainyModelModels(basePath, apiKey);
     case "openai":
       return await openAiModels(apiKey);
     case "anthropic":
@@ -984,6 +987,68 @@ async function getSambaNovaModels(_apiKey = null) {
   } catch (e) {
     console.error(`SambaNova:getSambaNovaModels`, e.message);
     return { models: [], error: "Could not fetch SambaNova Models" };
+  }
+}
+
+async function getRainyModelModels(basePath = null, apiKey = null) {
+  const { OpenAI: OpenAIApi } = require("openai");
+  const { RAINYMODEL_MODELS } = require("../AiProviders/rainymodel");
+
+  try {
+    const openai = new OpenAIApi({
+      baseURL: basePath || process.env.RAINYMODEL_BASE_PATH,
+      apiKey: apiKey || process.env.RAINYMODEL_API_KEY || null,
+    });
+
+    const remoteModels = await openai.models
+      .list()
+      .then((results) => results.data)
+      .catch((e) => {
+        console.error(`RainyModel:listModels`, e.message);
+        return [];
+      });
+
+    // Merge remote models with known RainyModel models metadata
+    const models = remoteModels.map((model) => {
+      const known = RAINYMODEL_MODELS[model.id];
+      return {
+        id: model.id,
+        name: known?.name || model.id,
+        organization: known?.organization || "RainyModel",
+        description: known?.description || "",
+        costTier: known?.costTier?.label || "Free",
+        costTierSymbol: known?.costTier?.symbol || "\u{1F7E2}",
+      };
+    });
+
+    // If remote fetch failed, return known models as fallback
+    if (models.length === 0) {
+      const fallbackModels = Object.values(RAINYMODEL_MODELS).map((m) => ({
+        id: m.id,
+        name: m.name,
+        organization: m.organization,
+        description: m.description,
+        costTier: m.costTier.label,
+        costTierSymbol: m.costTier.symbol,
+      }));
+      return { models: fallbackModels, error: null };
+    }
+
+    if (models.length > 0 && !!apiKey)
+      process.env.RAINYMODEL_API_KEY = apiKey;
+    return { models, error: null };
+  } catch (e) {
+    console.error(`RainyModel:getRainyModelModels`, e.message);
+    // Return known models as fallback
+    const fallbackModels = Object.values(RAINYMODEL_MODELS).map((m) => ({
+      id: m.id,
+      name: m.name,
+      organization: m.organization,
+      description: m.description,
+      costTier: m.costTier.label,
+      costTierSymbol: m.costTier.symbol,
+    }));
+    return { models: fallbackModels, error: null };
   }
 }
 

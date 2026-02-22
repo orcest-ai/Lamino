@@ -84,9 +84,11 @@ function systemEndpoints(app) {
     try {
       // Orcest AI: Skip onboarding when LLM is pre-configured via env vars
       const hasPreconfiguredLLM =
-        process.env.LLM_PROVIDER &&
-        process.env.GENERIC_OPEN_AI_API_KEY &&
-        process.env.GENERIC_OPEN_AI_BASE_PATH;
+        (process.env.LLM_PROVIDER === "rainymodel" &&
+          process.env.RAINYMODEL_BASE_PATH) ||
+        (process.env.LLM_PROVIDER &&
+          process.env.GENERIC_OPEN_AI_API_KEY &&
+          process.env.GENERIC_OPEN_AI_BASE_PATH);
       if (hasPreconfiguredLLM) {
         const dbComplete = await SystemSettings.isOnboardingComplete();
         if (!dbComplete) {

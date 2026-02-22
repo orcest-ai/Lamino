@@ -212,6 +212,32 @@ const KEY_MAPPING = {
     checks: [],
   },
 
+  // RainyModel (Orcest AI unified LLM proxy)
+  RainyModelBasePath: {
+    envKey: "RAINYMODEL_BASE_PATH",
+    checks: [isValidURL],
+  },
+  RainyModelApiKey: {
+    envKey: "RAINYMODEL_API_KEY",
+    checks: [],
+  },
+  RainyModelModelPref: {
+    envKey: "RAINYMODEL_MODEL_PREF",
+    checks: [isNotEmpty],
+  },
+  RainyModelTokenLimit: {
+    envKey: "RAINYMODEL_TOKEN_LIMIT",
+    checks: [nonZero],
+  },
+  RainyModelMaxTokens: {
+    envKey: "RAINYMODEL_MAX_TOKENS",
+    checks: [nonZero],
+  },
+  RainyModelPolicy: {
+    envKey: "RAINYMODEL_POLICY",
+    checks: [],
+  },
+
   // Generic OpenAI InferenceSettings
   GenericOpenAiBasePath: {
     envKey: "GENERIC_OPEN_AI_BASE_PATH",
@@ -927,6 +953,7 @@ function supportedLLM(input = "") {
     "textgenwebui",
     "cohere",
     "litellm",
+    "rainymodel",
     "generic-openai",
     "bedrock",
     "deepseek",

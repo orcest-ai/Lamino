@@ -43,23 +43,78 @@ function getAutoShowMetrics() {
 }
 
 /**
+ * Estimate cost for a given number of tokens.
+ * @param {number} promptTokens
+ * @param {number} completionTokens
+ * @param {string} costTierLabel
+ * @returns {string}
+ */
+function estimateCost(promptTokens = 0, completionTokens = 0, costTierLabel = "") {
+  // Rough cost estimation per 1M tokens based on cost tier
+  const costRates = {
+    "Free": { input: 0, output: 0 },
+    "Internal Free": { input: 0, output: 0 },
+    "External Free": { input: 0, output: 0 },
+    "Cheap": { input: 0.15, output: 0.60 },
+    "Normal Cost": { input: 1.0, output: 3.0 },
+    "Too Expensive": { input: 3.0, output: 15.0 },
+    "Most Expensive": { input: 15.0, output: 75.0 },
+  };
+  const rate = costRates[costTierLabel] || costRates["Normal Cost"];
+  const cost = (promptTokens * rate.input + completionTokens * rate.output) / 1_000_000;
+  if (cost === 0) return "Free";
+  if (cost < 0.01) return `~$${(cost * 100).toFixed(2)}\u00A2`;
+  return `~$${cost.toFixed(4)}`;
+}
+
+/**
  * Build the metrics string for a given metrics object
+ * - Routing chain (if available)
  * - Model name
  * - Duration and output TPS
+ * - Token usage
+ * - Cost estimate
  * - Timestamp
- * @param {metrics: {duration:number, outputTps: number, model?: string, timestamp?: number}} metrics
+ * @param {metrics: {duration:number, outputTps: number, model?: string, timestamp?: number, routingChain?: string, costTierSymbol?: string, costTierLabel?: string, prompt_tokens?: number, completion_tokens?: number}} metrics
  * @returns {string}
  */
 function buildMetricsString(metrics = {}) {
-  return [
-    metrics?.model ? metrics.model : "",
-    `${formatDuration(metrics.duration)} (${formatTps(metrics.outputTps)} tok/s)`,
-    metrics?.timestamp
-      ? formatDateTimeAsMoment(metrics.timestamp, "MMM D, h:mm A")
-      : "",
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const parts = [];
+
+  // Routing chain display (e.g., "RainyModel >> OpenRouter >> GPT5 Pro")
+  if (metrics?.routingChain) {
+    parts.push(`${metrics.costTierSymbol || ""} ${metrics.routingChain}`);
+  } else if (metrics?.model) {
+    parts.push(metrics.model);
+  }
+
+  // Duration and throughput
+  if (metrics?.duration && metrics?.outputTps) {
+    parts.push(
+      `${formatDuration(metrics.duration)} (${formatTps(metrics.outputTps)} tok/s)`
+    );
+  }
+
+  // Token usage
+  const promptTokens = metrics?.prompt_tokens || 0;
+  const completionTokens = metrics?.completion_tokens || 0;
+  const totalTokens = promptTokens + completionTokens;
+  if (totalTokens > 0) {
+    parts.push(`${numberWithCommas(totalTokens)} tokens`);
+  }
+
+  // Cost estimate
+  if (metrics?.costTierLabel) {
+    const costStr = estimateCost(promptTokens, completionTokens, metrics.costTierLabel);
+    parts.push(costStr);
+  }
+
+  // Timestamp
+  if (metrics?.timestamp) {
+    parts.push(formatDateTimeAsMoment(metrics.timestamp, "MMM D, h:mm A"));
+  }
+
+  return parts.filter(Boolean).join(" \u00B7 ");
 }
 
 /**

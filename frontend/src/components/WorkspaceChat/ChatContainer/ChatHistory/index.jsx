@@ -375,7 +375,16 @@ function buildMessages({
           isLastMessage={isLastBotReply}
           saveEditedMessage={saveEditedMessage}
           forkThread={forkThread}
-          metrics={props.metrics}
+          metrics={{
+            ...props.metrics,
+            routingChain: props.routingChain,
+            costTierSymbol: props.costTierSymbol,
+            costTierLabel: props.costTierLabel,
+            actualModel: props.actualModel,
+          }}
+          routingChain={props.routingChain}
+          costTierSymbol={props.costTierSymbol}
+          costTierLabel={props.costTierLabel}
           alignmentCls={getMessageAlignment?.(props.role)}
         />
       );
