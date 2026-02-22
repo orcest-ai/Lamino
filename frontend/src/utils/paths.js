@@ -58,7 +58,7 @@ export default {
   chatModes: () => {
     return "https://orcest.ai/docs/features/chat-modes";
   },
-  mailToSupport: () => {
+  mailToOrcest: () => {
     return "mailto:support@orcest.ai";
   },
   hosting: () => {
